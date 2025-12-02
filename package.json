@@ -1,0 +1,30 @@
+{
+	"name": "fair-tools",
+	"version": "0.1.0",
+	"description": "Tools for the FAIR protocol",
+	"type": "module",
+	"main": "index.js",
+	"bin": {
+		"fair-keygen": "./src/cli/keygen.js",
+		"fair-create-did": "./src/cli/create-did.js",
+		"fair-update-did": "./src/cli/update-did.js",
+		"fair-build-metadata": "./src/cli/build-metadata.js"
+	},
+	"exports": {
+		".": "./index.js"
+	},
+	"scripts": {
+		"test": "node --test src/",
+		"create-did": "node src/cli/create-did.js",
+		"update-did": "node src/cli/update-did.js",
+		"build-metadata": "node src/cli/build-metadata.js"
+	},
+	"keywords": [
+		"fair"
+	],
+	"license": "MIT",
+	"dependencies": {
+		"@atproto/crypto": "^0.4.4",
+		"@did-plc/lib": "^0.0.4"
+	}
+}
