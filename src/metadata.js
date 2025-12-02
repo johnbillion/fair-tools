@@ -30,7 +30,7 @@ export const METADATA_CONTEXT = 'https://fair.pm/ns/metadata/v1';
 export const RELEASE_CONTEXT = 'https://fair.pm/ns/release/v1';
 
 /**
- * Calculate SHA-256 checksum of data.
+ * Calculates SHA-256 checksum of data.
  *
  * @param {Buffer|Uint8Array|string} data - File contents or path to file
  * @returns {Promise<string>} Checksum in format 'sha256:...'
@@ -45,7 +45,7 @@ export async function calculateChecksum(data) {
 }
 
 /**
- * Sign an artifact checksum.
+ * Signs artifact data using the verification keypair.
  *
  * Signs the checksum string with a secp256k1 verification key.
  *
@@ -59,7 +59,7 @@ export async function signArtifact(checksum, keypair) {
 }
 
 /**
- * Verify an artifact signature.
+ * Verifies an artifact signature.
  *
  * @param {string} checksum - Checksum string (e.g., 'sha256:abc123...')
  * @param {string} signature - Base64url-encoded signature
@@ -72,7 +72,7 @@ export async function verifyArtifact(checksum, signature, publicKey) {
 }
 
 /**
- * Parse WordPress plugin headers from PHP file content.
+ * Parses WordPress plugin headers from PHP file content.
  *
  * @param {string} content - PHP file content
  * @returns {object} Parsed headers
@@ -107,7 +107,7 @@ export function parsePluginHeaders(content) {
 }
 
 /**
- * Parse WordPress readme.txt file content.
+ * Parses WordPress readme.txt file content.
  *
  * Extracts license, keywords, and short description.
  *
@@ -162,7 +162,7 @@ export function parseReadmeFile(content) {
 }
 
 /**
- * Try to find SPDX license from package.json or composer.json.
+ * Tries to find SPDX license from package.json or composer.json.
  *
  * @param {string} pluginDir - Plugin directory path
  * @returns {Promise<string|null>} SPDX license identifier or null
@@ -194,7 +194,7 @@ async function findSpdxLicense(pluginDir) {
 }
 
 /**
- * Create a metadata document for a package.
+ * Creates a metadata document for a package.
  *
  * @param {object} options
  * @param {string} options.id - Package DID (did:plc:... or did:web:...)
@@ -246,7 +246,7 @@ export function createMetadataDocument(options) {
 }
 
 /**
- * Create a release document for a specific version.
+ * Creates a release document for a specific version.
  *
  * @param {object} options
  * @param {string} options.version - Semantic version string
@@ -279,7 +279,7 @@ export function createReleaseDocument(options) {
 }
 
 /**
- * Create an artifact entry for a release.
+ * Creates an artifact entry for a release.
  *
  * @param {object} options
  * @param {string} options.url - Download URL
@@ -298,7 +298,7 @@ export function createArtifact(options) {
 }
 
 /**
- * Create a signed artifact entry.
+ * Creates a signed artifact entry.
  *
  * @param {object} options
  * @param {string} options.url - Download URL
@@ -316,7 +316,7 @@ export async function createSignedArtifact(options) {
 }
 
 /**
- * Build complete FAIR metadata for a WordPress plugin release.
+ * Builds complete FAIR metadata for a WordPress plugin release.
  *
  * @param {object} options
  * @param {string} options.did - Package DID
