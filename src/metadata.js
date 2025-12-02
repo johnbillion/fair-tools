@@ -12,10 +12,6 @@ import * as uint8arrays from 'uint8arrays';
 import { signWithVerificationKey, verifyWithVerificationKey } from './keys.js';
 
 /**
- * @typedef {import('@atproto/crypto').Secp256k1Keypair} Secp256k1Keypair
- */
-
-/**
  * JSON-LD context for metadata documents.
  *
  * @type {string}
@@ -47,28 +43,33 @@ export async function calculateChecksum(data) {
 /**
  * Signs artifact data using the verification keypair.
  *
- * Signs the checksum string with a secp256k1 verification key.
+ * Signs the SHA-384 hash of the raw artifact data, matching the format
+ * expected by WordPress's verify_file_signature() function.
  *
- * @param {string} checksum - Checksum string (e.g., 'sha256:abc123...')
- * @param {Secp256k1Keypair} keypair - The keypair to sign with
+ * @param {Buffer|Uint8Array} data - Raw artifact data (e.g., zip file contents)
+ * @param {object} keypair - The verification keypair to sign with
  * @returns {Promise<string>} Base64url-encoded signature
  */
-export async function signArtifact(checksum, keypair) {
-	const sig = await signWithVerificationKey(checksum, keypair);
+export async function signArtifact(data, keypair) {
+	const hash = createHash('sha384').update(data).digest();
+	const sig = await signWithVerificationKey(hash, keypair);
 	return uint8arrays.toString(sig, 'base64url');
 }
 
 /**
  * Verifies an artifact signature.
  *
- * @param {string} checksum - Checksum string (e.g., 'sha256:abc123...')
+ * Verifies the Ed25519 signature against the SHA-384 hash of the data.
+ *
+ * @param {Buffer|Uint8Array} data - Raw artifact data
  * @param {string} signature - Base64url-encoded signature
- * @param {string} publicKey - The did:key formatted public key
+ * @param {object} keypair - The verification keypair (public key) to verify with
  * @returns {Promise<boolean>} True if signature is valid
  */
-export async function verifyArtifact(checksum, signature, publicKey) {
+export async function verifyArtifact(data, signature, keypair) {
+	const hash = createHash('sha384').update(data).digest();
 	const sig = uint8arrays.fromString(signature, 'base64url');
-	return verifyWithVerificationKey(checksum, sig, publicKey);
+	return verifyWithVerificationKey(hash, sig, keypair);
 }
 
 /**
@@ -300,17 +301,20 @@ export function createArtifact(options) {
 /**
  * Creates a signed artifact entry.
  *
+ * Signs the artifact data using Ed25519 over the SHA-384 hash, matching the
+ * format expected by the verify_file_signature() function in WordPress.
+ *
  * @param {object} options
  * @param {string} options.url - Download URL
  * @param {Buffer|Uint8Array} options.data - File contents to checksum and sign
- * @param {Secp256k1Keypair} options.keypair - Keypair for signing
+ * @param {object} options.keypair - Verification keypair for signing
  * @returns {Promise<object>} Artifact with url, checksum, and signature
  */
 export async function createSignedArtifact(options) {
 	const { url, data, keypair } = options;
 
 	const checksum = await calculateChecksum(data);
-	const signature = await signArtifact(checksum, keypair);
+	const signature = await signArtifact(data, keypair);
 
 	return createArtifact({ url, checksum, signature });
 }
