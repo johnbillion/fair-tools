@@ -16,3 +16,18 @@ export {
 	updateDID,
 } from './src/did.js';
 
+// Metadata utilities
+export {
+	METADATA_CONTEXT,
+	RELEASE_CONTEXT,
+	calculateChecksum,
+	signArtifact,
+	verifyArtifact,
+	parsePluginHeaders,
+	parseReadmeFile,
+	createMetadataDocument,
+	createReleaseDocument,
+	createArtifact,
+	createSignedArtifact,
+	buildMetadata,
+} from './src/metadata.js';
