@@ -1,0 +1,217 @@
+import { describe, it } from 'node:test';
+import assert from 'node:assert';
+import {
+	SECP256K1_DID_PREFIX,
+	generateVerificationKeyPair,
+	generateRotationKeyPair,
+	importVerificationKeyPair,
+	importRotationKeyPair,
+	signWithVerificationKey,
+	verifyWithVerificationKey,
+	signWithRotationKey,
+	verifyWithRotationKey,
+} from './keys.js';
+
+describe('generate verification key pair', () => {
+	it('returns an object with publicKey, privateKey, and keypair', async () => {
+		const result = await generateVerificationKeyPair();
+
+		assert.ok(result.publicKey, 'publicKey should exist');
+		assert.ok(result.privateKey, 'privateKey should exist');
+		assert.ok(result.keypair, 'keypair should exist');
+	});
+
+	it('returns a valid did:key public key', async () => {
+		const result = await generateVerificationKeyPair();
+
+		assert.ok(result.publicKey.startsWith(SECP256K1_DID_PREFIX), 'publicKey should be a secp256k1 did:key');
+	});
+
+	it('returns a 32-byte private key', async () => {
+		const result = await generateVerificationKeyPair();
+
+		assert.ok(result.privateKey instanceof Uint8Array, 'privateKey should be a Uint8Array');
+		assert.strictEqual(result.privateKey.length, 32, 'privateKey should be 32 bytes');
+	});
+
+	it('generates unique keys each call', async () => {
+		const result1 = await generateVerificationKeyPair();
+		const result2 = await generateVerificationKeyPair();
+
+		assert.notStrictEqual(result1.publicKey, result2.publicKey, 'publicKeys should be different');
+	});
+});
+
+describe('generate rotation key pair', () => {
+	it('returns an object with publicKey, privateKey, and keypair', async () => {
+		const result = await generateRotationKeyPair();
+
+		assert.ok(result.publicKey, 'publicKey should exist');
+		assert.ok(result.privateKey, 'privateKey should exist');
+		assert.ok(result.keypair, 'keypair should exist');
+	});
+
+	it('returns a valid did:key public key', async () => {
+		const result = await generateRotationKeyPair();
+
+		assert.ok(result.publicKey.startsWith(SECP256K1_DID_PREFIX), 'publicKey should be a secp256k1 did:key');
+	});
+
+	it('returns a 32-byte private key', async () => {
+		const result = await generateRotationKeyPair();
+
+		assert.ok(result.privateKey instanceof Uint8Array, 'privateKey should be a Uint8Array');
+		assert.strictEqual(result.privateKey.length, 32, 'privateKey should be 32 bytes');
+	});
+});
+
+describe('import verification key pair', () => {
+	it('imports a private key and produces the same public key', async () => {
+		const original = await generateVerificationKeyPair();
+		const imported = await importVerificationKeyPair(original.privateKey);
+
+		assert.strictEqual(imported.publicKey, original.publicKey, 'publicKeys should match');
+	});
+
+	it('works with hex string input', async () => {
+		const original = await generateVerificationKeyPair();
+		const hexPrivateKey = Buffer.from(original.privateKey).toString('hex');
+		const imported = await importVerificationKeyPair(hexPrivateKey);
+
+		assert.strictEqual(imported.publicKey, original.publicKey, 'publicKeys should match');
+	});
+
+	it('returns a working keypair for signing', async () => {
+		const original = await generateVerificationKeyPair();
+		const imported = await importVerificationKeyPair(original.privateKey);
+
+		const message = 'test message';
+		const signature = await signWithVerificationKey(message, imported.keypair);
+		const isValid = await verifyWithVerificationKey(message, signature, imported.publicKey);
+
+		assert.strictEqual(isValid, true, 'signature should be valid');
+	});
+});
+
+describe('import rotation key pair', () => {
+	it('imports a private key and produces the same public key', async () => {
+		const original = await generateRotationKeyPair();
+		const imported = await importRotationKeyPair(original.privateKey);
+
+		assert.strictEqual(imported.publicKey, original.publicKey, 'publicKeys should match');
+	});
+
+	it('works with hex string input', async () => {
+		const original = await generateRotationKeyPair();
+		const hexPrivateKey = Buffer.from(original.privateKey).toString('hex');
+		const imported = await importRotationKeyPair(hexPrivateKey);
+
+		assert.strictEqual(imported.publicKey, original.publicKey, 'publicKeys should match');
+	});
+});
+
+describe('sign and verify with verification key', () => {
+	it('signature verifies with correct message and public key', async () => {
+		const keys = await generateVerificationKeyPair();
+		const message = 'Hello, FAIR Protocol!';
+
+		const signature = await signWithVerificationKey(message, keys.keypair);
+		const isValid = await verifyWithVerificationKey(message, signature, keys.publicKey);
+
+		assert.strictEqual(isValid, true, 'signature should be valid');
+	});
+
+	it('signature fails with wrong message', async () => {
+		const keys = await generateVerificationKeyPair();
+		const message = 'Hello, FAIR Protocol!';
+
+		const signature = await signWithVerificationKey(message, keys.keypair);
+		const isValid = await verifyWithVerificationKey('Wrong message', signature, keys.publicKey);
+
+		assert.strictEqual(isValid, false, 'signature should be invalid');
+	});
+
+	it('signature fails with wrong public key', async () => {
+		const keys1 = await generateVerificationKeyPair();
+		const keys2 = await generateVerificationKeyPair();
+		const message = 'Hello, FAIR Protocol!';
+
+		const signature = await signWithVerificationKey(message, keys1.keypair);
+		const isValid = await verifyWithVerificationKey(message, signature, keys2.publicKey);
+
+		assert.strictEqual(isValid, false, 'signature should be invalid');
+	});
+
+	it('works with string messages', async () => {
+		const keys = await generateVerificationKeyPair();
+		const message = 'string message';
+
+		const signature = await signWithVerificationKey(message, keys.keypair);
+		const isValid = await verifyWithVerificationKey(message, signature, keys.publicKey);
+
+		assert.strictEqual(isValid, true, 'signature should be valid');
+	});
+
+	it('works with Uint8Array messages', async () => {
+		const keys = await generateVerificationKeyPair();
+		const message = new TextEncoder().encode('binary message');
+
+		const signature = await signWithVerificationKey(message, keys.keypair);
+		const isValid = await verifyWithVerificationKey(message, signature, keys.publicKey);
+
+		assert.strictEqual(isValid, true, 'signature should be valid');
+	});
+
+	it('returns a 64-byte signature', async () => {
+		const keys = await generateVerificationKeyPair();
+		const message = 'test';
+
+		const signature = await signWithVerificationKey(message, keys.keypair);
+
+		assert.ok(signature instanceof Uint8Array, 'signature should be a Uint8Array');
+		assert.strictEqual(signature.length, 64, 'signature should be 64 bytes (compact format)');
+	});
+});
+
+describe('sign and verify with rotation key', () => {
+	it('signature verifies with correct message and public key', async () => {
+		const keys = await generateRotationKeyPair();
+		const message = 'Rotate my keys!';
+
+		const signature = await signWithRotationKey(message, keys.keypair);
+		const isValid = await verifyWithRotationKey(message, signature, keys.publicKey);
+
+		assert.strictEqual(isValid, true, 'signature should be valid');
+	});
+
+	it('signature fails with wrong message', async () => {
+		const keys = await generateRotationKeyPair();
+		const message = 'Rotate my keys!';
+
+		const signature = await signWithRotationKey(message, keys.keypair);
+		const isValid = await verifyWithRotationKey('Wrong message', signature, keys.publicKey);
+
+		assert.strictEqual(isValid, false, 'signature should be invalid');
+	});
+
+	it('signature fails with wrong public key', async () => {
+		const keys1 = await generateRotationKeyPair();
+		const keys2 = await generateRotationKeyPair();
+		const message = 'Rotate my keys!';
+
+		const signature = await signWithRotationKey(message, keys1.keypair);
+		const isValid = await verifyWithRotationKey(message, signature, keys2.publicKey);
+
+		assert.strictEqual(isValid, false, 'signature should be invalid');
+	});
+
+	it('works with Uint8Array messages', async () => {
+		const keys = await generateRotationKeyPair();
+		const message = new TextEncoder().encode('binary rotation message');
+
+		const signature = await signWithRotationKey(message, keys.keypair);
+		const isValid = await verifyWithRotationKey(message, signature, keys.publicKey);
+
+		assert.strictEqual(isValid, true, 'signature should be valid');
+	});
+});
