@@ -4,7 +4,7 @@ import { parseArgs } from 'node:util';
 import { importRotationKeyPair } from '../keys.js';
 import { updateDID } from '../did.js';
 import { loadRotationKey, SigningKeyError } from './signing.js';
-import { formatPlcError } from './plc-error.js';
+import { logPlcError } from './plc-error.js';
 
 const { values } = parseArgs({
 	options: {
@@ -74,7 +74,7 @@ try {
 	}
 	throw err;
 }
-const { keypair } = await importRotationKeyPair(privateKeyHex);
+const { keypair, publicKey: signerPublicKey } = await importRotationKeyPair(privateKeyHex);
 
 console.log(`Updating DID ${values.did}...`);
 
@@ -85,7 +85,7 @@ try {
 		signer: keypair,
 	});
 } catch (err) {
-	console.error(`Error updating DID: ${formatPlcError(err)}`);
+	logPlcError('Error updating DID', err, { signerPublicKey });
 	process.exit(1);
 }
 

@@ -5,7 +5,7 @@ import { importRotationKeyPair, generateRotationKeyPair } from '../keys.js';
 import { addRotationKey } from '../did.js';
 import { loadRotationKey, SigningKeyError } from './signing.js';
 import { saveKeyToFile, SaveKeyError } from './save-key.js';
-import { formatPlcError } from './plc-error.js';
+import { logPlcError } from './plc-error.js';
 
 const { values } = parseArgs({
 	options: {
@@ -76,7 +76,7 @@ try {
 	}
 	throw err;
 }
-const { keypair: signer } = await importRotationKeyPair(privateKeyHex);
+const { keypair: signer, publicKey: signerPublicKey } = await importRotationKeyPair(privateKeyHex);
 
 // Validate that we have somewhere to save the new key
 if (!values['output-file'] && !keyData) {
@@ -97,7 +97,7 @@ try {
 		signer,
 	});
 } catch (err) {
-	console.error(`Error adding rotation key: ${formatPlcError(err)}`);
+	logPlcError('Error adding rotation key', err, { signerPublicKey });
 	process.exit(1);
 }
 

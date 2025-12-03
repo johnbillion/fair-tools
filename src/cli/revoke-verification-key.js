@@ -5,7 +5,7 @@ import { parseArgs } from 'node:util';
 import { importRotationKeyPair } from '../keys.js';
 import { revokeVerificationKey } from '../did.js';
 import { loadRotationKey, SigningKeyError } from './signing.js';
-import { formatPlcError } from './plc-error.js';
+import { logPlcError } from './plc-error.js';
 
 const { values } = parseArgs({
 	options: {
@@ -101,7 +101,7 @@ try {
 		signer,
 	});
 } catch (err) {
-	console.error(`Error revoking verification key: ${formatPlcError(err)}`);
+	logPlcError('Error revoking verification key', err, { signerPublicKey });
 	process.exit(1);
 }
 
