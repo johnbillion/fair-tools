@@ -124,19 +124,30 @@ if (values['metadata-file']) {
 }
 
 // Build the metadata
-const metadata = await buildMetadata({
-	did: values.did,
-	keypair,
-	pluginFile: values['plugin-file'],
-	zipFile: values['zip-file'],
-	downloadUrl: values.url,
-	existingReleases,
-});
+let metadata;
+try {
+	metadata = await buildMetadata({
+		did: values.did,
+		keypair,
+		pluginFile: values['plugin-file'],
+		zipFile: values['zip-file'],
+		downloadUrl: values.url,
+		existingReleases,
+	});
+} catch (err) {
+	console.error(`Error building metadata: ${err.message}`);
+	process.exit(1);
+}
 
 const output = JSON.stringify(metadata, null, 2);
 
 if (values['output-file']) {
-	await writeFile(values['output-file'], output + '\n');
+	try {
+		await writeFile(values['output-file'], output + '\n');
+	} catch (err) {
+		console.error(`Error writing output file: ${err.message}`);
+		process.exit(1);
+	}
 	console.log(`Metadata written to ${values['output-file']}`);
 } else {
 	console.log(output);
