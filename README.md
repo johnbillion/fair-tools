@@ -30,12 +30,24 @@ This generates rotation and verification keypairs, creates a DID, publishes it t
 Builds signed FAIR metadata for a WordPress plugin release.
 
 ```bash
+# Local usage with key file
 npm run build-metadata -- \
-  --keyfile ./dids/did:plc:xxx.json \
-  --plugin ./my-plugin/my-plugin.php \
-  --zip ./my-plugin.zip \
+  --did did:plc:xxx \
+  --signing-file ./dids/did:plc:xxx.json \
+  --plugin-file ./my-plugin/my-plugin.php \
+  --zip-file ./my-plugin.zip \
   --url https://example.com/releases/my-plugin-1.0.0.zip \
-  --output ./metadata.json
+  --metadata-file ./metadata.json \
+  --output-file ./metadata.json
+
+# CI usage with environment variable (set FAIR_PRIVATE_KEY)
+npm run build-metadata -- \
+  --did did:plc:xxx \
+  --plugin-file ./my-plugin/my-plugin.php \
+  --zip-file ./my-plugin.zip \
+  --url https://example.com/releases/my-plugin-1.0.0.zip \
+  --metadata-file ./metadata.json \
+  --output-file ./metadata.json
 ```
 
 Use `--signing-key` to specify which verification key to use from the key file (defaults to first key). If `--signing-file` is not provided, the `FAIR_PRIVATE_KEY` environment variable is used.
