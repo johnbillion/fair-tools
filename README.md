@@ -2,6 +2,13 @@
 
 Tools for the FAIR protocol. Create keys, create and manage DIDs, and build signed metadata for WordPress plugins.
 
+> [!CAUTION]  
+> This package is not production ready and is under heavy development. Do not use this unless you are comfortable testing the FAIR protocol and ecosystem and for things to change and break.
+
+> [!IMPORTANT]  
+> This is not an official FAIR tool.  
+> The license of this repo does facilitate it being transferred to The FAIR Web Foundation at a later date should they wish.
+
 ## Installation
 
 ```bash
@@ -9,6 +16,16 @@ npm install fair-tools
 ```
 
 ## Basic usage
+
+The basic steps to set up a plugin for distribution via FAIR is:
+
+- Create a DID.
+- Save the generated signing keys somewhere safe.
+- Add the DID to your plugin header and publish it.
+- Build FAIR metadata for the package and publish it.
+- Point your DID to the metadata document.
+
+The DID and key setup is only required once. Subsequent updates to your plugin just require you to build the FAIR metadata for the package and publish it.
 
 ### Create a DID
 
