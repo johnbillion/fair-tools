@@ -32,6 +32,8 @@ export function getKeyFilePath(directory, did) {
 /**
  * Formats the DID key file content.
  *
+ * Keys are stored as objects keyed by public key.
+ *
  * @param {object} options
  * @param {string} options.did - The DID
  * @param {object} options.rotationKey - The rotation key pair
@@ -45,13 +47,11 @@ export function getKeyFilePath(directory, did) {
 export function formatKeyFileContent({ did, rotationKey, verificationKey }) {
 	return JSON.stringify({
 		did,
-		rotationKey: {
-			publicKey: rotationKey.publicKey,
-			privateKey: Buffer.from(rotationKey.privateKey).toString('hex'),
+		rotationKeys: {
+			[rotationKey.publicKey]: Buffer.from(rotationKey.privateKey).toString('hex'),
 		},
-		verificationKey: {
-			publicKey: verificationKey.publicKey,
-			privateKey: Buffer.from(verificationKey.privateKey).toString('hex'),
+		verificationKeys: {
+			[verificationKey.publicKey]: Buffer.from(verificationKey.privateKey).toString('hex'),
 		},
 	}, null, 2);
 }

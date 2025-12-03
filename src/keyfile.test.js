@@ -32,10 +32,8 @@ describe('formatKeyFileContent', () => {
 		const parsed = JSON.parse(content);
 
 		assert.strictEqual(parsed.did, 'did:plc:test123');
-		assert.strictEqual(parsed.rotationKey.publicKey, 'did:key:zQ3shRotation');
-		assert.strictEqual(parsed.rotationKey.privateKey, '01020304');
-		assert.strictEqual(parsed.verificationKey.publicKey, 'did:key:z6MkVerification');
-		assert.strictEqual(parsed.verificationKey.privateKey, 'aabbccdd');
+		assert.deepStrictEqual(parsed.rotationKeys, { 'did:key:zQ3shRotation': '01020304' });
+		assert.deepStrictEqual(parsed.verificationKeys, { 'did:key:z6MkVerification': 'aabbccdd' });
 	});
 
 	it('produces valid JSON', () => {
