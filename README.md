@@ -97,6 +97,19 @@ Use `--signing-key` to specify which rotation key to use from the key file (defa
 
 Use `--output-file` to save the new key to a different file instead of the signing file.
 
+### Revoke rotation key
+
+Revokes a rotation key from an existing DID. You cannot revoke the key used to sign the operation, and at least one rotation key must remain.
+
+```bash
+npm run revoke-rotation-key -- \
+  --did did:plc:xxx \
+  --revoke did:key:zQ3sh... \
+  --signing-file ./dids/did:plc:xxx.json
+```
+
+Use `--signing-key` to specify which rotation key to use for signing (defaults to first available that isn't being revoked). Use `--cleanup` to delete the revoked key from the key file after success.
+
 ## License
 
 MIT

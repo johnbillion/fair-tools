@@ -16,6 +16,7 @@ export {
 	updateDID,
 	addVerificationKey,
 	addRotationKey,
+	revokeRotationKey,
 } from './src/did.js';
 
 // Metadata utilities

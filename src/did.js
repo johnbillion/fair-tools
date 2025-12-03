@@ -244,4 +244,47 @@ export async function addRotationKey({ did, rotationKey, signer, plcUrl = PLC_DI
 	const client = createPlcClient(plcUrl);
 	await client.updateData(did, signer, (lastOp) => addRotationKeyToOp(lastOp, rotationKey));
 }
+
+/**
+ * Creates an updated operation with a rotation key removed.
+ *
+ * @param {object} lastOp - The previous operation
+ * @param {string} rotationKey - The rotation key to revoke (did:key format)
+ * @returns {object} The updated operation
+ * @throws {Error} If the rotation key is not found or is the last one
+ */
+export function revokeRotationKeyFromOp(lastOp, rotationKey) {
+	if (!lastOp.rotationKeys.includes(rotationKey)) {
+		throw new Error(`Rotation key ${rotationKey} not found in DID`);
+	}
+	const remaining = lastOp.rotationKeys.filter((k) => k !== rotationKey);
+	if (remaining.length === 0) {
+		throw new Error('Cannot revoke the last rotation key');
+	}
+	return {
+		...lastOp,
+		rotationKeys: remaining,
+	};
+}
+
+/**
+ * Revokes a rotation key from an existing DID.
+ *
+ * Removes the specified rotation key from the DID document.
+ * Cannot remove the last rotation key - at least one must remain.
+ *
+ * @param {object} opts - Options
+ * @param {string} opts.did - The DID to update
+ * @param {string} opts.rotationKey - The rotation key to revoke (did:key format)
+ * @param {Secp256k1Keypair} opts.signer - The keypair to sign with (must be an existing rotation key)
+ * @param {string} [opts.plcUrl] - The PLC directory URL (defaults to https://plc.directory)
+ * @returns {Promise<void>}
+ */
+export async function revokeRotationKey({ did, rotationKey, signer, plcUrl = PLC_DIRECTORY_URL }) {
+	const signerPublicKey = signer.did();
+	if (rotationKey === signerPublicKey) {
+		throw new Error('Cannot revoke the rotation key used to sign this operation');
+	}
+	const client = createPlcClient(plcUrl);
+	await client.updateData(did, signer, (lastOp) => revokeRotationKeyFromOp(lastOp, rotationKey));
 }

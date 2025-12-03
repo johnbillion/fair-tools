@@ -5,6 +5,7 @@ import {
 	generateVerificationKeyId,
 	addVerificationKeyToOp,
 	addRotationKeyToOp,
+	revokeRotationKeyFromOp,
 	updateServiceUrlInOp,
 	FAIR_SERVICE_ID,
 	FAIR_SERVICE_TYPE,
@@ -201,3 +202,53 @@ describe('addRotationKeyToOp', () => {
 		assert.deepStrictEqual(result.services, lastOp.services);
 	});
 });
+describe('revokeRotationKeyFromOp', () => {
+	it('removes the specified rotation key', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh1', 'did:key:zQ3sh2'],
+		};
+		const result = revokeRotationKeyFromOp(lastOp, 'did:key:zQ3sh1');
+
+		assert.deepStrictEqual(result.rotationKeys, ['did:key:zQ3sh2']);
+	});
+
+	it('throws if rotation key not found', () => {
+		const lastOp = {
+			verificationMethods: {},
+			rotationKeys: ['did:key:zQ3sh1'],
+		};
+
+		assert.throws(
+			() => revokeRotationKeyFromOp(lastOp, 'did:key:zQ3shNotFound'),
+			/Rotation key did:key:zQ3shNotFound not found in DID/
+		);
+	});
+
+	it('throws if trying to remove the last rotation key', () => {
+		const lastOp = {
+			verificationMethods: {},
+			rotationKeys: ['did:key:zQ3shOnly'],
+		};
+
+		assert.throws(
+			() => revokeRotationKeyFromOp(lastOp, 'did:key:zQ3shOnly'),
+			/Cannot revoke the last rotation key/
+		);
+	});
+
+	it('preserves other operation properties', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh1', 'did:key:zQ3sh2'],
+			alsoKnownAs: ['at://example.com'],
+			services: { test: { type: 'Test', endpoint: 'https://example.com' } },
+		};
+		const result = revokeRotationKeyFromOp(lastOp, 'did:key:zQ3sh1');
+
+		assert.deepStrictEqual(result.verificationMethods, lastOp.verificationMethods);
+		assert.deepStrictEqual(result.alsoKnownAs, lastOp.alsoKnownAs);
+		assert.deepStrictEqual(result.services, lastOp.services);
+	});
+});
+

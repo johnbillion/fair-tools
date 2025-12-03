@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import {
 	loadRotationKey,
 	loadVerificationKey,
+	loadRotationKeyForRevocation,
 	SigningKeyError,
 } from './signing.js';
 
@@ -247,4 +248,164 @@ describe('signing.js', () => {
 		});
 	});
 
+	describe('loadRotationKeyForRevocation', () => {
+		it('throws when key file does not exist', async () => {
+			await assert.rejects(
+				loadRotationKeyForRevocation({
+					signingFile: '/nonexistent/path.json',
+					revokeKey: 'did:key:zQ3sh...',
+				}),
+				(err) => {
+					assert(err instanceof SigningKeyError);
+					assert.match(err.message, /Error reading key file/);
+					return true;
+				}
+			);
+		});
+
+		it('throws when key file has no rotation keys', async () => {
+			await mkdir(testDir, { recursive: true });
+			const filePath = join(testDir, 'revoke-empty.json');
+			await writeFile(filePath, JSON.stringify({ did: 'did:plc:test', rotationKeys: {} }));
+
+			await assert.rejects(
+				loadRotationKeyForRevocation({ signingFile: filePath, revokeKey: 'did:key:zQ3sh...' }),
+				(err) => {
+					assert(err instanceof SigningKeyError);
+					assert.match(err.message, /must contain at least one rotation key/);
+					return true;
+				}
+			);
+		});
+
+		it('throws when specified signing key not found', async () => {
+			await mkdir(testDir, { recursive: true });
+			const filePath = join(testDir, 'revoke-notfound.json');
+			await writeFile(filePath, JSON.stringify(sampleKeyFile));
+
+			await assert.rejects(
+				loadRotationKeyForRevocation({
+					signingFile: filePath,
+					signingKey: 'did:key:nonexistent',
+					revokeKey: 'did:key:zQ3shRotation1',
+				}),
+				(err) => {
+					assert(err instanceof SigningKeyError);
+					assert.match(err.message, /not found in key file/);
+					return true;
+				}
+			);
+		});
+
+		it('throws when signing key equals revoke key', async () => {
+			await mkdir(testDir, { recursive: true });
+			const filePath = join(testDir, 'revoke-same.json');
+			await writeFile(filePath, JSON.stringify(sampleKeyFile));
+
+			await assert.rejects(
+				loadRotationKeyForRevocation({
+					signingFile: filePath,
+					signingKey: 'did:key:zQ3shRotation1',
+					revokeKey: 'did:key:zQ3shRotation1',
+				}),
+				(err) => {
+					assert(err instanceof SigningKeyError);
+					assert.match(err.message, /Cannot use the key being revoked to sign/);
+					return true;
+				}
+			);
+		});
+
+		it('throws when only key in file is being revoked', async () => {
+			await mkdir(testDir, { recursive: true });
+			const filePath = join(testDir, 'revoke-only.json');
+			await writeFile(filePath, JSON.stringify({
+				did: 'did:plc:test',
+				rotationKeys: { 'did:key:zQ3shOnly': 'onlykey' },
+			}));
+
+			await assert.rejects(
+				loadRotationKeyForRevocation({
+					signingFile: filePath,
+					revokeKey: 'did:key:zQ3shOnly',
+				}),
+				(err) => {
+					assert(err instanceof SigningKeyError);
+					assert.match(err.message, /No signing key available/);
+					assert.match(err.message, /only rotation key in the file is the one being revoked/);
+					return true;
+				}
+			);
+		});
+
+		it('auto-selects key that is not being revoked', async () => {
+			await mkdir(testDir, { recursive: true });
+			const filePath = join(testDir, 'revoke-auto.json');
+			await writeFile(filePath, JSON.stringify(sampleKeyFile));
+
+			const result = await loadRotationKeyForRevocation({
+				signingFile: filePath,
+				revokeKey: 'did:key:zQ3shRotation1',
+			});
+
+			assert.strictEqual(result.signerPublicKey, 'did:key:zQ3shRotation2');
+			assert.strictEqual(result.privateKeyHex, 'eeff0011');
+		});
+
+		it('uses specified signing key when different from revoke key', async () => {
+			await mkdir(testDir, { recursive: true });
+			const filePath = join(testDir, 'revoke-specified.json');
+			await writeFile(filePath, JSON.stringify(sampleKeyFile));
+
+			const result = await loadRotationKeyForRevocation({
+				signingFile: filePath,
+				signingKey: 'did:key:zQ3shRotation2',
+				revokeKey: 'did:key:zQ3shRotation1',
+			});
+
+			assert.strictEqual(result.signerPublicKey, 'did:key:zQ3shRotation2');
+			assert.strictEqual(result.privateKeyHex, 'eeff0011');
+		});
+
+		it('loads from env var when no signing file', async () => {
+			const originalEnv = process.env.FAIR_ROTATION_KEY;
+			process.env.FAIR_ROTATION_KEY = 'envrevoke';
+
+			try {
+				const result = await loadRotationKeyForRevocation({
+					revokeKey: 'did:key:zQ3shSomeKey',
+				});
+
+				assert.strictEqual(result.privateKeyHex, 'envrevoke');
+				assert.strictEqual(result.signerPublicKey, null);
+				assert.strictEqual(result.keyData, null);
+			} finally {
+				if (originalEnv !== undefined) {
+					process.env.FAIR_ROTATION_KEY = originalEnv;
+				} else {
+					delete process.env.FAIR_ROTATION_KEY;
+				}
+			}
+		});
+
+		it('throws when env var not set and no signing file', async () => {
+			const originalEnv = process.env.FAIR_ROTATION_KEY;
+			delete process.env.FAIR_ROTATION_KEY;
+
+			try {
+				await assert.rejects(
+					loadRotationKeyForRevocation({ revokeKey: 'did:key:zQ3sh...' }),
+					(err) => {
+						assert(err instanceof SigningKeyError);
+						assert.match(err.message, /No signing key provided/);
+						return true;
+					}
+				);
+			} finally {
+				if (originalEnv !== undefined) {
+					process.env.FAIR_ROTATION_KEY = originalEnv;
+				}
+			}
+		});
+	});
 });

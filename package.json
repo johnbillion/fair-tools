@@ -10,6 +10,7 @@
 		"build-metadata": "./src/cli/build-metadata.js",
 		"add-verification-key": "./src/cli/add-verification-key.js",
 		"add-rotation-key": "./src/cli/add-rotation-key.js",
+		"revoke-rotation-key": "./src/cli/revoke-rotation-key.js"
 	},
 	"exports": {
 		".": "./index.js"
@@ -21,6 +22,7 @@
 		"build-metadata": "node src/cli/build-metadata.js",
 		"add-verification-key": "node src/cli/add-verification-key.js",
 		"add-rotation-key": "node src/cli/add-rotation-key.js",
+		"revoke-rotation-key": "node src/cli/revoke-rotation-key.js"
 	},
 	"keywords": [
 		"fair"
