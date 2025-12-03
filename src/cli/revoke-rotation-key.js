@@ -5,6 +5,7 @@ import { parseArgs } from 'node:util';
 import { importRotationKeyPair } from '../keys.js';
 import { revokeRotationKey } from '../did.js';
 import { loadRotationKeyForRevocation, SigningKeyError } from './signing.js';
+import { formatPlcError } from './plc-error.js';
 
 const { values } = parseArgs({
 	options: {
@@ -112,7 +113,7 @@ try {
 		signer,
 	});
 } catch (err) {
-	console.error(`Error revoking rotation key: ${err.message}`);
+	console.error(`Error revoking rotation key: ${formatPlcError(err)}`);
 	process.exit(1);
 }
 

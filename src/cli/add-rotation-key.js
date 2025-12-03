@@ -5,6 +5,7 @@ import { importRotationKeyPair, generateRotationKeyPair } from '../keys.js';
 import { addRotationKey } from '../did.js';
 import { loadRotationKey, SigningKeyError } from './signing.js';
 import { saveKeyToFile, SaveKeyError } from './save-key.js';
+import { formatPlcError } from './plc-error.js';
 
 const { values } = parseArgs({
 	options: {
@@ -96,7 +97,7 @@ try {
 		signer,
 	});
 } catch (err) {
-	console.error(`Error adding rotation key: ${err.message}`);
+	console.error(`Error adding rotation key: ${formatPlcError(err)}`);
 	process.exit(1);
 }
 

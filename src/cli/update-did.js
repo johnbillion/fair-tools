@@ -4,6 +4,7 @@ import { parseArgs } from 'node:util';
 import { importRotationKeyPair } from '../keys.js';
 import { updateDID } from '../did.js';
 import { loadRotationKey, SigningKeyError } from './signing.js';
+import { formatPlcError } from './plc-error.js';
 
 const { values } = parseArgs({
 	options: {
@@ -84,7 +85,7 @@ try {
 		signer: keypair,
 	});
 } catch (err) {
-	console.error(`Error updating DID: ${err.message}`);
+	console.error(`Error updating DID: ${formatPlcError(err)}`);
 	process.exit(1);
 }
 

@@ -10,6 +10,7 @@ import {
 	formatKeyFileContent,
 	writeKeyFile,
 } from '../keyfile.js';
+import { formatPlcError } from './plc-error.js';
 
 const { values } = parseArgs({
 	options: {
@@ -73,7 +74,7 @@ try {
 		keypair: rotationKey.keypair,
 	});
 } catch (err) {
-	console.error(`Error creating DID: ${err.message}`);
+	console.error(`Error creating DID: ${formatPlcError(err)}`);
 	process.exit(1);
 }
 
