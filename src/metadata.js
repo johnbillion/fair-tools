@@ -83,6 +83,7 @@ export function parsePluginHeaders(content) {
 	const headerMap = {
 		'Plugin Name': 'name',
 		'Plugin URI': 'pluginUri',
+		'Plugin ID': 'pluginId',
 		Description: 'description',
 		Version: 'version',
 		Author: 'author',
@@ -320,11 +321,112 @@ export async function createSignedArtifact(options) {
 }
 
 /**
- * Builds complete FAIR metadata for a WordPress plugin release.
+ * Builds complete FAIR metadata for a WordPress plugin release from content.
+ *
+ * This is the core metadata building function that works with string/buffer inputs.
+ * Use buildMetadata() for a file-based wrapper.
  *
  * @param {object} options
  * @param {string} options.did - Package DID
- * @param {Secp256k1Keypair} options.keypair - Keypair for signing artifacts
+ * @param {object} options.keypair - Verification keypair for signing artifacts
+ * @param {string} options.slug - Plugin slug
+ * @param {string} options.pluginContent - Content of the main plugin PHP file
+ * @param {string} [options.readmeContent] - Content of readme.txt (optional)
+ * @param {string} [options.spdxLicense] - SPDX license from package.json/composer.json
+ * @param {Buffer|Uint8Array} options.zipData - Plugin zip file contents
+ * @param {string} options.downloadUrl - Public download URL for the zip
+ * @param {Array} [options.existingReleases] - Existing releases to preserve
+ * @returns {Promise<object>} Complete metadata document with release
+ */
+export async function buildMetadataFromContent(options) {
+	const {
+		did,
+		keypair,
+		slug,
+		pluginContent,
+		readmeContent,
+		spdxLicense,
+		zipData,
+		downloadUrl,
+		existingReleases = [],
+	} = options;
+
+	// Parse plugin headers
+	const headers = parsePluginHeaders(pluginContent);
+
+	// Validate required headers
+	if (!headers.pluginId) {
+		throw new Error('Plugin file is missing required "Plugin ID:" header');
+	}
+	if (headers.pluginId !== did) {
+		throw new Error(`Plugin ID mismatch: plugin file has "${headers.pluginId}" but DID "${did}" was provided`);
+	}
+	if (!headers.version) {
+		throw new Error('Plugin file is missing required "Version:" header');
+	}
+
+	// Parse readme if provided
+	const readmeData = readmeContent ? parseReadmeFile(readmeContent) : {};
+
+	// Determine license
+	const license = spdxLicense || headers.license || readmeData.license || '';
+
+	// Build authors array
+	const authors = [];
+	if (headers.author) {
+		const author = { name: headers.author };
+		if (headers.authorUri) author.url = headers.authorUri;
+		authors.push(author);
+	}
+
+	// Create signed artifact
+	const artifact = await createSignedArtifact({
+		url: downloadUrl,
+		data: zipData,
+		keypair,
+	});
+
+	// Parse requirements
+	const requires = {};
+	if (headers.requiresWp) {
+		requires['env:wp'] = `>=${headers.requiresWp}`;
+	}
+	if (headers.requiresPhp) {
+		requires['env:php'] = `>=${headers.requiresPhp}`;
+	}
+
+	// Create release
+	const release = createReleaseDocument({
+		version: headers.version,
+		artifacts: {
+			package: [artifact],
+		},
+		requires,
+	});
+
+	// Create metadata document with new release prepended to existing ones
+	return createMetadataDocument({
+		id: did,
+		type: 'wp-plugin',
+		name: headers.name || slug,
+		slug,
+		description: headers.description || readmeData.shortDescription || '',
+		authors,
+		license,
+		keywords: (readmeData.keywords || []).slice(0, 5),
+		security: [],
+		releases: [release, ...existingReleases],
+	});
+}
+
+/**
+ * Builds complete FAIR metadata for a WordPress plugin release.
+ *
+ * File-based wrapper for buildMetadataFromContent().
+ *
+ * @param {object} options
+ * @param {string} options.did - Package DID
+ * @param {object} options.keypair - Verification keypair for signing artifacts
  * @param {string} options.pluginFile - Path to main plugin PHP file
  * @param {string} options.zipFile - Path to zip file
  * @param {string} options.downloadUrl - Public download URL for the zip
@@ -345,71 +447,32 @@ export async function buildMetadata(options) {
 	const pluginDir = dirname(pluginFile);
 	const slug = basename(pluginDir) !== '.' ? basename(pluginDir) : basename(pluginFile, '.php');
 
-	// Read and parse plugin headers
+	// Read plugin content
 	const pluginContent = await readFile(pluginFile, 'utf-8');
-	const headers = parsePluginHeaders(pluginContent);
 
-	// Try to find readme.txt
-	let readmeData = {};
+	// Try to read readme.txt
+	let readmeContent;
 	try {
-		const readmePath = join(pluginDir, 'readme.txt');
-		const readmeContent = await readFile(readmePath, 'utf-8');
-		readmeData = parseReadmeFile(readmeContent);
+		readmeContent = await readFile(join(pluginDir, 'readme.txt'), 'utf-8');
 	} catch {
 		// No readme.txt found
 	}
 
-	// Determine license
-	let license = await findSpdxLicense(pluginDir);
-	if (!license) {
-		license = headers.license || readmeData.license || '';
-	}
+	// Try to find SPDX license
+	const spdxLicense = await findSpdxLicense(pluginDir);
 
-	// Build authors array
-	const authors = [];
-	if (headers.author) {
-		const author = { name: headers.author };
-		if (headers.authorUri) author.url = headers.authorUri;
-		authors.push(author);
-	}
-
-	// Read zip and create signed artifact
+	// Read zip data
 	const zipData = await readFile(zipFile);
-	const artifact = await createSignedArtifact({
-		url: downloadUrl,
-		data: zipData,
+
+	return buildMetadataFromContent({
+		did,
 		keypair,
-	});
-
-	// Parse requirements
-	const requires = {};
-	if (headers.requiresWp) {
-		requires['env:wp'] = `>=${headers.requiresWp}`;
-	}
-	if (headers.requiresPhp) {
-		requires['env:php'] = `>=${headers.requiresPhp}`;
-	}
-
-	// Create release
-	const release = createReleaseDocument({
-		version: headers.version || '1.0.0',
-		artifacts: {
-			package: [artifact],
-		},
-		requires,
-	});
-
-	// Create metadata document with new release prepended to existing ones
-	return createMetadataDocument({
-		id: did,
-		type: 'wp-plugin',
-		name: headers.name || slug,
 		slug,
-		description: headers.description || readmeData.shortDescription || '',
-		authors,
-		license,
-		keywords: (readmeData.keywords || []).slice(0, 5),
-		security: [],
-		releases: [release, ...existingReleases],
+		pluginContent,
+		readmeContent,
+		spdxLicense,
+		zipData,
+		downloadUrl,
+		existingReleases,
 	});
 }

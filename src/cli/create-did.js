@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 
-import { writeFile, stat, mkdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { stat, mkdir } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { generateRotationKeyPair, generateVerificationKeyPair } from '../keys.js';
 import { createDID } from '../did.js';
+import {
+	KEY_DIR_MODE,
+	getKeyFilePath,
+	formatKeyFileContent,
+	writeKeyFile,
+} from '../keyfile.js';
 
 const { values } = parseArgs({
 	options: {
@@ -47,7 +52,7 @@ try {
 	}
 } catch (err) {
 	if (err.code === 'ENOENT') {
-		await mkdir(values.directory, { recursive: true, mode: 0o700 });
+		await mkdir(values.directory, { recursive: true, mode: KEY_DIR_MODE });
 	} else {
 		throw err;
 	}
@@ -67,7 +72,7 @@ const did = await createDID({
 });
 
 // Determine output path
-const outputPath = join(values.directory, `${did}.json`);
+const outputPath = getKeyFilePath(values.directory, did);
 
 // Check that the file doesn't already exist
 try {
@@ -80,19 +85,8 @@ try {
 	}
 }
 
-const output = JSON.stringify({
-	did,
-	rotationKey: {
-		publicKey: rotationKey.publicKey,
-		privateKey: Buffer.from(rotationKey.privateKey).toString('hex'),
-	},
-	verificationKey: {
-		publicKey: verificationKey.publicKey,
-		privateKey: Buffer.from(verificationKey.privateKey).toString('hex'),
-	},
-}, null, 2);
-
-await writeFile(outputPath, output + '\n', { mode: 0o600 });
+const output = formatKeyFileContent({ did, rotationKey, verificationKey });
+await writeKeyFile(outputPath, output);
 
 console.log(`DID created: ${did}`);
 console.log(`View at: https://web.plc.directory/did/${did}`);
