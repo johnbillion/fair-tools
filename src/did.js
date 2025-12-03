@@ -1,8 +1,4 @@
-import * as cbor from '@ipld/dag-cbor';
-import { sha256 } from '@atproto/crypto';
-import * as uint8arrays from 'uint8arrays';
-import { Client } from '@did-plc/lib';
-import { signWithRotationKey } from './keys.js';
+import { addSignature, Client, didForCreateOp } from '@did-plc/lib';
 
 /**
  * @typedef {import('@atproto/crypto').Secp256k1Keypair} Secp256k1Keypair
@@ -31,21 +27,6 @@ export const FAIR_SERVICE_TYPE = 'FairPackageManagementRepo';
  */
 export const FAIR_SERVICE_ID = 'fairpm_repo';
 
-/**
- * Generates a DID using a genesis operation.
- *
- * The DID is derived from the SHA-256 hash of the CBOR-encoded operation,
- * truncated to 24 characters and prefixed with `did:plc:`.
- *
- * @param {object} op - The genesis operation
- * @returns {Promise<string>} The generated DID
- */
-async function generateDIDFromGenesisOp(op) {
-	const hashOfGenesis = await sha256(cbor.encode(op));
-	const hashB32 = uint8arrays.toString(hashOfGenesis, 'base32');
-	const truncated = hashB32.slice(0, 24);
-	return `did:plc:${truncated}`;
-}
 
 /**
  * Creates an unsigned FAIR genesis operation.
@@ -87,13 +68,8 @@ function createGenesisOperation({ verificationKey, rotationKeys }) {
  */
 export async function generateDID({ verificationKey, rotationKey, keypair }) {
 	const unsigned = createGenesisOperation({ verificationKey, rotationKeys: [rotationKey] });
-	const data = new Uint8Array(cbor.encode(unsigned));
-	const sig = await signWithRotationKey(data, keypair);
-	const op = {
-		...unsigned,
-		sig: uint8arrays.toString(sig, 'base64url'),
-	};
-	const did = await generateDIDFromGenesisOp(op);
+	const op = await addSignature(unsigned, keypair);
+	const did = await didForCreateOp(op);
 	return { op, did };
 }
 
