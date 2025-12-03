@@ -65,11 +65,17 @@ console.log('Generating verification key...');
 const verificationKey = await generateVerificationKeyPair();
 
 console.log('Creating DID and publishing to plc.directory...');
-const did = await createDID({
-	verificationKey: verificationKey.publicKey,
-	rotationKey: rotationKey.publicKey,
-	keypair: rotationKey.keypair,
-});
+let did;
+try {
+	did = await createDID({
+		verificationKey: verificationKey.publicKey,
+		rotationKey: rotationKey.publicKey,
+		keypair: rotationKey.keypair,
+	});
+} catch (err) {
+	console.error(`Error creating DID: ${err.message}`);
+	process.exit(1);
+}
 
 // Determine output path
 const outputPath = getKeyFilePath(values.directory, did);
@@ -86,7 +92,12 @@ try {
 }
 
 const output = formatKeyFileContent({ did, rotationKey, verificationKey });
-await writeKeyFile(outputPath, output);
+try {
+	await writeKeyFile(outputPath, output);
+} catch (err) {
+	console.error(`Error writing key file: ${err.message}`);
+	process.exit(1);
+}
 
 console.log(`DID created: ${did}`);
 console.log(`View at: https://web.plc.directory/did/${did}`);

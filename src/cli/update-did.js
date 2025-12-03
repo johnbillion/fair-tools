@@ -77,11 +77,16 @@ const { keypair } = await importRotationKeyPair(privateKeyHex);
 
 console.log(`Updating DID ${values.did}...`);
 
-await updateDID({
-	did: values.did,
-	serviceUrl: values.url,
-	signer: keypair,
-});
+try {
+	await updateDID({
+		did: values.did,
+		serviceUrl: values.url,
+		signer: keypair,
+	});
+} catch (err) {
+	console.error(`Error updating DID: ${err.message}`);
+	process.exit(1);
+}
 
 console.log(`DID updated with service URL: ${values.url}`);
 console.log(`View at: https://web.plc.directory/did/${values.did}`);
