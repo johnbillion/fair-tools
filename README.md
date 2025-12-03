@@ -65,6 +65,38 @@ npm run update-did -- \
 
 Use `--signing-key` to specify which rotation key to use from the key file (defaults to first key). If `--signing-file` is not provided, the `FAIR_ROTATION_KEY` environment variable is used.
 
+## DID management
+
+Over time you may need to manage the keys for your DID.
+
+### Add verification key
+
+Generates a new verification key, adds it to an existing DID, and saves it to the key file.
+
+```bash
+npm run add-verification-key -- \
+  --did did:plc:xxx \
+  --signing-file ./dids/did:plc:xxx.json
+```
+
+Use `--signing-key` to specify which rotation key to use from the key file (defaults to first key). If `--signing-file` is not provided, the `FAIR_ROTATION_KEY` environment variable is used.
+
+Use `--output-file` to save the new key to a different file instead of the signing file.
+
+### Add rotation key
+
+Generates a new rotation key, adds it to an existing DID, and saves it to the key file.
+
+```bash
+npm run add-rotation-key -- \
+  --did did:plc:xxx \
+  --signing-file ./dids/did:plc:xxx.json
+```
+
+Use `--signing-key` to specify which rotation key to use from the key file (defaults to first key). If `--signing-file` is not provided, the `FAIR_ROTATION_KEY` environment variable is used.
+
+Use `--output-file` to save the new key to a different file instead of the signing file.
+
 ## License
 
 MIT

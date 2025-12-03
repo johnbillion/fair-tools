@@ -14,6 +14,8 @@ export {
 	FAIR_SERVICE_ID,
 	createDID,
 	updateDID,
+	addVerificationKey,
+	addRotationKey,
 } from './src/did.js';
 
 // Metadata utilities

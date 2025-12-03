@@ -121,6 +121,26 @@ export async function createDID({ verificationKey, rotationKey, keypair, plcUrl 
 }
 
 /**
+ * Creates an updated operation with the FAIR service URL set.
+ *
+ * @param {object} lastOp - The previous operation
+ * @param {string} serviceUrl - The FAIR service endpoint URL
+ * @returns {object} The updated operation
+ */
+export function updateServiceUrlInOp(lastOp, serviceUrl) {
+	return {
+		...lastOp,
+		services: {
+			...lastOp.services,
+			[FAIR_SERVICE_ID]: {
+				type: FAIR_SERVICE_TYPE,
+				endpoint: serviceUrl,
+			},
+		},
+	};
+}
+
+/**
  * Updates the FAIR service URL for an existing DID.
  *
  * This adds or updates the FAIR package management service endpoint
@@ -135,14 +155,93 @@ export async function createDID({ verificationKey, rotationKey, keypair, plcUrl 
  */
 export async function updateDID({ did, serviceUrl, signer, plcUrl = PLC_DIRECTORY_URL }) {
 	const client = createPlcClient(plcUrl);
-	await client.updateData(did, signer, (lastOp) => ({
+	await client.updateData(did, signer, (lastOp) => updateServiceUrlInOp(lastOp, serviceUrl));
+}
+
+/**
+ * Generates a unique key ID for a verification method.
+ *
+ * @param {object} verificationMethods - Existing verification methods
+ * @returns {string} A unique key ID
+ */
+export function generateVerificationKeyId(verificationMethods) {
+	if (!verificationMethods.fair) {
+		return 'fair';
+	}
+	let i = 2;
+	while (verificationMethods[`fair${i}`]) {
+		i++;
+	}
+	return `fair${i}`;
+}
+
+/**
+ * Creates an updated operation with a new verification key added.
+ *
+ * @param {object} lastOp - The previous operation
+ * @param {string} verificationKey - The new verification key (did:key format)
+ * @returns {object} The updated operation
+ */
+export function addVerificationKeyToOp(lastOp, verificationKey) {
+	const keyId = generateVerificationKeyId(lastOp.verificationMethods);
+	return {
 		...lastOp,
-		services: {
-			...lastOp.services,
-			[FAIR_SERVICE_ID]: {
-				type: FAIR_SERVICE_TYPE,
-				endpoint: serviceUrl,
-			},
+		verificationMethods: {
+			...lastOp.verificationMethods,
+			[keyId]: verificationKey,
 		},
-	}));
+	};
+}
+
+/**
+ * Adds a new verification key to an existing DID.
+ *
+ * The new key is added with a unique ID (fair, fair2, fair3, etc.).
+ *
+ * @param {object} opts - Options
+ * @param {string} opts.did - The DID to update
+ * @param {string} opts.verificationKey - The new verification key (did:key format)
+ * @param {Secp256k1Keypair} opts.signer - The keypair to sign with (must be a rotation key)
+ * @param {string} [opts.plcUrl] - The PLC directory URL (defaults to https://plc.directory)
+ * @returns {Promise<void>}
+ */
+export async function addVerificationKey({ did, verificationKey, signer, plcUrl = PLC_DIRECTORY_URL }) {
+	const client = createPlcClient(plcUrl);
+	await client.updateData(did, signer, (lastOp) => addVerificationKeyToOp(lastOp, verificationKey));
+}
+
+/**
+ * Creates an updated operation with a new rotation key added.
+ *
+ * @param {object} lastOp - The previous operation
+ * @param {string} rotationKey - The new rotation key (did:key format)
+ * @returns {object} The updated operation
+ * @throws {Error} If the rotation key already exists
+ */
+export function addRotationKeyToOp(lastOp, rotationKey) {
+	if (lastOp.rotationKeys.includes(rotationKey)) {
+		throw new Error(`Rotation key already exists: ${rotationKey}`);
+	}
+	return {
+		...lastOp,
+		rotationKeys: [...lastOp.rotationKeys, rotationKey],
+	};
+}
+
+/**
+ * Adds a new rotation key to an existing DID.
+ *
+ * The new key is appended to the existing rotation keys.
+ *
+ * @param {object} opts - Options
+ * @param {string} opts.did - The DID to update
+ * @param {string} opts.rotationKey - The new rotation key (did:key format)
+ * @param {Secp256k1Keypair} opts.signer - The keypair to sign with (must be an existing rotation key)
+ * @param {string} [opts.plcUrl] - The PLC directory URL (defaults to https://plc.directory)
+ * @returns {Promise<void>}
+ */
+export async function addRotationKey({ did, rotationKey, signer, plcUrl = PLC_DIRECTORY_URL }) {
+	const client = createPlcClient(plcUrl);
+	await client.updateData(did, signer, (lastOp) => addRotationKeyToOp(lastOp, rotationKey));
+}
 }

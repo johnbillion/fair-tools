@@ -7,7 +7,9 @@
 	"bin": {
 		"create-did": "./src/cli/create-did.js",
 		"update-did": "./src/cli/update-did.js",
-		"build-metadata": "./src/cli/build-metadata.js"
+		"build-metadata": "./src/cli/build-metadata.js",
+		"add-verification-key": "./src/cli/add-verification-key.js",
+		"add-rotation-key": "./src/cli/add-rotation-key.js",
 	},
 	"exports": {
 		".": "./index.js"
@@ -16,7 +18,9 @@
 		"test": "node --test src/",
 		"create-did": "node src/cli/create-did.js",
 		"update-did": "node src/cli/update-did.js",
-		"build-metadata": "node src/cli/build-metadata.js"
+		"build-metadata": "node src/cli/build-metadata.js",
+		"add-verification-key": "node src/cli/add-verification-key.js",
+		"add-rotation-key": "node src/cli/add-rotation-key.js",
 	},
 	"keywords": [
 		"fair"
