@@ -38,13 +38,16 @@ npm run build-metadata -- \
   --output ./metadata.json
 ```
 
+Use `--signing-key` to specify which verification key to use from the key file (defaults to first key). If `--signing-file` is not provided, the `FAIR_PRIVATE_KEY` environment variable is used.
+
 ### update-did
 
 Updates an existing DID to add your FAIR service endpoint.
 
 ```bash
 npm run update-did -- \
-  --keyfile ./dids/did:plc:xxx.json \
+  --did did:plc:xxx \
+  --signing-file ./dids/did:plc:xxx.json \
   --url https://example.com/did:plc:xxx/metadata.json
 ```
 

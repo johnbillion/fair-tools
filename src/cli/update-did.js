@@ -15,7 +15,11 @@ const { values } = parseArgs({
 			type: 'string',
 			short: 'u',
 		},
-		key: {
+		'signing-file': {
+			type: 'string',
+			short: 'f',
+		},
+		'signing-key': {
 			type: 'string',
 			short: 'k',
 		},
@@ -34,17 +38,20 @@ Update a FAIR DID with a service URL.
 Required options:
   -d, --did <did>         The DID to update (did:plc:...)
   -u, --url <url>         The FAIR service URL
-  -k, --key <file>        Path to key file (JSON with rotationKey.privateKey)
+
+Signing key:
+  -f, --signing-file <file>  Path to key file for signing (JSON with rotationKeys)
+  -k, --signing-key <key>    Which rotation key to sign with (default: first)
+
+  If --signing-file is not provided, uses FAIR_ROTATION_KEY environment variable.
 
 Optional:
-  -h, --help              Show this help message
-
-The key file should be the JSON file created by fair-create-did.`);
+  -h, --help              Show this help message`);
 	process.exit(0);
 }
 
 // Validate required options
-const required = ['did', 'url', 'key'];
+const required = ['did', 'url'];
 const missing = required.filter((opt) => !values[opt]);
 if (missing.length > 0) {
 	console.error(`Error: Missing required options: ${missing.map((o) => `--${o}`).join(', ')}`);
@@ -52,21 +59,52 @@ if (missing.length > 0) {
 	process.exit(1);
 }
 
-// Load the key file
-let keyData;
-try {
-	const keyContent = await readFile(values.key, 'utf-8');
-	keyData = JSON.parse(keyContent);
-} catch (err) {
-	console.error(`Error reading key file: ${err.message}`);
+// Validate key options
+if (values['signing-key'] && !values['signing-file']) {
+	console.error('Error: --signing-key can only be used with --signing-file');
 	process.exit(1);
 }
 
-// Extract the rotation private key
-const privateKeyHex = keyData.rotationKey?.privateKey;
-if (!privateKeyHex) {
-	console.error('Error: Key file must contain rotationKey.privateKey');
-	process.exit(1);
+// Get the private key
+let privateKeyHex;
+
+if (values['signing-file']) {
+	// Load from key file
+	let keyData;
+	try {
+		const keyContent = await readFile(values['signing-file'], 'utf-8');
+		keyData = JSON.parse(keyContent);
+	} catch (err) {
+		console.error(`Error reading key file: ${err.message}`);
+		process.exit(1);
+	}
+
+	const rotationKeys = keyData.rotationKeys || {};
+	const publicKeys = Object.keys(rotationKeys);
+
+	if (publicKeys.length === 0) {
+		console.error('Error: Key file must contain at least one rotation key');
+		process.exit(1);
+	}
+
+	if (values['signing-key']) {
+		privateKeyHex = rotationKeys[values['signing-key']];
+		if (!privateKeyHex) {
+			console.error(`Error: Rotation key ${values['signing-key']} not found in key file`);
+			console.error(`Available keys: ${publicKeys.join(', ')}`);
+			process.exit(1);
+		}
+	} else {
+		privateKeyHex = rotationKeys[publicKeys[0]];
+	}
+} else {
+	// Use environment variable
+	privateKeyHex = process.env.FAIR_ROTATION_KEY;
+	if (!privateKeyHex) {
+		console.error('Error: Either --signing-file or FAIR_ROTATION_KEY environment variable is required');
+		console.error('Run with --help for usage information.');
+		process.exit(1);
+	}
 }
 
 // Import the keypair
