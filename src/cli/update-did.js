@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-import { readFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { importRotationKeyPair } from '../keys.js';
 import { updateDID } from '../did.js';
+import { loadRotationKey, SigningKeyError } from './signing.js';
 
 const { values } = parseArgs({
 	options: {
@@ -59,55 +59,20 @@ if (missing.length > 0) {
 	process.exit(1);
 }
 
-// Validate key options
-if (values['signing-key'] && !values['signing-file']) {
-	console.error('Error: --signing-key can only be used with --signing-file');
-	process.exit(1);
-}
-
-// Get the private key
+// Load signing key
 let privateKeyHex;
-
-if (values['signing-file']) {
-	// Load from key file
-	let keyData;
-	try {
-		const keyContent = await readFile(values['signing-file'], 'utf-8');
-		keyData = JSON.parse(keyContent);
-	} catch (err) {
-		console.error(`Error reading key file: ${err.message}`);
+try {
+	({ privateKeyHex } = await loadRotationKey({
+		signingFile: values['signing-file'],
+		signingKey: values['signing-key'],
+	}));
+} catch (err) {
+	if (err instanceof SigningKeyError) {
+		console.error(`Error: ${err.message}`);
 		process.exit(1);
 	}
-
-	const rotationKeys = keyData.rotationKeys || {};
-	const publicKeys = Object.keys(rotationKeys);
-
-	if (publicKeys.length === 0) {
-		console.error('Error: Key file must contain at least one rotation key');
-		process.exit(1);
-	}
-
-	if (values['signing-key']) {
-		privateKeyHex = rotationKeys[values['signing-key']];
-		if (!privateKeyHex) {
-			console.error(`Error: Rotation key ${values['signing-key']} not found in key file`);
-			console.error(`Available keys: ${publicKeys.join(', ')}`);
-			process.exit(1);
-		}
-	} else {
-		privateKeyHex = rotationKeys[publicKeys[0]];
-	}
-} else {
-	// Use environment variable
-	privateKeyHex = process.env.FAIR_ROTATION_KEY;
-	if (!privateKeyHex) {
-		console.error('Error: Either --signing-file or FAIR_ROTATION_KEY environment variable is required');
-		console.error('Run with --help for usage information.');
-		process.exit(1);
-	}
+	throw err;
 }
-
-// Import the keypair
 const { keypair } = await importRotationKeyPair(privateKeyHex);
 
 console.log(`Updating DID ${values.did}...`);
