@@ -10,8 +10,8 @@ import {
 	updateServiceUrlInOp,
 	FAIR_SERVICE_ID,
 	FAIR_SERVICE_TYPE,
-} from './did.js';
-import { generateVerificationKeyPair, generateRotationKeyPair } from './keys.js';
+} from '../src/did.js';
+import { generateVerificationKeyPair, generateRotationKeyPair } from '../src/keys.js';
 
 describe('generateDID', () => {
 	it('creates a signed operation and returns the DID', async () => {

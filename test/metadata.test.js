@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { buildMetadataFromContent } from './metadata.js';
-import { generateVerificationKeyPair } from './keys.js';
+import { buildMetadataFromContent } from '../src/metadata.js';
+import { generateVerificationKeyPair } from '../src/keys.js';
 
 describe('buildMetadataFromContent', () => {
 	it('throws if Plugin ID header is missing', async () => {

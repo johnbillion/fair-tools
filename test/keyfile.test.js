@@ -7,7 +7,7 @@ import {
 	getKeyFilePath,
 	formatKeyFileContent,
 	writeKeyFile,
-} from './keyfile.js';
+} from '../src/keyfile.js';
 
 describe('getKeyFilePath', () => {
 	it('returns path with DID as filename', () => {

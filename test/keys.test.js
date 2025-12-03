@@ -9,7 +9,7 @@ import {
 	verifyWithVerificationKey,
 	signWithRotationKey,
 	verifyWithRotationKey,
-} from './keys.js';
+} from '../src/keys.js';
 
 describe('generate verification key pair', () => {
 	it('returns an object with publicKey, privateKey, and keypair', async () => {

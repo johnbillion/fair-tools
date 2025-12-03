@@ -24,7 +24,7 @@
 		"index.js"
 	],
 	"scripts": {
-		"test": "node --test src/",
+		"test": "node --test test/",
 		"create-did": "node src/cli/create-did.js",
 		"update-did": "node src/cli/update-did.js",
 		"build-metadata": "node src/cli/build-metadata.js",
