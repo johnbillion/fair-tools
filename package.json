@@ -10,6 +10,7 @@
 		"build-metadata": "./src/cli/build-metadata.js",
 		"add-verification-key": "./src/cli/add-verification-key.js",
 		"add-rotation-key": "./src/cli/add-rotation-key.js",
+		"revoke-verification-key": "./src/cli/revoke-verification-key.js",
 		"revoke-rotation-key": "./src/cli/revoke-rotation-key.js"
 	},
 	"exports": {
@@ -22,6 +23,7 @@
 		"build-metadata": "node src/cli/build-metadata.js",
 		"add-verification-key": "node src/cli/add-verification-key.js",
 		"add-rotation-key": "node src/cli/add-rotation-key.js",
+		"revoke-verification-key": "node src/cli/revoke-verification-key.js",
 		"revoke-rotation-key": "node src/cli/revoke-rotation-key.js"
 	},
 	"keywords": [

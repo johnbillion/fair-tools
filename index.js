@@ -16,6 +16,7 @@ export {
 	updateDID,
 	addVerificationKey,
 	addRotationKey,
+	revokeVerificationKey,
 	revokeRotationKey,
 } from './src/did.js';
 

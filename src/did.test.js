@@ -5,6 +5,7 @@ import {
 	generateVerificationKeyId,
 	addVerificationKeyToOp,
 	addRotationKeyToOp,
+	revokeVerificationKeyFromOp,
 	revokeRotationKeyFromOp,
 	updateServiceUrlInOp,
 	FAIR_SERVICE_ID,
@@ -202,6 +203,143 @@ describe('addRotationKeyToOp', () => {
 		assert.deepStrictEqual(result.services, lastOp.services);
 	});
 });
+
+describe('revokeVerificationKeyFromOp', () => {
+	it('removes the specified verification key by public key', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk1', fair2: 'did:key:z6Mk2' },
+			rotationKeys: ['did:key:zQ3sh...'],
+		};
+		const result = revokeVerificationKeyFromOp(lastOp, 'did:key:z6Mk1');
+
+		assert.strictEqual(result.verificationMethods.fair, undefined);
+		assert.strictEqual(result.verificationMethods.fair2, 'did:key:z6Mk2');
+	});
+
+	it('preserves other verification keys when revoking', () => {
+		const lastOp = {
+			verificationMethods: {
+				fair: 'did:key:z6Mk1',
+				fair2: 'did:key:z6Mk2',
+				fair3: 'did:key:z6Mk3',
+			},
+			rotationKeys: ['did:key:zQ3sh...'],
+		};
+		const result = revokeVerificationKeyFromOp(lastOp, 'did:key:z6Mk2');
+
+		assert.strictEqual(result.verificationMethods.fair, 'did:key:z6Mk1');
+		assert.strictEqual(result.verificationMethods.fair2, undefined);
+		assert.strictEqual(result.verificationMethods.fair3, 'did:key:z6Mk3');
+	});
+
+	it('throws if verification key not found', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...'],
+		};
+
+		assert.throws(
+			() => revokeVerificationKeyFromOp(lastOp, 'did:key:z6MkNotFound'),
+			/Verification key did:key:z6MkNotFound not found in DID/
+		);
+	});
+
+	it('can remove the last verification key', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...'],
+		};
+		const result = revokeVerificationKeyFromOp(lastOp, 'did:key:z6Mk...');
+
+		assert.deepStrictEqual(result.verificationMethods, {});
+	});
+
+	it('preserves rotation keys, services, and alsoKnownAs', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk1', fair2: 'did:key:z6Mk2' },
+			rotationKeys: ['did:key:zQ3sh1', 'did:key:zQ3sh2'],
+			alsoKnownAs: ['at://example.com'],
+			services: {
+				fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
+			},
+		};
+		const result = revokeVerificationKeyFromOp(lastOp, 'did:key:z6Mk1');
+
+		assert.deepStrictEqual(result.rotationKeys, ['did:key:zQ3sh1', 'did:key:zQ3sh2']);
+		assert.deepStrictEqual(result.alsoKnownAs, ['at://example.com']);
+		assert.deepStrictEqual(result.services, {
+			fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
+		});
+		assert.strictEqual(result.verificationMethods.fair2, 'did:key:z6Mk2');
+	});
+});
+
+describe('updateServiceUrlInOp', () => {
+	it('adds FAIR service when no services exist', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...'],
+			services: {},
+		};
+		const result = updateServiceUrlInOp(lastOp, 'https://example.com/metadata.json');
+
+		assert.deepStrictEqual(result.services[FAIR_SERVICE_ID], {
+			type: FAIR_SERVICE_TYPE,
+			endpoint: 'https://example.com/metadata.json',
+		});
+	});
+
+	it('updates existing FAIR service URL', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...'],
+			services: {
+				[FAIR_SERVICE_ID]: {
+					type: FAIR_SERVICE_TYPE,
+					endpoint: 'https://old.example.com/metadata.json',
+				},
+			},
+		};
+		const result = updateServiceUrlInOp(lastOp, 'https://new.example.com/metadata.json');
+
+		assert.strictEqual(result.services[FAIR_SERVICE_ID].endpoint, 'https://new.example.com/metadata.json');
+	});
+
+	it('preserves other services', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...'],
+			services: {
+				other: { type: 'OtherService', endpoint: 'https://other.example.com' },
+			},
+		};
+		const result = updateServiceUrlInOp(lastOp, 'https://example.com/metadata.json');
+
+		assert.deepStrictEqual(result.services.other, {
+			type: 'OtherService',
+			endpoint: 'https://other.example.com',
+		});
+		assert.deepStrictEqual(result.services[FAIR_SERVICE_ID], {
+			type: FAIR_SERVICE_TYPE,
+			endpoint: 'https://example.com/metadata.json',
+		});
+	});
+
+	it('preserves other operation properties', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...'],
+			alsoKnownAs: ['at://example.com'],
+			services: {},
+		};
+		const result = updateServiceUrlInOp(lastOp, 'https://example.com/metadata.json');
+
+		assert.deepStrictEqual(result.verificationMethods, lastOp.verificationMethods);
+		assert.deepStrictEqual(result.rotationKeys, lastOp.rotationKeys);
+		assert.deepStrictEqual(result.alsoKnownAs, lastOp.alsoKnownAs);
+	});
+});
+
 describe('revokeRotationKeyFromOp', () => {
 	it('removes the specified rotation key', () => {
 		const lastOp = {
@@ -211,6 +349,16 @@ describe('revokeRotationKeyFromOp', () => {
 		const result = revokeRotationKeyFromOp(lastOp, 'did:key:zQ3sh1');
 
 		assert.deepStrictEqual(result.rotationKeys, ['did:key:zQ3sh2']);
+	});
+
+	it('preserves other rotation keys when revoking', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh1', 'did:key:zQ3sh2', 'did:key:zQ3sh3'],
+		};
+		const result = revokeRotationKeyFromOp(lastOp, 'did:key:zQ3sh2');
+
+		assert.deepStrictEqual(result.rotationKeys, ['did:key:zQ3sh1', 'did:key:zQ3sh3']);
 	});
 
 	it('throws if rotation key not found', () => {
@@ -237,18 +385,23 @@ describe('revokeRotationKeyFromOp', () => {
 		);
 	});
 
-	it('preserves other operation properties', () => {
+	it('preserves verification keys, services, and alsoKnownAs', () => {
 		const lastOp = {
-			verificationMethods: { fair: 'did:key:z6Mk...' },
+			verificationMethods: { fair: 'did:key:z6Mk1', fair2: 'did:key:z6Mk2' },
 			rotationKeys: ['did:key:zQ3sh1', 'did:key:zQ3sh2'],
 			alsoKnownAs: ['at://example.com'],
-			services: { test: { type: 'Test', endpoint: 'https://example.com' } },
+			services: {
+				fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
+			},
 		};
 		const result = revokeRotationKeyFromOp(lastOp, 'did:key:zQ3sh1');
 
-		assert.deepStrictEqual(result.verificationMethods, lastOp.verificationMethods);
-		assert.deepStrictEqual(result.alsoKnownAs, lastOp.alsoKnownAs);
-		assert.deepStrictEqual(result.services, lastOp.services);
+		assert.deepStrictEqual(result.verificationMethods, { fair: 'did:key:z6Mk1', fair2: 'did:key:z6Mk2' });
+		assert.deepStrictEqual(result.alsoKnownAs, ['at://example.com']);
+		assert.deepStrictEqual(result.services, {
+			fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
+		});
+		assert.deepStrictEqual(result.rotationKeys, ['did:key:zQ3sh2']);
 	});
 });
 

@@ -246,6 +246,44 @@ export async function addRotationKey({ did, rotationKey, signer, plcUrl = PLC_DI
 }
 
 /**
+ * Creates an updated operation with a verification key removed.
+ *
+ * @param {object} lastOp - The previous operation
+ * @param {string} publicKey - The verification key to revoke (did:key format)
+ * @returns {object} The updated operation
+ * @throws {Error} If the verification key is not found
+ */
+export function revokeVerificationKeyFromOp(lastOp, publicKey) {
+	const keyId = Object.entries(lastOp.verificationMethods)
+		.find(([, value]) => value === publicKey)?.[0];
+	if (!keyId) {
+		throw new Error(`Verification key ${publicKey} not found in DID`);
+	}
+	const { [keyId]: _, ...remainingMethods } = lastOp.verificationMethods;
+	return {
+		...lastOp,
+		verificationMethods: remainingMethods,
+	};
+}
+
+/**
+ * Revokes a verification key from an existing DID.
+ *
+ * Removes the specified verification method from the DID document.
+ *
+ * @param {object} opts - Options
+ * @param {string} opts.did - The DID to update
+ * @param {string} opts.publicKey - The verification key to revoke (did:key format)
+ * @param {Secp256k1Keypair} opts.signer - The keypair to sign with (must be a rotation key)
+ * @param {string} [opts.plcUrl] - The PLC directory URL (defaults to https://plc.directory)
+ * @returns {Promise<void>}
+ */
+export async function revokeVerificationKey({ did, publicKey, signer, plcUrl = PLC_DIRECTORY_URL }) {
+	const client = createPlcClient(plcUrl);
+	await client.updateData(did, signer, (lastOp) => revokeVerificationKeyFromOp(lastOp, publicKey));
+}
+
+/**
  * Creates an updated operation with a rotation key removed.
  *
  * @param {object} lastOp - The previous operation
