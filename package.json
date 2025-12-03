@@ -3,6 +3,9 @@
 	"version": "0.1.0",
 	"description": "Tools for the FAIR protocol",
 	"type": "module",
+	"engines": {
+		"node": ">=18"
+	},
 	"main": "index.js",
 	"bin": {
 		"create-did": "./src/cli/create-did.js",
