@@ -5,9 +5,9 @@
 	"type": "module",
 	"main": "index.js",
 	"bin": {
-		"fair-create-did": "./src/cli/create-did.js",
-		"fair-update-did": "./src/cli/update-did.js",
-		"fair-build-metadata": "./src/cli/build-metadata.js"
+		"create-did": "./src/cli/create-did.js",
+		"update-did": "./src/cli/update-did.js",
+		"build-metadata": "./src/cli/build-metadata.js"
 	},
 	"exports": {
 		".": "./index.js"
