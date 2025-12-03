@@ -5,7 +5,6 @@
 	"type": "module",
 	"main": "index.js",
 	"bin": {
-		"fair-keygen": "./src/cli/keygen.js",
 		"fair-create-did": "./src/cli/create-did.js",
 		"fair-update-did": "./src/cli/update-did.js",
 		"fair-build-metadata": "./src/cli/build-metadata.js"
