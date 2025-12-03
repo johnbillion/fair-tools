@@ -31,9 +31,9 @@ const { values } = parseArgs({
 			type: 'string',
 			short: 'k',
 		},
-		releases: {
+		metadata: {
 			type: 'string',
-			short: 'r',
+			short: 'm',
 		},
 		output: {
 			type: 'string',
@@ -64,9 +64,9 @@ Signing key:
   If --signing-file is not provided, uses FAIR_PRIVATE_KEY environment variable.
 
 Optional:
-  -r, --releases <file>   Path to existing releases JSON array
-  -o, --output <file>     Write metadata to file (default: stdout)
-  -h, --help              Show this help message
+  -m, --metadata <file>     Path to existing metadata.json to preserve previous releases
+  -o, --output <file>       Write metadata to file (default: stdout)
+  -h, --help                Show this help message
 
 Examples:
   # Local usage with key file
@@ -142,16 +142,17 @@ const { keypair } = await importVerificationKeyPair(privateKeyHex);
 
 // Load existing releases if provided
 let existingReleases = [];
-if (values.releases) {
+if (values.metadata) {
 	try {
-		const releasesContent = await readFile(values.releases, 'utf-8');
-		existingReleases = JSON.parse(releasesContent);
+		const metadataContent = await readFile(values.metadata, 'utf-8');
+		const existingMetadata = JSON.parse(metadataContent);
+		existingReleases = existingMetadata.releases || [];
 		if (!Array.isArray(existingReleases)) {
-			console.error('Error: Releases file must contain a JSON array');
+			console.error('Error: Metadata file releases property must be an array');
 			process.exit(1);
 		}
 	} catch (err) {
-		console.error(`Error reading releases file: ${err.message}`);
+		console.error(`Error reading metadata file: ${err.message}`);
 		process.exit(1);
 	}
 }
