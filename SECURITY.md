@@ -15,6 +15,12 @@ Ed25519 was chosen for interoperability with PHP:
 1. FAIR originated as a protocol to be used within the WordPress ecosystem, which uses PHP. The Sodium extension and the sodium_compat library -- both widely used within the WordPress and PHP ecosystems -- [provide Ed25519 as the only algorithm for public key cryptography](https://github.com/paragonie/sodium_compat/issues/46).
 2. The FAIR plugin for WordPress uses Ed25519 for verifying signatures for the same reason, and interoperability with the FAIR plugin and with WordPress is a key requirement of this package.
 
+### DID management
+
+DID operations (creation, updates, key rotation) are performed via the `@did-plc/lib` library, which handles DAG-CBOR encoding, operation signing, and communication with the PLC directory.
+
+All DID update operations must be signed by a rotation key. The package enforces safety constraints such as preventing revocation of the last rotation key or self-revocation of the signing key.
+
 ## Reporting a vulnerability
 
 If you discover a security vulnerability in this package [please report it via the private security vulnerability reporting mechanism here on GitHub](https://github.com/johnbillion/fair-tools/security/advisories/new).
