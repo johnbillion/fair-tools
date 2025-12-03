@@ -8,11 +8,11 @@ Tools for the FAIR protocol. Create keys, create and manage DIDs, and build sign
 npm install fair-tools
 ```
 
-## CLI Commands
+## Basic usage
 
-### create-did
+### Create a DID
 
-Creates a new FAIR DID and publish it to plc.directory.
+Creates a new FAIR DID and publishes it.
 
 ```bash
 npm run create-did -- --directory ./dids
@@ -25,7 +25,7 @@ This generates rotation and verification keypairs, creates a DID, publishes it t
 > This file contains the private keys needed to manage your DID.  
 > If you lose this file, you will lose control of your DID permanently.
 
-### build-metadata
+### Build metadata
 
 Builds signed FAIR metadata for a WordPress plugin release.
 
@@ -52,9 +52,9 @@ npm run build-metadata -- \
 
 Use `--signing-key` to specify which verification key to use from the key file (defaults to first key). If `--signing-file` is not provided, the `FAIR_PRIVATE_KEY` environment variable is used.
 
-### update-did
+### Update DID service URL
 
-Updates an existing DID to add your FAIR service endpoint.
+Updates an existing DID to add your FAIR service URL.
 
 ```bash
 npm run update-did -- \
@@ -62,6 +62,8 @@ npm run update-did -- \
   --signing-file ./dids/did:plc:xxx.json \
   --url https://example.com/did:plc:xxx/metadata.json
 ```
+
+Use `--signing-key` to specify which rotation key to use from the key file (defaults to first key). If `--signing-file` is not provided, the `FAIR_ROTATION_KEY` environment variable is used.
 
 ## License
 
