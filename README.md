@@ -31,7 +31,7 @@ The initial setup of the DID only happens once. Subsequent updates to your plugi
 Creates a new FAIR DID and publishes it.
 
 ```bash
-npm run create-did -- --directory ./dids
+npx create-did --directory ./dids
 ```
 
 This generates rotation and verification keypairs, creates a DID, publishes it to plc.directory, and writes the keys to `<directory>/<did>.json` with secure permissions (0600).
@@ -40,6 +40,16 @@ This generates rotation and verification keypairs, creates a DID, publishes it t
 > Back up this file immediately!
 > This file contains the private keys needed to manage your DID.
 > If you lose this file, you will lose control of your DID permanently.
+
+### Add the DID to your plugin header
+
+Manually add the new DID to the header of your plugin. The `did:plc:` prefix must be included.
+
+```diff
+  * Plugin Name: My Plugin
++ * Plugin ID: did:plc:abcdefghijklmnopqrstuvwx
+  * Version: 1.0.0
+```
 
 ### Signing keys
 
@@ -56,7 +66,7 @@ Most subsequent commands after creating a DID require a signing key. There are t
 Builds signed FAIR metadata for a WordPress plugin release.
 
 ```bash
-npm run build-metadata -- \
+npx build-metadata \
   --did did:plc:xxx \
   --plugin-file ./my-plugin/my-plugin.php \
   --zip-file ./my-plugin.zip \
@@ -70,7 +80,7 @@ npm run build-metadata -- \
 Updates a DID to add your FAIR service URL.
 
 ```bash
-npm run update-did -- \
+npx update-did \
   --did did:plc:xxx \
   --url https://example.com/did:plc:xxx/metadata.json
 ```
@@ -84,7 +94,7 @@ Over time you may need to manage the keys for your DID.
 Generates a new verification key, adds it to a DID, and saves it to the key file.
 
 ```bash
-npm run add-verification-key -- \
+npx add-verification-key \
   --did did:plc:xxx
 ```
 
@@ -95,7 +105,7 @@ Use `--output-file` to save the new key to a different file instead of the signi
 Generates a new rotation key, adds it to a DID, and saves it to the key file.
 
 ```bash
-npm run add-rotation-key -- \
+npx add-rotation-key \
   --did did:plc:xxx
 ```
 
@@ -106,7 +116,7 @@ Use `--output-file` to save the new key to a different file instead of the signi
 Revokes a verification key from a DID.
 
 ```bash
-npm run revoke-verification-key -- \
+npx revoke-verification-key \
   --did did:plc:xxx \
   --revoke did:key:z6Mk...
 ```
@@ -118,7 +128,7 @@ Use `--cleanup` to delete the revoked key from the key file after success.
 Revokes a rotation key from a DID.
 
 ```bash
-npm run revoke-rotation-key -- \
+npx revoke-rotation-key \
   --did did:plc:xxx \
   --revoke did:key:zQ3sh...
 ```
