@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { buildMetadataFromContent } from '../src/metadata.js';
+import { buildMetadataFromContent, parseSecurityContactFromComposer } from '../src/metadata.js';
 import { generateVerificationKeyPair } from '../src/keys.js';
 
 describe('buildMetadataFromContent', () => {
@@ -223,5 +223,88 @@ Short description.
 			'env:wp': '>=6.0',
 			'env:php': '>=8.1',
 		});
+	});
+
+	it('includes security contact from securityContact option', async () => {
+		const { keypair } = await generateVerificationKeyPair();
+
+		const pluginContent = `<?php
+/**
+ * Plugin Name: Test Plugin
+ * Plugin ID: did:plc:test123
+ * Version: 1.0.0
+ */
+`;
+
+		const metadata = await buildMetadataFromContent({
+			did: 'did:plc:test123',
+			keypair,
+			slug: 'test-plugin',
+			pluginContent,
+			securityContact: 'https://example.com/security',
+			zipData: Buffer.from('fake zip'),
+			downloadUrl: 'https://example.com/test.zip',
+		});
+
+		assert.deepStrictEqual(metadata.security, [{ url: 'https://example.com/security' }]);
+	});
+
+	it('has empty security array when no securityContact provided', async () => {
+		const { keypair } = await generateVerificationKeyPair();
+
+		const pluginContent = `<?php
+/**
+ * Plugin Name: Test Plugin
+ * Plugin ID: did:plc:test123
+ * Version: 1.0.0
+ */
+`;
+
+		const metadata = await buildMetadataFromContent({
+			did: 'did:plc:test123',
+			keypair,
+			slug: 'test-plugin',
+			pluginContent,
+			zipData: Buffer.from('fake zip'),
+			downloadUrl: 'https://example.com/test.zip',
+		});
+
+		assert.deepStrictEqual(metadata.security, []);
+	});
+});
+
+describe('parseSecurityContactFromComposer', () => {
+	it('extracts security URL from composer.json support.security field', () => {
+		const composerContent = JSON.stringify({
+			name: 'test/plugin',
+			support: {
+				security: 'https://example.com/security-policy',
+			},
+		});
+
+		const result = parseSecurityContactFromComposer(composerContent);
+		assert.strictEqual(result, 'https://example.com/security-policy');
+	});
+
+	it('returns null when support.security is not present', () => {
+		const composerContent = JSON.stringify({
+			name: 'test/plugin',
+			support: {
+				email: 'support@example.com',
+			},
+		});
+
+		const result = parseSecurityContactFromComposer(composerContent);
+		assert.strictEqual(result, null);
+	});
+
+	it('returns null when support object is not present', () => {
+		const composerContent = JSON.stringify({
+			name: 'test/plugin',
+			license: 'MIT',
+		});
+
+		const result = parseSecurityContactFromComposer(composerContent);
+		assert.strictEqual(result, null);
 	});
 });

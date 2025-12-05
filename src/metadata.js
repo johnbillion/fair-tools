@@ -196,6 +196,42 @@ async function findSpdxLicense(pluginDir) {
 }
 
 /**
+ * Extracts security contact URL from composer.json content.
+ *
+ * @param {string} composerContent - Content of composer.json file
+ * @returns {string|null} Security contact URL or null
+ */
+export function parseSecurityContactFromComposer(composerContent) {
+	try {
+		const composer = JSON.parse(composerContent);
+		if (composer.support?.security) {
+			return composer.support.security;
+		}
+	} catch {
+		// Invalid JSON
+	}
+
+	return null;
+}
+
+/**
+ * Extracts security contact URL from composer.json support.security field.
+ *
+ * @param {string} pluginDir - Plugin directory path
+ * @returns {Promise<string|null>} Security contact URL or null
+ */
+async function findSecurityContact(pluginDir) {
+	try {
+		const composerJson = await readFile(join(pluginDir, 'composer.json'), 'utf-8');
+		return parseSecurityContactFromComposer(composerJson);
+	} catch {
+		// File doesn't exist
+	}
+
+	return null;
+}
+
+/**
  * Creates a metadata document for a package.
  *
  * @param {object} options
@@ -333,6 +369,7 @@ export async function createSignedArtifact(options) {
  * @param {string} options.pluginContent - Content of the main plugin PHP file
  * @param {string} [options.readmeContent] - Content of readme.txt (optional)
  * @param {string} [options.spdxLicense] - SPDX license from package.json/composer.json
+ * @param {string} [options.securityContact] - Security contact URL from composer.json
  * @param {Buffer|Uint8Array} options.zipData - Plugin zip file contents
  * @param {string} options.downloadUrl - Public download URL for the zip
  * @param {Array} [options.existingReleases] - Existing releases to preserve
@@ -346,6 +383,7 @@ export async function buildMetadataFromContent(options) {
 		pluginContent,
 		readmeContent,
 		spdxLicense,
+		securityContact,
 		zipData,
 		downloadUrl,
 		existingReleases = [],
@@ -404,6 +442,9 @@ export async function buildMetadataFromContent(options) {
 		requires,
 	});
 
+	// Build security contacts array from composer.json support.security
+	const security = securityContact ? [{ url: securityContact }] : [];
+
 	// Create metadata document with new release prepended to existing ones
 	return createMetadataDocument({
 		id: did,
@@ -414,7 +455,7 @@ export async function buildMetadataFromContent(options) {
 		authors,
 		license,
 		keywords: (readmeData.keywords || []).slice(0, 5),
-		security: [],
+		security,
 		releases: [release, ...existingReleases],
 	});
 }
@@ -461,6 +502,9 @@ export async function buildMetadata(options) {
 	// Try to find SPDX license
 	const spdxLicense = await findSpdxLicense(pluginDir);
 
+	// Try to find security contact from composer.json
+	const securityContact = await findSecurityContact(pluginDir);
+
 	// Read zip data
 	const zipData = await readFile(zipFile);
 
@@ -471,6 +515,7 @@ export async function buildMetadata(options) {
 		pluginContent,
 		readmeContent,
 		spdxLicense,
+		securityContact,
 		zipData,
 		downloadUrl,
 		existingReleases,
