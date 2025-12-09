@@ -36,7 +36,7 @@ const { values } = parseArgs({
 });
 
 if (values.help) {
-	console.log(`Usage: revoke-rotation-key [options]
+	console.log(`Usage: fair-tools revoke-rotation-key [options]
 
 Revoke a rotation key from an existing DID.
 

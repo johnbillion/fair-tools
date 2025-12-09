@@ -33,7 +33,7 @@ const { values } = parseArgs({
 });
 
 if (values.help) {
-	console.log(`Usage: add-verification-key [options]
+	console.log(`Usage: fair-tools add-verification-key [options]
 
 Generate a new verification key and add it to an existing DID.
 

@@ -48,7 +48,7 @@ const { values } = parseArgs({
 });
 
 if (values.help) {
-	console.log(`Usage: fair-build-metadata [options]
+	console.log(`Usage: fair-tools build-metadata [options]
 
 Build a FAIR metadata document for a WordPress plugin.
 
@@ -71,13 +71,13 @@ Optional:
 
 Examples:
   # Local usage with key file
-  build-metadata --signing-file ./dids/did:plc:xxx.json --plugin-file ./plugin.php ...
+  fair-tools build-metadata --signing-file ./dids/did:plc:xxx.json --plugin-file ./plugin.php ...
 
   # Specify which verification key to use
-  build-metadata --signing-file ./dids/did:plc:xxx.json --signing-key did:key:z6Mk... --plugin-file ./plugin.php ...
+  fair-tools build-metadata --signing-file ./dids/did:plc:xxx.json --signing-key did:key:z6Mk... --plugin-file ./plugin.php ...
 
   # CI usage with environment variable (set FAIR_PRIVATE_KEY)
-  build-metadata --plugin-file ./plugin.php ...`);
+  fair-tools build-metadata --plugin-file ./plugin.php ...`);
 	process.exit(0);
 }
 

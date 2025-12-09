@@ -8,14 +8,7 @@
 	},
 	"main": "index.js",
 	"bin": {
-		"create-did": "./src/cli/create-did.js",
-		"update-did": "./src/cli/update-did.js",
-		"build-metadata": "./src/cli/build-metadata.js",
-		"add-verification-key": "./src/cli/add-verification-key.js",
-		"add-rotation-key": "./src/cli/add-rotation-key.js",
-		"add-aka": "./src/cli/add-aka.js",
-		"revoke-verification-key": "./src/cli/revoke-verification-key.js",
-		"revoke-rotation-key": "./src/cli/revoke-rotation-key.js"
+		"fair-tools": "./src/cli/fair-tools.js"
 	},
 	"exports": {
 		".": "./index.js"
@@ -26,14 +19,7 @@
 	],
 	"scripts": {
 		"test": "node --test test/",
-		"create-did": "node src/cli/create-did.js",
-		"update-did": "node src/cli/update-did.js",
-		"build-metadata": "node src/cli/build-metadata.js",
-		"add-verification-key": "node src/cli/add-verification-key.js",
-		"add-rotation-key": "node src/cli/add-rotation-key.js",
-		"add-aka": "node src/cli/add-aka.js",
-		"revoke-verification-key": "node src/cli/revoke-verification-key.js",
-		"revoke-rotation-key": "node src/cli/revoke-rotation-key.js"
+		"fair-tools": "node src/cli/fair-tools.js"
 	},
 	"keywords": [
 		"fair"

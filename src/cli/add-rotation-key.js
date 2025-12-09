@@ -33,7 +33,7 @@ const { values } = parseArgs({
 });
 
 if (values.help) {
-	console.log(`Usage: add-rotation-key [options]
+	console.log(`Usage: fair-tools add-rotation-key [options]
 
 Generate a new rotation key and add it to an existing DID.
 
