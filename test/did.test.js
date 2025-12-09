@@ -150,9 +150,12 @@ describe('addVerificationKeyToOp', () => {
 		};
 		const result = addVerificationKeyToOp(lastOp, 'did:key:z6MkNew');
 
-		assert.deepStrictEqual(result.rotationKeys, lastOp.rotationKeys);
-		assert.deepStrictEqual(result.alsoKnownAs, lastOp.alsoKnownAs);
-		assert.deepStrictEqual(result.services, lastOp.services);
+		assert.deepStrictEqual(result, {
+			verificationMethods: { fair: 'did:key:z6MkNew' },
+			rotationKeys: ['did:key:zQ3sh...'],
+			alsoKnownAs: ['at://example.com'],
+			services: { test: { type: 'Test', endpoint: 'https://example.com' } },
+		});
 	});
 });
 
@@ -198,9 +201,12 @@ describe('addRotationKeyToOp', () => {
 		};
 		const result = addRotationKeyToOp(lastOp, 'did:key:zQ3shNew');
 
-		assert.deepStrictEqual(result.verificationMethods, lastOp.verificationMethods);
-		assert.deepStrictEqual(result.alsoKnownAs, lastOp.alsoKnownAs);
-		assert.deepStrictEqual(result.services, lastOp.services);
+		assert.deepStrictEqual(result, {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...', 'did:key:zQ3shNew'],
+			alsoKnownAs: ['at://example.com'],
+			services: { test: { type: 'Test', endpoint: 'https://example.com' } },
+		});
 	});
 });
 
@@ -227,9 +233,13 @@ describe('revokeVerificationKeyFromOp', () => {
 		};
 		const result = revokeVerificationKeyFromOp(lastOp, 'did:key:z6Mk2');
 
-		assert.strictEqual(result.verificationMethods.fair, 'did:key:z6Mk1');
-		assert.strictEqual(result.verificationMethods.fair2, undefined);
-		assert.strictEqual(result.verificationMethods.fair3, 'did:key:z6Mk3');
+		assert.deepStrictEqual(result, {
+			verificationMethods: {
+				fair: 'did:key:z6Mk1',
+				fair3: 'did:key:z6Mk3',
+			},
+			rotationKeys: ['did:key:zQ3sh...'],
+		});
 	});
 
 	it('throws if verification key not found', () => {
@@ -265,12 +275,14 @@ describe('revokeVerificationKeyFromOp', () => {
 		};
 		const result = revokeVerificationKeyFromOp(lastOp, 'did:key:z6Mk1');
 
-		assert.deepStrictEqual(result.rotationKeys, ['did:key:zQ3sh1', 'did:key:zQ3sh2']);
-		assert.deepStrictEqual(result.alsoKnownAs, ['at://example.com']);
-		assert.deepStrictEqual(result.services, {
-			fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
+		assert.deepStrictEqual(result, {
+			verificationMethods: { fair2: 'did:key:z6Mk2' },
+			rotationKeys: ['did:key:zQ3sh1', 'did:key:zQ3sh2'],
+			alsoKnownAs: ['at://example.com'],
+			services: {
+				fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
+			},
 		});
-		assert.strictEqual(result.verificationMethods.fair2, 'did:key:z6Mk2');
 	});
 });
 
@@ -334,9 +346,17 @@ describe('updateServiceUrlInOp', () => {
 		};
 		const result = updateServiceUrlInOp(lastOp, 'https://example.com/metadata.json');
 
-		assert.deepStrictEqual(result.verificationMethods, lastOp.verificationMethods);
-		assert.deepStrictEqual(result.rotationKeys, lastOp.rotationKeys);
-		assert.deepStrictEqual(result.alsoKnownAs, lastOp.alsoKnownAs);
+		assert.deepStrictEqual(result, {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...'],
+			alsoKnownAs: ['at://example.com'],
+			services: {
+				[FAIR_SERVICE_ID]: {
+					type: FAIR_SERVICE_TYPE,
+					endpoint: 'https://example.com/metadata.json',
+				},
+			},
+		});
 	});
 });
 
@@ -396,7 +416,14 @@ describe('revokeRotationKeyFromOp', () => {
 		};
 		const result = revokeRotationKeyFromOp(lastOp, 'did:key:zQ3sh1');
 
-		assert.deepStrictEqual(result.verificationMethods, { fair: 'did:key:z6Mk1', fair2: 'did:key:z6Mk2' });
+		assert.deepStrictEqual(result, {
+			verificationMethods: { fair: 'did:key:z6Mk1', fair2: 'did:key:z6Mk2' },
+			rotationKeys: ['did:key:zQ3sh2'],
+			alsoKnownAs: ['at://example.com'],
+			services: {
+				fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
+			},
+		});
 		assert.deepStrictEqual(result.alsoKnownAs, ['at://example.com']);
 		assert.deepStrictEqual(result.services, {
 			fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
