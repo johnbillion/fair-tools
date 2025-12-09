@@ -95,6 +95,7 @@ export function parsePluginHeaders(content) {
 		'Requires at least': 'requiresWp',
 		'Requires PHP': 'requiresPhp',
 		'Update URI': 'updateUri',
+		Security: 'security',
 	};
 
 	for (const [phpHeader, jsKey] of Object.entries(headerMap)) {
@@ -164,71 +165,48 @@ export function parseReadmeFile(content) {
 }
 
 /**
- * Tries to find SPDX license from package.json or composer.json.
+ * Parses composer.json content and extracts relevant fields.
  *
- * @param {string} pluginDir - Plugin directory path
- * @returns {Promise<string|null>} SPDX license identifier or null
+ * @param {string} content - Content of composer.json file
+ * @returns {object} Parsed data with license and securityContact fields
  */
-async function findSpdxLicense(pluginDir) {
-	// Try composer.json first
+export function parseComposerJson(content) {
+	const data = {};
+
 	try {
-		const composerJson = await readFile(join(pluginDir, 'composer.json'), 'utf-8');
-		const composer = JSON.parse(composerJson);
+		const composer = JSON.parse(content);
 		if (composer.license) {
-			return composer.license;
+			data.license = composer.license;
 		}
-	} catch {
-		// File doesn't exist or isn't valid JSON
-	}
-
-	// Try package.json
-	try {
-		const packageJson = await readFile(join(pluginDir, 'package.json'), 'utf-8');
-		const pkg = JSON.parse(packageJson);
-		if (pkg.license) {
-			return pkg.license;
-		}
-	} catch {
-		// File doesn't exist or isn't valid JSON
-	}
-
-	return null;
-}
-
-/**
- * Extracts security contact URL from composer.json content.
- *
- * @param {string} composerContent - Content of composer.json file
- * @returns {string|null} Security contact URL or null
- */
-export function parseSecurityContactFromComposer(composerContent) {
-	try {
-		const composer = JSON.parse(composerContent);
 		if (composer.support?.security) {
-			return composer.support.security;
+			data.securityContact = composer.support.security;
 		}
 	} catch {
 		// Invalid JSON
 	}
 
-	return null;
+	return data;
 }
 
 /**
- * Extracts security contact URL from composer.json support.security field.
+ * Parses package.json content and extracts relevant fields.
  *
- * @param {string} pluginDir - Plugin directory path
- * @returns {Promise<string|null>} Security contact URL or null
+ * @param {string} content - Content of package.json file
+ * @returns {object} Parsed data with license field
  */
-async function findSecurityContact(pluginDir) {
+export function parsePackageJson(content) {
+	const data = {};
+
 	try {
-		const composerJson = await readFile(join(pluginDir, 'composer.json'), 'utf-8');
-		return parseSecurityContactFromComposer(composerJson);
+		const pkg = JSON.parse(content);
+		if (pkg.license) {
+			data.license = pkg.license;
+		}
 	} catch {
-		// File doesn't exist
+		// Invalid JSON
 	}
 
-	return null;
+	return data;
 }
 
 /**
@@ -357,19 +335,38 @@ export async function createSignedArtifact(options) {
 }
 
 /**
- * Builds complete FAIR metadata for a WordPress plugin release from content.
+ * Formats a security contact value into the schema format.
  *
- * This is the core metadata building function that works with string/buffer inputs.
- * Use buildMetadata() for a file-based wrapper.
+ * @param {string} value - Email address or URL
+ * @returns {object} Object with either {email} or {url} property
+ */
+function formatSecurityContact(value) {
+	// Check if it's a URL (has scheme) or plain email address
+	if (/^[a-z][a-z0-9+.-]*:/i.test(value)) {
+		return { url: value };
+	}
+	return { email: value };
+}
+
+/**
+ * Builds complete FAIR metadata for a WordPress plugin release.
+ *
+ * This is the core metadata building function that accepts pre-resolved final values.
+ * Use buildMetadata() for a file-based wrapper that handles parsing and priority resolution.
  *
  * @param {object} options
  * @param {string} options.did - Package DID
  * @param {object} options.keypair - Verification keypair for signing artifacts
  * @param {string} options.slug - Plugin slug
- * @param {string} options.pluginContent - Content of the main plugin PHP file
- * @param {string} [options.readmeContent] - Content of readme.txt (optional)
- * @param {string} [options.spdxLicense] - SPDX license from package.json/composer.json
- * @param {string} [options.securityContact] - Security contact URL from composer.json
+ * @param {string} options.version - Version string (required)
+ * @param {string} [options.name] - Plugin name (defaults to slug)
+ * @param {string} [options.description] - Plugin description
+ * @param {object} [options.author] - Author object {name, url?}
+ * @param {string} [options.license] - License identifier
+ * @param {Array<string>} [options.keywords] - Search keywords
+ * @param {string} [options.securityContact] - Security contact (email or URL)
+ * @param {string} [options.requiresWp] - Minimum WordPress version
+ * @param {string} [options.requiresPhp] - Minimum PHP version
  * @param {Buffer|Uint8Array} options.zipData - Plugin zip file contents
  * @param {string} options.downloadUrl - Public download URL for the zip
  * @param {Array} [options.existingReleases] - Existing releases to preserve
@@ -380,42 +377,27 @@ export async function buildMetadataFromContent(options) {
 		did,
 		keypair,
 		slug,
-		pluginContent,
-		readmeContent,
-		spdxLicense,
+		version,
+		name,
+		description,
+		author,
+		license,
+		keywords,
 		securityContact,
+		requiresWp,
+		requiresPhp,
 		zipData,
 		downloadUrl,
 		existingReleases = [],
 	} = options;
 
-	// Parse plugin headers
-	const headers = parsePluginHeaders(pluginContent);
-
-	// Validate required headers
-	if (!headers.pluginId) {
-		throw new Error('Plugin file is missing required "Plugin ID:" header');
-	}
-	if (headers.pluginId !== did) {
-		throw new Error(`Plugin ID mismatch: plugin file has "${headers.pluginId}" but DID "${did}" was provided`);
-	}
-	if (!headers.version) {
+	// Validate required fields
+	if (!version) {
 		throw new Error('Plugin file is missing required "Version:" header');
 	}
 
-	// Parse readme if provided
-	const readmeData = readmeContent ? parseReadmeFile(readmeContent) : {};
-
-	// Determine license
-	const license = spdxLicense || headers.license || readmeData.license || '';
-
 	// Build authors array
-	const authors = [];
-	if (headers.author) {
-		const author = { name: headers.author };
-		if (headers.authorUri) author.url = headers.authorUri;
-		authors.push(author);
-	}
+	const authors = author ? [author] : [];
 
 	// Create signed artifact
 	const artifact = await createSignedArtifact({
@@ -424,37 +406,37 @@ export async function buildMetadataFromContent(options) {
 		keypair,
 	});
 
-	// Parse requirements
+	// Build requirements
 	const requires = {};
-	if (headers.requiresWp) {
-		requires['env:wp'] = `>=${headers.requiresWp}`;
+	if (requiresWp) {
+		requires['env:wp'] = `>=${requiresWp}`;
 	}
-	if (headers.requiresPhp) {
-		requires['env:php'] = `>=${headers.requiresPhp}`;
+	if (requiresPhp) {
+		requires['env:php'] = `>=${requiresPhp}`;
 	}
 
 	// Create release
 	const release = createReleaseDocument({
-		version: headers.version,
+		version,
 		artifacts: {
 			package: [artifact],
 		},
 		requires,
 	});
 
-	// Build security contacts array from composer.json support.security
-	const security = securityContact ? [{ url: securityContact }] : [];
+	// Build security contacts array
+	const security = securityContact ? [formatSecurityContact(securityContact)] : [];
 
 	// Create metadata document with new release prepended to existing ones
 	return createMetadataDocument({
 		id: did,
 		type: 'wp-plugin',
-		name: headers.name || slug,
+		name: name || slug,
 		slug,
-		description: headers.description || readmeData.shortDescription || '',
+		description: description || '',
 		authors,
-		license,
-		keywords: (readmeData.keywords || []).slice(0, 5),
+		license: license || '',
+		keywords: (keywords || []).slice(0, 5),
 		security,
 		releases: [release, ...existingReleases],
 	});
@@ -463,7 +445,8 @@ export async function buildMetadataFromContent(options) {
 /**
  * Builds complete FAIR metadata for a WordPress plugin release.
  *
- * File-based wrapper for buildMetadataFromContent().
+ * File-based wrapper that handles all file reading, parsing, and priority resolution,
+ * then delegates to buildMetadataFromContent() with final values.
  *
  * @param {object} options
  * @param {string} options.did - Package DID
@@ -488,22 +471,55 @@ export async function buildMetadata(options) {
 	const pluginDir = dirname(pluginFile);
 	const slug = basename(pluginDir) !== '.' ? basename(pluginDir) : basename(pluginFile, '.php');
 
-	// Read plugin content
+	// Parse all source files
 	const pluginContent = await readFile(pluginFile, 'utf-8');
+	const pluginData = parsePluginHeaders(pluginContent);
 
-	// Try to read readme.txt
-	let readmeContent;
+	// Validate plugin ID matches
+	if (!pluginData.pluginId) {
+		throw new Error('Plugin file is missing required "Plugin ID:" header');
+	}
+	if (pluginData.pluginId !== did) {
+		throw new Error(`Plugin ID mismatch: plugin file has "${pluginData.pluginId}" but DID "${did}" was provided`);
+	}
+
+	let readmeData = {};
 	try {
-		readmeContent = await readFile(join(pluginDir, 'readme.txt'), 'utf-8');
+		const readmeContent = await readFile(join(pluginDir, 'readme.txt'), 'utf-8');
+		readmeData = parseReadmeFile(readmeContent);
 	} catch {
 		// No readme.txt found
 	}
 
-	// Try to find SPDX license
-	const spdxLicense = await findSpdxLicense(pluginDir);
+	let composerData = {};
+	try {
+		const composerContent = await readFile(join(pluginDir, 'composer.json'), 'utf-8');
+		composerData = parseComposerJson(composerContent);
+	} catch {
+		// No composer.json found
+	}
 
-	// Try to find security contact from composer.json
-	const securityContact = await findSecurityContact(pluginDir);
+	let packageData = {};
+	try {
+		const packageContent = await readFile(join(pluginDir, 'package.json'), 'utf-8');
+		packageData = parsePackageJson(packageContent);
+	} catch {
+		// No package.json found
+	}
+
+	// Resolve values by priority
+	const license = composerData.license || packageData.license || pluginData.license || readmeData.license || '';
+	const securityContact = pluginData.security || composerData.securityContact;
+	const description = pluginData.description || readmeData.shortDescription;
+
+	// Build author object
+	let author;
+	if (pluginData.author) {
+		author = { name: pluginData.author };
+		if (pluginData.authorUri) {
+			author.url = pluginData.authorUri;
+		}
+	}
 
 	// Read zip data
 	const zipData = await readFile(zipFile);
@@ -512,10 +528,15 @@ export async function buildMetadata(options) {
 		did,
 		keypair,
 		slug,
-		pluginContent,
-		readmeContent,
-		spdxLicense,
+		version: pluginData.version,
+		name: pluginData.name,
+		description,
+		author,
+		license,
+		keywords: readmeData.keywords,
 		securityContact,
+		requiresWp: pluginData.requiresWp,
+		requiresPhp: pluginData.requiresPhp,
 		zipData,
 		downloadUrl,
 		existingReleases,

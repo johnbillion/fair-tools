@@ -1,76 +1,17 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { buildMetadataFromContent, parseSecurityContactFromComposer } from '../src/metadata.js';
+import { buildMetadataFromContent, parseComposerJson, parsePackageJson, parsePluginHeaders, parseReadmeFile } from '../src/metadata.js';
 import { generateVerificationKeyPair } from '../src/keys.js';
 
 describe('buildMetadataFromContent', () => {
-	it('throws if Plugin ID header is missing', async () => {
+	it('throws if version is missing', async () => {
 		const { keypair } = await generateVerificationKeyPair();
-
-		const pluginContent = `<?php
-/**
- * Plugin Name: Test Plugin
- * Version: 1.0.0
- */
-`;
 
 		await assert.rejects(
 			buildMetadataFromContent({
 				did: 'did:plc:test123',
 				keypair,
 				slug: 'test-plugin',
-				pluginContent,
-				zipData: Buffer.from('fake zip'),
-				downloadUrl: 'https://example.com/test.zip',
-			}),
-			{
-				message: 'Plugin file is missing required "Plugin ID:" header',
-			}
-		);
-	});
-
-	it('throws if Plugin ID does not match provided DID', async () => {
-		const { keypair } = await generateVerificationKeyPair();
-
-		const pluginContent = `<?php
-/**
- * Plugin Name: Test Plugin
- * Plugin ID: did:plc:different123
- * Version: 1.0.0
- */
-`;
-
-		await assert.rejects(
-			buildMetadataFromContent({
-				did: 'did:plc:test123',
-				keypair,
-				slug: 'test-plugin',
-				pluginContent,
-				zipData: Buffer.from('fake zip'),
-				downloadUrl: 'https://example.com/test.zip',
-			}),
-			{
-				message: 'Plugin ID mismatch: plugin file has "did:plc:different123" but DID "did:plc:test123" was provided',
-			}
-		);
-	});
-
-	it('throws if Version header is missing', async () => {
-		const { keypair } = await generateVerificationKeyPair();
-
-		const pluginContent = `<?php
-/**
- * Plugin Name: Test Plugin
- * Plugin ID: did:plc:test123
- */
-`;
-
-		await assert.rejects(
-			buildMetadataFromContent({
-				did: 'did:plc:test123',
-				keypair,
-				slug: 'test-plugin',
-				pluginContent,
 				zipData: Buffer.from('fake zip'),
 				downloadUrl: 'https://example.com/test.zip',
 			}),
@@ -80,24 +21,17 @@ describe('buildMetadataFromContent', () => {
 		);
 	});
 
-	it('succeeds with valid Plugin ID and Version headers', async () => {
+	it('succeeds with valid did and version', async () => {
 		const { keypair } = await generateVerificationKeyPair();
-
-		const pluginContent = `<?php
-/**
- * Plugin Name: Valid Test Plugin
- * Plugin ID: did:plc:validtest123
- * Version: 2.0.0
- * Description: A valid test plugin
- * Author: Test Author
- */
-`;
 
 		const metadata = await buildMetadataFromContent({
 			did: 'did:plc:validtest123',
 			keypair,
 			slug: 'valid-plugin',
-			pluginContent,
+			version: '2.0.0',
+			name: 'Valid Test Plugin',
+			description: 'A valid test plugin',
+			author: { name: 'Test Author' },
 			zipData: Buffer.from('fake zip'),
 			downloadUrl: 'https://example.com/valid.zip',
 		});
@@ -110,21 +44,14 @@ describe('buildMetadataFromContent', () => {
 		assert.strictEqual(metadata.authors[0].name, 'Test Author');
 	});
 
-	it('uses slug as name if Plugin Name header is missing', async () => {
+	it('uses slug as name if name not provided', async () => {
 		const { keypair } = await generateVerificationKeyPair();
-
-		const pluginContent = `<?php
-/**
- * Plugin ID: did:plc:test123
- * Version: 1.0.0
- */
-`;
 
 		const metadata = await buildMetadataFromContent({
 			did: 'did:plc:test123',
 			keypair,
 			slug: 'my-plugin-slug',
-			pluginContent,
+			version: '1.0.0',
 			zipData: Buffer.from('fake zip'),
 			downloadUrl: 'https://example.com/test.zip',
 		});
@@ -132,64 +59,35 @@ describe('buildMetadataFromContent', () => {
 		assert.strictEqual(metadata.name, 'my-plugin-slug');
 	});
 
-	it('parses readme content for keywords and description', async () => {
+	it('includes keywords from options', async () => {
 		const { keypair } = await generateVerificationKeyPair();
-
-		const pluginContent = `<?php
-/**
- * Plugin Name: Test Plugin
- * Plugin ID: did:plc:test123
- * Version: 1.0.0
- */
-`;
-
-		const readmeContent = `=== Test Plugin ===
-Tags: tag1, tag2, tag3
-License: GPL-2.0-or-later
-
-This is the short description from readme.
-`;
 
 		const metadata = await buildMetadataFromContent({
 			did: 'did:plc:test123',
 			keypair,
 			slug: 'test-plugin',
-			pluginContent,
-			readmeContent,
+			version: '1.0.0',
+			keywords: ['tag1', 'tag2', 'tag3'],
+			description: 'This is the short description.',
+			license: 'GPL-2.0-or-later',
 			zipData: Buffer.from('fake zip'),
 			downloadUrl: 'https://example.com/test.zip',
 		});
 
 		assert.deepStrictEqual(metadata.keywords, ['tag1', 'tag2', 'tag3']);
-		assert.strictEqual(metadata.description, 'This is the short description from readme.');
+		assert.strictEqual(metadata.description, 'This is the short description.');
 		assert.strictEqual(metadata.license, 'GPL-2.0-or-later');
 	});
 
-	it('prefers spdxLicense over header and readme licenses', async () => {
+	it('uses provided license', async () => {
 		const { keypair } = await generateVerificationKeyPair();
-
-		const pluginContent = `<?php
-/**
- * Plugin Name: Test Plugin
- * Plugin ID: did:plc:test123
- * Version: 1.0.0
- * License: GPLv2
- */
-`;
-
-		const readmeContent = `=== Test Plugin ===
-License: GPL-2.0
-
-Short description.
-`;
 
 		const metadata = await buildMetadataFromContent({
 			did: 'did:plc:test123',
 			keypair,
 			slug: 'test-plugin',
-			pluginContent,
-			readmeContent,
-			spdxLicense: 'MIT',
+			version: '1.0.0',
+			license: 'MIT',
 			zipData: Buffer.from('fake zip'),
 			downloadUrl: 'https://example.com/test.zip',
 		});
@@ -197,24 +95,16 @@ Short description.
 		assert.strictEqual(metadata.license, 'MIT');
 	});
 
-	it('includes requirements from headers', async () => {
+	it('includes requirements from options', async () => {
 		const { keypair } = await generateVerificationKeyPair();
-
-		const pluginContent = `<?php
-/**
- * Plugin Name: Test Plugin
- * Plugin ID: did:plc:test123
- * Version: 1.0.0
- * Requires at least: 6.0
- * Requires PHP: 8.1
- */
-`;
 
 		const metadata = await buildMetadataFromContent({
 			did: 'did:plc:test123',
 			keypair,
 			slug: 'test-plugin',
-			pluginContent,
+			version: '1.0.0',
+			requiresWp: '6.0',
+			requiresPhp: '8.1',
 			zipData: Buffer.from('fake zip'),
 			downloadUrl: 'https://example.com/test.zip',
 		});
@@ -228,19 +118,11 @@ Short description.
 	it('includes security contact from securityContact option', async () => {
 		const { keypair } = await generateVerificationKeyPair();
 
-		const pluginContent = `<?php
-/**
- * Plugin Name: Test Plugin
- * Plugin ID: did:plc:test123
- * Version: 1.0.0
- */
-`;
-
 		const metadata = await buildMetadataFromContent({
 			did: 'did:plc:test123',
 			keypair,
 			slug: 'test-plugin',
-			pluginContent,
+			version: '1.0.0',
 			securityContact: 'https://example.com/security',
 			zipData: Buffer.from('fake zip'),
 			downloadUrl: 'https://example.com/test.zip',
@@ -252,59 +134,322 @@ Short description.
 	it('has empty security array when no securityContact provided', async () => {
 		const { keypair } = await generateVerificationKeyPair();
 
-		const pluginContent = `<?php
-/**
- * Plugin Name: Test Plugin
- * Plugin ID: did:plc:test123
- * Version: 1.0.0
- */
-`;
-
 		const metadata = await buildMetadataFromContent({
 			did: 'did:plc:test123',
 			keypair,
 			slug: 'test-plugin',
-			pluginContent,
+			version: '1.0.0',
 			zipData: Buffer.from('fake zip'),
 			downloadUrl: 'https://example.com/test.zip',
 		});
 
 		assert.deepStrictEqual(metadata.security, []);
 	});
+
+	it('formats email security contact correctly', async () => {
+		const { keypair } = await generateVerificationKeyPair();
+
+		const metadata = await buildMetadataFromContent({
+			did: 'did:plc:test123',
+			keypair,
+			slug: 'test-plugin',
+			version: '1.0.0',
+			securityContact: 'security@example.com',
+			zipData: Buffer.from('fake zip'),
+			downloadUrl: 'https://example.com/test.zip',
+		});
+
+		assert.deepStrictEqual(metadata.security, [{ email: 'security@example.com' }]);
+	});
+
+	it('formats URL security contact correctly', async () => {
+		const { keypair } = await generateVerificationKeyPair();
+
+		const metadata = await buildMetadataFromContent({
+			did: 'did:plc:test123',
+			keypair,
+			slug: 'test-plugin',
+			version: '1.0.0',
+			securityContact: 'https://example.com/security-policy',
+			zipData: Buffer.from('fake zip'),
+			downloadUrl: 'https://example.com/test.zip',
+		});
+
+		assert.deepStrictEqual(metadata.security, [{ url: 'https://example.com/security-policy' }]);
+	});
+
+	it('treats mailto: URLs as URLs not emails', async () => {
+		const { keypair } = await generateVerificationKeyPair();
+
+		const metadata = await buildMetadataFromContent({
+			did: 'did:plc:test123',
+			keypair,
+			slug: 'test-plugin',
+			version: '1.0.0',
+			securityContact: 'mailto:security@example.com',
+			zipData: Buffer.from('fake zip'),
+			downloadUrl: 'https://example.com/test.zip',
+		});
+
+		assert.deepStrictEqual(metadata.security, [{ url: 'mailto:security@example.com' }]);
+	});
 });
 
-describe('parseSecurityContactFromComposer', () => {
-	it('extracts security URL from composer.json support.security field', () => {
-		const composerContent = JSON.stringify({
+describe('parseReadmeFile', () => {
+	it('parses license from readme', () => {
+		const content = `=== Test Plugin ===
+License: GPL-2.0-or-later
+
+Short description here.
+`;
+		const data = parseReadmeFile(content);
+		assert.strictEqual(data.license, 'GPL-2.0-or-later');
+	});
+
+	it('parses tags into keywords array', () => {
+		const content = `=== Test Plugin ===
+Tags: seo, performance, cache
+
+Short description here.
+`;
+		const data = parseReadmeFile(content);
+		assert.deepStrictEqual(data.keywords, ['seo', 'performance', 'cache']);
+	});
+
+	it('returns empty keywords array when no tags', () => {
+		const content = `=== Test Plugin ===
+License: MIT
+
+Short description here.
+`;
+		const data = parseReadmeFile(content);
+		assert.deepStrictEqual(data.keywords, []);
+	});
+
+	it('extracts short description after header fields', () => {
+		const content = `=== Test Plugin ===
+Tags: tag1, tag2
+License: GPL-2.0
+
+This is the short description.
+
+== Description ==
+
+Long description here.
+`;
+		const data = parseReadmeFile(content);
+		assert.strictEqual(data.shortDescription, 'This is the short description.');
+	});
+
+	it('stops at section heading', () => {
+		const content = `=== Test Plugin ===
+Tags: tag1
+
+== Description ==
+
+This should not be the short description.
+`;
+		const data = parseReadmeFile(content);
+		assert.strictEqual(data.shortDescription, undefined);
+	});
+
+	it('trims whitespace from tags', () => {
+		const content = `=== Test Plugin ===
+Tags:   spaced ,  tags  ,  here
+
+Description.
+`;
+		const data = parseReadmeFile(content);
+		assert.deepStrictEqual(data.keywords, ['spaced', 'tags', 'here']);
+	});
+});
+
+describe('parsePluginHeaders', () => {
+	it('parses all standard headers', () => {
+		const content = `<?php
+/**
+ * Plugin Name: My Plugin
+ * Plugin URI: https://example.com/plugin
+ * Plugin ID: did:plc:abc123
+ * Description: A test plugin
+ * Version: 1.2.3
+ * Author: John Doe
+ * Author URI: https://example.com
+ * License: GPL-2.0-or-later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain: my-plugin
+ * Domain Path: /languages
+ * Requires at least: 6.0
+ * Requires PHP: 8.1
+ * Update URI: https://example.com/updates
+ * Security: security@example.com
+ */
+`;
+		const headers = parsePluginHeaders(content);
+		assert.strictEqual(headers.name, 'My Plugin');
+		assert.strictEqual(headers.pluginUri, 'https://example.com/plugin');
+		assert.strictEqual(headers.pluginId, 'did:plc:abc123');
+		assert.strictEqual(headers.description, 'A test plugin');
+		assert.strictEqual(headers.version, '1.2.3');
+		assert.strictEqual(headers.author, 'John Doe');
+		assert.strictEqual(headers.authorUri, 'https://example.com');
+		assert.strictEqual(headers.license, 'GPL-2.0-or-later');
+		assert.strictEqual(headers.licenseUri, 'https://www.gnu.org/licenses/gpl-2.0.html');
+		assert.strictEqual(headers.textDomain, 'my-plugin');
+		assert.strictEqual(headers.domainPath, '/languages');
+		assert.strictEqual(headers.requiresWp, '6.0');
+		assert.strictEqual(headers.requiresPhp, '8.1');
+		assert.strictEqual(headers.updateUri, 'https://example.com/updates');
+		assert.strictEqual(headers.security, 'security@example.com');
+	});
+
+	it('parses Security header as email', () => {
+		const content = `<?php
+/**
+ * Plugin Name: Test Plugin
+ * Plugin ID: did:plc:test123
+ * Version: 1.0.0
+ * Security: security@example.com
+ */
+`;
+		const headers = parsePluginHeaders(content);
+		assert.strictEqual(headers.security, 'security@example.com');
+	});
+
+	it('parses Security header as URL', () => {
+		const content = `<?php
+/**
+ * Plugin Name: Test Plugin
+ * Plugin ID: did:plc:test123
+ * Version: 1.0.0
+ * Security: https://example.com/security
+ */
+`;
+		const headers = parsePluginHeaders(content);
+		assert.strictEqual(headers.security, 'https://example.com/security');
+	});
+
+	it('returns empty object for content without headers', () => {
+		const content = `<?php
+// No headers here
+echo "Hello";
+`;
+		const headers = parsePluginHeaders(content);
+		assert.deepStrictEqual(headers, {});
+	});
+
+	it('trims whitespace from aligned header values', () => {
+		const content = `<?php
+/**
+ * Plugin Name:       My Plugin
+ * Plugin URI:        https://example.com/plugin
+ * Plugin ID:         did:plc:abc123
+ * Description:       A test plugin
+ * Version:           1.2.3
+ * Author:            John Doe
+ * Author URI:        https://example.com
+ * License:           GPL-2.0-or-later
+ * Requires at least: 6.0
+ * Requires PHP:      8.1
+ */
+`;
+		const headers = parsePluginHeaders(content);
+		assert.strictEqual(headers.name, 'My Plugin');
+		assert.strictEqual(headers.pluginUri, 'https://example.com/plugin');
+		assert.strictEqual(headers.pluginId, 'did:plc:abc123');
+		assert.strictEqual(headers.description, 'A test plugin');
+		assert.strictEqual(headers.version, '1.2.3');
+		assert.strictEqual(headers.author, 'John Doe');
+		assert.strictEqual(headers.authorUri, 'https://example.com');
+		assert.strictEqual(headers.license, 'GPL-2.0-or-later');
+		assert.strictEqual(headers.requiresWp, '6.0');
+		assert.strictEqual(headers.requiresPhp, '8.1');
+	});
+});
+
+describe('parseComposerJson', () => {
+	it('extracts license from composer.json', () => {
+		const content = JSON.stringify({
+			name: 'test/plugin',
+			license: 'MIT',
+		});
+
+		const data = parseComposerJson(content);
+		assert.strictEqual(data.license, 'MIT');
+	});
+
+	it('extracts security contact from composer.json support.security field', () => {
+		const content = JSON.stringify({
 			name: 'test/plugin',
 			support: {
 				security: 'https://example.com/security-policy',
 			},
 		});
 
-		const result = parseSecurityContactFromComposer(composerContent);
-		assert.strictEqual(result, 'https://example.com/security-policy');
+		const data = parseComposerJson(content);
+		assert.strictEqual(data.securityContact, 'https://example.com/security-policy');
 	});
 
-	it('returns null when support.security is not present', () => {
-		const composerContent = JSON.stringify({
+	it('extracts both license and security contact', () => {
+		const content = JSON.stringify({
+			name: 'test/plugin',
+			license: 'GPL-2.0-or-later',
+			support: {
+				security: 'security@example.com',
+			},
+		});
+
+		const data = parseComposerJson(content);
+		assert.strictEqual(data.license, 'GPL-2.0-or-later');
+		assert.strictEqual(data.securityContact, 'security@example.com');
+	});
+
+	it('returns empty object when fields not present', () => {
+		const content = JSON.stringify({
 			name: 'test/plugin',
 			support: {
 				email: 'support@example.com',
 			},
 		});
 
-		const result = parseSecurityContactFromComposer(composerContent);
-		assert.strictEqual(result, null);
+		const data = parseComposerJson(content);
+		assert.strictEqual(data.license, undefined);
+		assert.strictEqual(data.securityContact, undefined);
 	});
 
-	it('returns null when support object is not present', () => {
-		const composerContent = JSON.stringify({
-			name: 'test/plugin',
+	it('returns empty object for invalid JSON', () => {
+		const content = 'not valid json {';
+
+		const data = parseComposerJson(content);
+		assert.deepStrictEqual(data, {});
+	});
+});
+
+describe('parsePackageJson', () => {
+	it('extracts license from package.json', () => {
+		const content = JSON.stringify({
+			name: 'test-plugin',
 			license: 'MIT',
 		});
 
-		const result = parseSecurityContactFromComposer(composerContent);
-		assert.strictEqual(result, null);
+		const data = parsePackageJson(content);
+		assert.strictEqual(data.license, 'MIT');
+	});
+
+	it('returns empty object when license not present', () => {
+		const content = JSON.stringify({
+			name: 'test-plugin',
+			version: '1.0.0',
+		});
+
+		const data = parsePackageJson(content);
+		assert.strictEqual(data.license, undefined);
+	});
+
+	it('returns empty object for invalid JSON', () => {
+		const content = 'not valid json {';
+
+		const data = parsePackageJson(content);
+		assert.deepStrictEqual(data, {});
 	});
 });
