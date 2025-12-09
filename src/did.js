@@ -326,3 +326,39 @@ export async function revokeRotationKey({ did, rotationKey, signer, plcUrl = PLC
 	const client = createPlcClient(plcUrl);
 	await client.updateData(did, signer, (lastOp) => revokeRotationKeyFromOp(lastOp, rotationKey));
 }
+
+/**
+ * Creates an updated operation with a new alsoKnownAs URL added.
+ *
+ * @param {object} lastOp - The previous operation
+ * @param {string} url - The URL to add to alsoKnownAs
+ * @returns {object} The updated operation
+ * @throws {Error} If the URL already exists in alsoKnownAs
+ */
+export function addAlsoKnownAsToOp(lastOp, url) {
+	const existing = lastOp.alsoKnownAs || [];
+	if (existing.includes(url)) {
+		throw new Error(`URL already exists in alsoKnownAs: ${url}`);
+	}
+	return {
+		...lastOp,
+		alsoKnownAs: [...existing, url],
+	};
+}
+
+/**
+ * Adds a new URL to the alsoKnownAs field of an existing DID.
+ *
+ * The URL is appended to the existing alsoKnownAs array.
+ *
+ * @param {object} opts - Options
+ * @param {string} opts.did - The DID to update
+ * @param {string} opts.url - The URL to add to alsoKnownAs
+ * @param {Secp256k1Keypair} opts.signer - The keypair to sign with (must be a rotation key)
+ * @param {string} [opts.plcUrl] - The PLC directory URL (defaults to https://plc.directory)
+ * @returns {Promise<void>}
+ */
+export async function addAlsoKnownAs({ did, url, signer, plcUrl = PLC_DIRECTORY_URL }) {
+	const client = createPlcClient(plcUrl);
+	await client.updateData(did, signer, (lastOp) => addAlsoKnownAsToOp(lastOp, url));
+}

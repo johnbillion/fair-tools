@@ -89,6 +89,16 @@ npx update-did \
 
 Over time you may need to manage the keys for your DID.
 
+### Add alsoKnownAs URL
+
+Adds a URL to the alsoKnownAs field of a DID.
+
+```bash
+npx add-aka \
+  --did did:plc:xxx \
+  --url at://example.com
+```
+
 ### Add verification key
 
 Generates a new verification key, adds it to a DID, and saves it to the key file.

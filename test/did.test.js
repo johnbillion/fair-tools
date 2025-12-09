@@ -8,6 +8,7 @@ import {
 	revokeVerificationKeyFromOp,
 	revokeRotationKeyFromOp,
 	updateServiceUrlInOp,
+	addAlsoKnownAsToOp,
 	FAIR_SERVICE_ID,
 	FAIR_SERVICE_TYPE,
 } from '../src/did.js';
@@ -424,11 +425,74 @@ describe('revokeRotationKeyFromOp', () => {
 				fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
 			},
 		});
+	});
+});
+
+describe('addAlsoKnownAsToOp', () => {
+	it('adds URL to empty alsoKnownAs array', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...'],
+			alsoKnownAs: [],
+		};
+		const result = addAlsoKnownAsToOp(lastOp, 'at://example.com');
+
 		assert.deepStrictEqual(result.alsoKnownAs, ['at://example.com']);
-		assert.deepStrictEqual(result.services, {
-			fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
+	});
+
+	it('appends URL to existing alsoKnownAs array', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...'],
+			alsoKnownAs: ['at://existing.com'],
+		};
+		const result = addAlsoKnownAsToOp(lastOp, 'at://new.example.com');
+
+		assert.deepStrictEqual(result.alsoKnownAs, ['at://existing.com', 'at://new.example.com']);
+	});
+
+	it('handles missing alsoKnownAs field', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...'],
+		};
+		const result = addAlsoKnownAsToOp(lastOp, 'at://example.com');
+
+		assert.deepStrictEqual(result.alsoKnownAs, ['at://example.com']);
+	});
+
+	it('throws if URL already exists in alsoKnownAs', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...'],
+			alsoKnownAs: ['at://existing.com'],
+		};
+
+		assert.throws(
+			() => addAlsoKnownAsToOp(lastOp, 'at://existing.com'),
+			/URL already exists in alsoKnownAs/
+		);
+	});
+
+	it('preserves verification methods, rotation keys, and services', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk1', fair2: 'did:key:z6Mk2' },
+			rotationKeys: ['did:key:zQ3sh1', 'did:key:zQ3sh2'],
+			alsoKnownAs: ['at://existing.com'],
+			services: {
+				fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
+			},
+		};
+		const result = addAlsoKnownAsToOp(lastOp, 'at://new.example.com');
+
+		assert.deepStrictEqual(result, {
+			verificationMethods: { fair: 'did:key:z6Mk1', fair2: 'did:key:z6Mk2' },
+			rotationKeys: ['did:key:zQ3sh1', 'did:key:zQ3sh2'],
+			alsoKnownAs: ['at://existing.com', 'at://new.example.com'],
+			services: {
+				fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
+			},
 		});
-		assert.deepStrictEqual(result.rotationKeys, ['did:key:zQ3sh2']);
 	});
 });
 
