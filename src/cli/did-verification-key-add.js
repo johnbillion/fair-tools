@@ -3,9 +3,9 @@
 import { parseArgs } from 'node:util';
 import { importRotationKeyPair, generateVerificationKeyPair } from '../keys.js';
 import { addVerificationKey } from '../did.js';
-import { loadRotationKey, SigningKeyError } from './signing.js';
-import { saveKeyToFile, SaveKeyError } from './save-key.js';
-import { logPlcError } from './plc-error.js';
+import { loadRotationKey, SigningKeyError } from './lib/signing.js';
+import { saveKeyToFile, SaveKeyError } from './lib/save-key.js';
+import { logPlcError } from './lib/plc-error.js';
 
 const { values } = parseArgs({
 	options: {

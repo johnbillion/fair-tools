@@ -4,7 +4,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { importVerificationKeyPair } from '../keys.js';
 import { buildMetadata } from '../metadata.js';
-import { loadVerificationKey, SigningKeyError } from './signing.js';
+import { loadVerificationKey, SigningKeyError } from './lib/signing.js';
 
 const { values } = parseArgs({
 	options: {

@@ -1,6 +1,6 @@
 import { describe, it, mock } from 'node:test';
 import assert from 'node:assert';
-import { formatPlcError, diagnosePlcError, logPlcError } from '../../src/cli/plc-error.js';
+import { formatPlcError, diagnosePlcError, logPlcError } from '../../src/cli/lib/plc-error.js';
 
 describe('formatPlcError', () => {
 	it('returns message for regular errors', () => {

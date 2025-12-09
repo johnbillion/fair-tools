@@ -4,8 +4,8 @@ import { writeFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { importRotationKeyPair } from '../keys.js';
 import { revokeRotationKey } from '../did.js';
-import { loadRotationKeyForRevocation, SigningKeyError } from './signing.js';
-import { logPlcError } from './plc-error.js';
+import { loadRotationKeyForRevocation, SigningKeyError } from './lib/signing.js';
+import { logPlcError } from './lib/plc-error.js';
 
 const { values } = parseArgs({
 	options: {

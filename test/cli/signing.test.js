@@ -8,7 +8,7 @@ import {
 	loadVerificationKey,
 	loadRotationKeyForRevocation,
 	SigningKeyError,
-} from '../../src/cli/signing.js';
+} from '../../src/cli/lib/signing.js';
 
 const testDir = join(tmpdir(), 'fair-tools-signing-test-' + Date.now());
 

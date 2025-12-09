@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import { readFile, writeFile, rm, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { saveKeyToFile, SaveKeyError } from '../../src/cli/save-key.js';
+import { saveKeyToFile, SaveKeyError } from '../../src/cli/lib/save-key.js';
 
 const testDir = join(tmpdir(), 'fair-tools-save-key-test-' + Date.now());
 

@@ -10,7 +10,7 @@ import {
 	formatKeyFileContent,
 	writeKeyFile,
 } from '../keyfile.js';
-import { logPlcError } from './plc-error.js';
+import { logPlcError } from './lib/plc-error.js';
 
 const { values } = parseArgs({
 	options: {
