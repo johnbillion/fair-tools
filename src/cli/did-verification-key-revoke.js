@@ -36,7 +36,7 @@ const { values } = parseArgs({
 });
 
 if (values.help) {
-	console.log(`Usage: fair-tools revoke-verification-key [options]
+	console.log(`Usage: fair-tools did verification-key revoke [options]
 
 Revoke a verification key from an existing DID.
 

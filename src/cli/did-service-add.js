@@ -32,7 +32,7 @@ const { values } = parseArgs({
 });
 
 if (values.help) {
-	console.log(`Usage: fair-tools update-did [options]
+	console.log(`Usage: fair-tools did service add [options]
 
 Update a FAIR DID with a service URL.
 

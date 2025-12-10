@@ -32,7 +32,7 @@ const { values } = parseArgs({
 });
 
 if (values.help) {
-	console.log(`Usage: fair-tools add-aka [options]
+	console.log(`Usage: fair-tools did aka add [options]
 
 Add a URL to the alsoKnownAs field of a DID.
 

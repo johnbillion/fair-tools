@@ -48,7 +48,7 @@ const { values } = parseArgs({
 });
 
 if (values.help) {
-	console.log(`Usage: fair-tools build-metadata [options]
+	console.log(`Usage: fair-tools metadata build [options]
 
 Build a FAIR metadata document for a WordPress plugin.
 
