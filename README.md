@@ -1,6 +1,8 @@
 # FAIR Tools
 
-Tools for the FAIR protocol. Create keys, create and manage DIDs, and build signed metadata for WordPress plugins.
+A library of Node.js tools for [FAIR](https://fair.pm/) that can be used by authors of plugins and themes for WordPress. Create keys, create DIDs, manage DID documents, and build signed FAIR metadata.
+
+This library focuses on providing FAIR tools for the WordPress ecosystem, but its tools are also applicable to FAIR and DID PLC in general.
 
 > [!CAUTION]  
 > This package is not production ready and is under heavy development. Do not use this unless you are comfortable testing the FAIR protocol and handling breaking changes.  
@@ -44,7 +46,7 @@ The initial setup of the DID only happens once. Subsequent updates to your plugi
 
 ### Create a DID
 
-Creates a new FAIR DID and publishes it.
+Creates a new DID and publishes it.
 
 ```bash
 npm run fair-tools -- did create --directory ./dids
@@ -215,7 +217,7 @@ Run `npm run fair-tools` to see all available commands:
 Usage: fair-tools <command> [options]
 
 Commands:
-  did create                   Create a new FAIR DID
+  did create                   Create a new DID
   did service add              Add a service URL to a DID
   did service replace          Replace a service URL in a DID
   did service remove           Remove a service URL from a DID

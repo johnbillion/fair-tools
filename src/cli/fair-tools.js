@@ -2,7 +2,7 @@
 
 const commands = {
 	did: {
-		create: { description: 'Create a new FAIR DID', load: () => import('./did-create.js') },
+		create: { description: 'Create a new DID', load: () => import('./did-create.js') },
 		service: {
 			add: { description: 'Add a service URL to a DID', load: () => import('./did-service-add.js') },
 			replace: { description: 'Replace a service URL in a DID', load: () => import('./did-service-replace.js') },

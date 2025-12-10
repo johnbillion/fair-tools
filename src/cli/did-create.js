@@ -28,7 +28,7 @@ const { values } = parseArgs({
 if (values.help) {
 	console.log(`Usage: fair-tools create-did -d <directory>
 
-Create a new FAIR DID and publish it to plc.directory.
+Create a new DID and publish it to plc.directory.
 
 Options:
   -d, --directory <dir>     Write keys to <dir>/<did>.json
