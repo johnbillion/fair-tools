@@ -44,21 +44,6 @@ describe('buildMetadataFromContent', () => {
 		assert.strictEqual(metadata.authors[0].name, 'Test Author');
 	});
 
-	it('uses slug as name if name not provided', async () => {
-		const { keypair } = await generateVerificationKeyPair();
-
-		const metadata = await buildMetadataFromContent({
-			did: 'did:plc:test123',
-			keypair,
-			slug: 'my-plugin-slug',
-			version: '1.0.0',
-			zipData: Buffer.from('fake zip'),
-			downloadUrl: 'https://example.com/test.zip',
-		});
-
-		assert.strictEqual(metadata.name, 'my-plugin-slug');
-	});
-
 	it('includes keywords from options', async () => {
 		const { keypair } = await generateVerificationKeyPair();
 

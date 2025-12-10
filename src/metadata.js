@@ -216,13 +216,13 @@ export function parsePackageJson(content) {
  * @param {string} options.id - Package DID (did:plc:... or did:web:...)
  * @param {string} options.type - Package type (e.g., 'wp-plugin' or 'wp-theme')
  * @param {string} options.name - Human-readable name
- * @param {string} [options.slug] - URL-safe slug
- * @param {string} [options.description] - Package description
- * @param {Array} [options.authors] - Array of {name, url?, email?} objects
- * @param {string} [options.license] - License identifier (e.g., 'GPL-2.0-or-later')
+ * @param {string} options.slug - URL-safe slug
+ * @param {string} options.description - Package description
+ * @param {Array} options.authors - Array of {name, url?, email?} objects
+ * @param {string} options.license - License identifier (e.g., 'GPL-2.0-or-later')
+ * @param {Array} [options.security] - Security contact info
  * @param {Array} [options.keywords] - Search keywords (max 5)
  * @param {object} [options.sections] - Additional info sections
- * @param {Array} [options.security] - Security contact info
  * @param {Array} [options.releases] - Array of release documents
  * @returns {object} Metadata document
  */
@@ -233,11 +233,11 @@ export function createMetadataDocument(options) {
 		name,
 		slug,
 		description,
-		authors = [],
-		license = '',
+		authors,
+		license,
+		security = [],
 		keywords = [],
 		sections = {},
-		security = [],
 		releases = [],
 	} = options;
 
@@ -246,17 +246,15 @@ export function createMetadataDocument(options) {
 		id,
 		type,
 		name,
-		license,
+		slug,
+		description,
 		authors,
+		license,
 		security,
+		keywords,
+		sections,
 		releases,
 	};
-
-	// Optional properties
-	if (slug) doc.slug = slug;
-	if (description) doc.description = description;
-	if (keywords.length > 0) doc.keywords = keywords.slice(0, 5);
-	if (Object.keys(sections).length > 0) doc.sections = sections;
 
 	return doc;
 }
@@ -360,40 +358,48 @@ function formatSecurityContact(value) {
  * Use buildMetadata() for a file-based wrapper that handles parsing and priority resolution.
  *
  * @param {object} options
- * @param {string} options.did - Package DID
  * @param {object} options.keypair - Verification keypair for signing artifacts
+ * @param {string} options.did - Package DID
+ * @param {string} options.name - Plugin name (defaults to slug)
  * @param {string} options.slug - Plugin slug
- * @param {string} options.version - Version string (required)
- * @param {string} [options.name] - Plugin name (defaults to slug)
- * @param {string} [options.description] - Plugin description
- * @param {object} [options.author] - Author object {name, url?}
- * @param {string} [options.license] - License identifier
- * @param {Array<string>} [options.keywords] - Search keywords
+ * @param {string} options.description - Plugin description
+ * @param {object} options.author - Author object {name, url?}
+ * @param {string} options.license - License identifier
  * @param {string} [options.securityContact] - Security contact (email or URL)
+ * @param {Array<string>} [options.keywords] - Search keywords
+ * @param {Array} [options.existingReleases] - Existing releases to preserve
+ * @param {string} options.version - Version string (required)
  * @param {string} [options.requiresWp] - Minimum WordPress version
  * @param {string} [options.requiresPhp] - Minimum PHP version
  * @param {Buffer|Uint8Array} options.zipData - Plugin zip file contents
  * @param {string} options.downloadUrl - Public download URL for the zip
- * @param {Array} [options.existingReleases] - Existing releases to preserve
  * @returns {Promise<object>} Complete metadata document with release
  */
 export async function buildMetadataFromContent(options) {
 	const {
-		did,
+		// Keys
 		keypair,
-		slug,
-		version,
+
+		// Metadata
+		did,
 		name,
+		slug,
+		// filename
 		description,
 		author,
 		license,
-		keywords,
 		securityContact,
+		keywords,
+
+		// Existing releases
+		existingReleases = [],
+
+		// Release
+		version,
 		requiresWp,
 		requiresPhp,
 		zipData,
 		downloadUrl,
-		existingReleases = [],
 	} = options;
 
 	// Validate required fields
@@ -402,7 +408,7 @@ export async function buildMetadataFromContent(options) {
 	}
 
 	// Build authors array
-	const authors = author ? [author] : [];
+	const authors = [author];
 
 	// Create signed artifact
 	const artifact = await createSignedArtifact({
@@ -437,13 +443,13 @@ export async function buildMetadataFromContent(options) {
 	return createMetadataDocument({
 		id: did,
 		type: 'wp-plugin',
-		name: name || slug,
+		name,
 		slug,
-		description: description || '',
+		description,
 		authors,
-		license: license || '',
-		keywords: (keywords || []).slice(0, 5),
+		license,
 		security,
+		keywords: (keywords || []).slice(0, 5),
 		releases: [release, ...existingReleases],
 	});
 }
@@ -531,20 +537,28 @@ export async function buildMetadata(options) {
 	const zipData = await readFile(zipFile);
 
 	return buildMetadataFromContent({
-		did,
+		// Keys
 		keypair,
-		slug,
-		version: pluginData.version,
+
+		// Metadata
+		did,
 		name: pluginData.name,
+		slug,
+		// filename
 		description,
 		author,
 		license,
-		keywords: readmeData.keywords,
 		securityContact,
+		keywords: readmeData.keywords,
+
+		// Existing releases
+		existingReleases,
+
+		// Release
+		version: pluginData.version,
 		requiresWp: pluginData.requiresWp,
 		requiresPhp: pluginData.requiresPhp,
 		zipData,
 		downloadUrl,
-		existingReleases,
 	});
 }
