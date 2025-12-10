@@ -19,7 +19,7 @@ export class SigningKeyError extends Error {
  */
 export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_ROTATION_KEY' }) {
 	if (signingKey && !signingFile) {
-		throw new SigningKeyError('--signing-key can only be used with --signing-file');
+		throw new SigningKeyError('Cannot specify a signing key without a signing file');
 	}
 
 	if (signingFile) {
@@ -53,7 +53,7 @@ export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_
 
 	const privateKeyHex = process.env[envVar];
 	if (!privateKeyHex) {
-		throw new SigningKeyError(`Either --signing-file or ${envVar} environment variable is required`);
+		throw new SigningKeyError(`No signing key provided. Set the ${envVar} environment variable or provide a signing file.`);
 	}
 
 	return { privateKeyHex, keyData: null };
@@ -71,7 +71,7 @@ export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_
  */
 export async function loadVerificationKey({ signingFile, signingKey, envVar = 'FAIR_PRIVATE_KEY' }) {
 	if (signingKey && !signingFile) {
-		throw new SigningKeyError('--signing-key can only be used with --signing-file');
+		throw new SigningKeyError('Cannot specify a signing key without a signing file');
 	}
 
 	if (signingFile) {
@@ -105,7 +105,7 @@ export async function loadVerificationKey({ signingFile, signingKey, envVar = 'F
 
 	const privateKeyHex = process.env[envVar];
 	if (!privateKeyHex) {
-		throw new SigningKeyError(`Either --signing-file or ${envVar} environment variable is required`);
+		throw new SigningKeyError(`No signing key provided. Set the ${envVar} environment variable or provide a signing file.`);
 	}
 
 	return { privateKeyHex, keyData: null };
@@ -163,7 +163,7 @@ export async function loadRotationKeyForRevocation({ signingFile, signingKey, re
 
 	const privateKeyHex = process.env[envVar];
 	if (!privateKeyHex) {
-		throw new SigningKeyError(`No signing key provided. Use --signing-file <file> or set ${envVar} environment variable.`);
+		throw new SigningKeyError(`No signing key provided. Set the ${envVar} environment variable or provide a signing file.`);
 	}
 
 	return { privateKeyHex, keyData: null };

@@ -36,7 +36,7 @@ describe('signing.js', () => {
 				loadRotationKey({ signingKey: 'did:key:zQ3sh...' }),
 				(err) => {
 					assert(err instanceof SigningKeyError);
-					assert.match(err.message, /--signing-key can only be used with --signing-file/);
+					assert.strictEqual(err.message, 'Cannot specify a signing key without a signing file');
 					return true;
 				}
 			);
@@ -62,7 +62,7 @@ describe('signing.js', () => {
 				loadRotationKey({ signingFile: filePath }),
 				(err) => {
 					assert(err instanceof SigningKeyError);
-					assert.match(err.message, /must contain at least one rotation key/);
+					assert.strictEqual(err.message, 'Key file must contain at least one rotation key');
 					return true;
 				}
 			);
@@ -117,7 +117,7 @@ describe('signing.js', () => {
 					loadRotationKey({}),
 					(err) => {
 						assert(err instanceof SigningKeyError);
-						assert.match(err.message, /FAIR_ROTATION_KEY environment variable is required/);
+						assert.strictEqual(err.message, 'No signing key provided. Set the FAIR_ROTATION_KEY environment variable or provide a signing file.');
 						return true;
 					}
 				);
@@ -170,7 +170,7 @@ describe('signing.js', () => {
 				loadVerificationKey({ signingKey: 'did:key:z6Mk...' }),
 				(err) => {
 					assert(err instanceof SigningKeyError);
-					assert.match(err.message, /--signing-key can only be used with --signing-file/);
+					assert.strictEqual(err.message, 'Cannot specify a signing key without a signing file');
 					return true;
 				}
 			);
@@ -185,7 +185,7 @@ describe('signing.js', () => {
 				loadVerificationKey({ signingFile: filePath }),
 				(err) => {
 					assert(err instanceof SigningKeyError);
-					assert.match(err.message, /must contain at least one verification key/);
+					assert.strictEqual(err.message, 'Key file must contain at least one verification key');
 					return true;
 				}
 			);
@@ -272,7 +272,7 @@ describe('signing.js', () => {
 				loadRotationKeyForRevocation({ signingFile: filePath, revokeKey: 'did:key:zQ3sh...' }),
 				(err) => {
 					assert(err instanceof SigningKeyError);
-					assert.match(err.message, /must contain at least one rotation key/);
+					assert.strictEqual(err.message, 'Key file must contain at least one rotation key');
 					return true;
 				}
 			);
@@ -310,7 +310,7 @@ describe('signing.js', () => {
 				}),
 				(err) => {
 					assert(err instanceof SigningKeyError);
-					assert.match(err.message, /Cannot use the key being revoked to sign/);
+					assert.strictEqual(err.message, 'Cannot use the key being revoked to sign the operation');
 					return true;
 				}
 			);
@@ -394,7 +394,7 @@ describe('signing.js', () => {
 					loadRotationKeyForRevocation({ revokeKey: 'did:key:zQ3sh...' }),
 					(err) => {
 						assert(err instanceof SigningKeyError);
-						assert.match(err.message, /No signing key provided/);
+						assert.strictEqual(err.message, 'No signing key provided. Set the FAIR_ROTATION_KEY environment variable or provide a signing file.');
 						return true;
 					}
 				);
