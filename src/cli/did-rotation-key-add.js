@@ -4,7 +4,7 @@ import { parseArgs } from 'node:util';
 import { importRotationKeyPair, generateRotationKeyPair } from '../keys.js';
 import { addRotationKey } from '../did.js';
 import { loadRotationKey, SigningKeyError } from './lib/signing.js';
-import { saveKeyToFile, SaveKeyError } from './lib/save-key.js';
+import { saveKeyToFile, SaveKeyError } from '../keyfile.js';
 import { logPlcError } from './lib/plc-error.js';
 
 const { values } = parseArgs({
