@@ -98,8 +98,8 @@ Most subsequent commands after creating a DID require a signing key. There are t
    - A plain text file containing a multibase base58btc encoded private key (starts with 'z3vL' for rotation keys or 'z3u2' for verification keys)
 
 2. **Environment variable**: If `--signing-file` is not provided, the command falls back to an environment variable:
-   - `FAIR_PRIVATE_KEY` for metadata signing (verification key)
-   - `FAIR_ROTATION_KEY` for DID operations (rotation key)
+   - `FAIR_VERIFICATION_KEY` for metadata signing
+   - `FAIR_ROTATION_KEY` for DID operations
 
 ### Build metadata
 

@@ -212,12 +212,12 @@ export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_
  * @param {{
  *   signingFile?: string,
  *   signingKey?: string, // ignored for multibase files
- *   envVar?: string // defaults to 'FAIR_PRIVATE_KEY'
+ *   envVar?: string // defaults to 'FAIR_VERIFICATION_KEY'
  * }} opts
  * @returns {Promise<{privateKeyHex: string, keyData: object|null}>}
  * @throws {SigningKeyError} If key cannot be loaded
  */
-export async function loadVerificationKey({ signingFile, signingKey, envVar = 'FAIR_PRIVATE_KEY' }) {
+export async function loadVerificationKey({ signingFile, signingKey, envVar = 'FAIR_VERIFICATION_KEY' }) {
 	if (signingKey && !signingFile) {
 		throw new SigningKeyError('Cannot specify a signing key without a signing file');
 	}

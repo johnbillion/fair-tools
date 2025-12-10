@@ -62,7 +62,7 @@ Signing key:
   -f, --signing-file <file> Path to key file (JSON with verificationKeys, or multibase)
   -k, --signing-key <key>   Which verification key to sign with (default: first, JSON only)
 
-  If --signing-file is not provided, uses FAIR_PRIVATE_KEY environment variable.
+  If --signing-file is not provided, uses FAIR_VERIFICATION_KEY environment variable.
 
 Optional:
   -m, --metadata-file <file>  Path to existing metadata.json to preserve previous releases
@@ -76,7 +76,7 @@ Examples:
   # Specify which verification key to use
   fair-tools build-metadata --signing-file ./dids/did:plc:xxx.json --signing-key did:key:z6Mk... --plugin-file ./plugin.php ...
 
-  # CI usage with environment variable (set FAIR_PRIVATE_KEY)
+  # CI usage with environment variable (set FAIR_VERIFICATION_KEY)
   fair-tools build-metadata --plugin-file ./plugin.php ...`);
 	process.exit(0);
 }

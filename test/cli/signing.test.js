@@ -505,8 +505,8 @@ describe('signing.js', () => {
 		});
 
 		it('loads from env var when no signing file', async () => {
-			const originalEnv = process.env.FAIR_PRIVATE_KEY;
-			process.env.FAIR_PRIVATE_KEY = 'verifykeyvalue';
+			const originalEnv = process.env.FAIR_VERIFICATION_KEY;
+			process.env.FAIR_VERIFICATION_KEY = 'verifykeyvalue';
 
 			try {
 				const result = await loadVerificationKey({});
@@ -515,9 +515,9 @@ describe('signing.js', () => {
 				assert.strictEqual(result.keyData, null);
 			} finally {
 				if (originalEnv !== undefined) {
-					process.env.FAIR_PRIVATE_KEY = originalEnv;
+					process.env.FAIR_VERIFICATION_KEY = originalEnv;
 				} else {
-					delete process.env.FAIR_PRIVATE_KEY;
+					delete process.env.FAIR_VERIFICATION_KEY;
 				}
 			}
 		});
