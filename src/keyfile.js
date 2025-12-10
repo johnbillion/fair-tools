@@ -7,6 +7,7 @@
 
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { base58btc } from 'multiformats/bases/base58';
 
 /**
  * Error thrown when saving a key to a file fails.
@@ -19,13 +20,39 @@ export class SaveKeyError extends Error {
 }
 
 /**
- * Encodes a private key as a hex string.
+ * Multicodec prefix for secp256k1 private keys (rotation keys).
+ */
+export const SECP256K1_PRIV_PREFIX = new Uint8Array([0x81, 0x26]);
+
+/**
+ * Multicodec prefix for ed25519 private keys (verification keys).
+ */
+export const ED25519_PRIV_PREFIX = new Uint8Array([0x80, 0x26]);
+
+/**
+ * Encodes a rotation key (secp256k1) as a multibase base58btc string.
  *
  * @param {Uint8Array} privateKey - The private key bytes
- * @returns {string} The hex-encoded private key
+ * @returns {string} The multibase-encoded private key (starts with 'z')
  */
-export function encodePrivateKey(privateKey) {
-	return Buffer.from(privateKey).toString('hex');
+export function encodeRotationKey(privateKey) {
+	const combined = new Uint8Array(SECP256K1_PRIV_PREFIX.length + privateKey.length);
+	combined.set(SECP256K1_PRIV_PREFIX);
+	combined.set(privateKey, SECP256K1_PRIV_PREFIX.length);
+	return base58btc.encode(combined);
+}
+
+/**
+ * Encodes a verification key (ed25519) as a multibase base58btc string.
+ *
+ * @param {Uint8Array} privateKey - The private key bytes
+ * @returns {string} The multibase-encoded private key (starts with 'z')
+ */
+export function encodeVerificationKey(privateKey) {
+	const combined = new Uint8Array(ED25519_PRIV_PREFIX.length + privateKey.length);
+	combined.set(ED25519_PRIV_PREFIX);
+	combined.set(privateKey, ED25519_PRIV_PREFIX.length);
+	return base58btc.encode(combined);
 }
 
 /**
@@ -52,7 +79,8 @@ export function getKeyFilePath(directory, did) {
 /**
  * Formats the DID key file content.
  *
- * Keys are stored as objects keyed by public key.
+ * Keys are stored as objects keyed by public key, with values encoded as
+ * multibase base58btc strings with appropriate multicodec prefixes.
  *
  * @param {object} options
  * @param {string} options.did - The DID
@@ -68,10 +96,10 @@ export function formatKeyFileContent({ did, rotationKey, verificationKey }) {
 	return JSON.stringify({
 		did,
 		rotationKeys: {
-			[rotationKey.publicKey]: encodePrivateKey(rotationKey.privateKey),
+			[rotationKey.publicKey]: encodeRotationKey(rotationKey.privateKey),
 		},
 		verificationKeys: {
-			[verificationKey.publicKey]: encodePrivateKey(verificationKey.privateKey),
+			[verificationKey.publicKey]: encodeVerificationKey(verificationKey.privateKey),
 		},
 	}, null, 2);
 }
@@ -88,21 +116,20 @@ export async function writeKeyFile(path, content) {
 }
 
 /**
- * Save a new key to a file.
+ * Save a new rotation key to a file.
  *
- * If the file exists and is valid JSON, appends the key to the specified keys object.
- * If the file doesn't exist, writes just the raw hex value.
+ * If the file exists and is valid JSON, appends the key to the rotationKeys object.
+ * If the file doesn't exist, writes the multibase-encoded key.
  *
  * @param {object} opts
  * @param {string} opts.outputFile - Path to output file
  * @param {{publicKey: string, privateKey: Uint8Array}} opts.key - The key pair to save
- * @param {'rotationKeys'|'verificationKeys'} opts.keyType - Which key collection to add to
  * @returns {Promise<{appended: boolean}>} Whether the key was appended to existing file
  * @throws {SaveKeyError} If reading or writing fails, or if key already exists
  */
-export async function saveKeyToFile({ outputFile, key, keyType }) {
+export async function saveRotationKeyToFile({ outputFile, key }) {
 	const publicKey = key.publicKey;
-	const privateKeyHex = encodePrivateKey(key.privateKey);
+	const encodedKey = encodeRotationKey(key.privateKey);
 	let outputData = null;
 
 	try {
@@ -115,24 +142,79 @@ export async function saveKeyToFile({ outputFile, key, keyType }) {
 			}
 			throw new SaveKeyError(`Error reading output file: ${err.message}`);
 		}
-		// File doesn't exist - will write raw hex
+		// File doesn't exist - will write multibase key
 	}
 
 	try {
 		if (outputData) {
 			// File exists and is valid JSON - append to keys
-			if (!outputData[keyType]) {
-				outputData[keyType] = {};
+			if (!outputData.rotationKeys) {
+				outputData.rotationKeys = {};
 			}
-			if (outputData[keyType][publicKey]) {
+			if (outputData.rotationKeys[publicKey]) {
 				throw new SaveKeyError(`Key already exists in file: ${publicKey}`);
 			}
-			outputData[keyType][publicKey] = privateKeyHex;
+			outputData.rotationKeys[publicKey] = encodedKey;
 			await writeFile(outputFile, JSON.stringify(outputData, null, 2) + '\n', { mode: KEY_FILE_MODE });
 			return { appended: true };
 		} else {
-			// File doesn't exist - write raw hex
-			await writeFile(outputFile, privateKeyHex + '\n', { mode: KEY_FILE_MODE });
+			// File doesn't exist - write multibase key
+			await writeFile(outputFile, encodedKey + '\n', { mode: KEY_FILE_MODE });
+			return { appended: false };
+		}
+	} catch (err) {
+		if (err instanceof SaveKeyError) {
+			throw err;
+		}
+		throw new SaveKeyError(`Error writing output file: ${err.message}`);
+	}
+}
+
+/**
+ * Save a new verification key to a file.
+ *
+ * If the file exists and is valid JSON, appends the key to the verificationKeys object.
+ * If the file doesn't exist, writes the multibase-encoded key.
+ *
+ * @param {object} opts
+ * @param {string} opts.outputFile - Path to output file
+ * @param {{publicKey: string, privateKey: Uint8Array}} opts.key - The key pair to save
+ * @returns {Promise<{appended: boolean}>} Whether the key was appended to existing file
+ * @throws {SaveKeyError} If reading or writing fails, or if key already exists
+ */
+export async function saveVerificationKeyToFile({ outputFile, key }) {
+	const publicKey = key.publicKey;
+	const encodedKey = encodeVerificationKey(key.privateKey);
+	let outputData = null;
+
+	try {
+		const content = await readFile(outputFile, 'utf-8');
+		outputData = JSON.parse(content);
+	} catch (err) {
+		if (err.code !== 'ENOENT') {
+			if (err instanceof SyntaxError) {
+				throw new SaveKeyError(`Output file is not valid JSON: ${outputFile}`);
+			}
+			throw new SaveKeyError(`Error reading output file: ${err.message}`);
+		}
+		// File doesn't exist - will write multibase key
+	}
+
+	try {
+		if (outputData) {
+			// File exists and is valid JSON - append to keys
+			if (!outputData.verificationKeys) {
+				outputData.verificationKeys = {};
+			}
+			if (outputData.verificationKeys[publicKey]) {
+				throw new SaveKeyError(`Key already exists in file: ${publicKey}`);
+			}
+			outputData.verificationKeys[publicKey] = encodedKey;
+			await writeFile(outputFile, JSON.stringify(outputData, null, 2) + '\n', { mode: KEY_FILE_MODE });
+			return { appended: true };
+		} else {
+			// File doesn't exist - write multibase key
+			await writeFile(outputFile, encodedKey + '\n', { mode: KEY_FILE_MODE });
 			return { appended: false };
 		}
 	} catch (err) {

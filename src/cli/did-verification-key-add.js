@@ -4,7 +4,7 @@ import { parseArgs } from 'node:util';
 import { importRotationKeyPair, generateVerificationKeyPair } from '../keys.js';
 import { addVerificationKey } from '../did.js';
 import { loadRotationKey, SigningKeyError } from './lib/signing.js';
-import { saveKeyToFile, SaveKeyError } from '../keyfile.js';
+import { saveVerificationKeyToFile, SaveKeyError } from '../keyfile.js';
 import { logPlcError } from './lib/plc-error.js';
 
 const { values } = parseArgs({
@@ -48,7 +48,7 @@ Signing key:
 
 Optional:
   -o, --output-file <file>    Write new key to this file instead of --signing-file
-                              If file exists, appends to verificationKeys. Otherwise writes raw hex.
+                              If file exists, appends to verificationKeys. Otherwise writes multibase.
   -h, --help                  Show this help message
 
 The new verification key will be appended to --signing-file unless --output-file is specified.`);
@@ -104,10 +104,9 @@ try {
 // Save the new key
 const outputFile = values['output-file'] || values['signing-file'];
 try {
-	const { appended } = await saveKeyToFile({
+	const { appended } = await saveVerificationKeyToFile({
 		outputFile,
 		key: newVerificationKey,
-		keyType: 'verificationKeys',
 	});
 	if (appended) {
 		console.log(`Key appended to: ${outputFile}`);

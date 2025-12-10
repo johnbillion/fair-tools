@@ -3,13 +3,16 @@ import assert from 'node:assert';
 import { stat, rm, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { base58btc } from 'multiformats/bases/base58';
 import {
 	getKeyFilePath,
 	formatKeyFileContent,
 	writeKeyFile,
-	saveKeyToFile,
+	saveRotationKeyToFile,
+	saveVerificationKeyToFile,
 	SaveKeyError,
-	encodePrivateKey,
+	encodeRotationKey,
+	encodeVerificationKey,
 } from '../src/keyfile.js';
 
 describe('getKeyFilePath', () => {
@@ -20,7 +23,7 @@ describe('getKeyFilePath', () => {
 });
 
 describe('formatKeyFileContent', () => {
-	it('formats keys as JSON with hex-encoded private keys', () => {
+	it('formats keys as JSON with multibase-encoded private keys', () => {
 		const did = 'did:plc:test123';
 		const rotationKey = {
 			publicKey: 'did:key:zQ3shRotation',
@@ -35,8 +38,22 @@ describe('formatKeyFileContent', () => {
 		const parsed = JSON.parse(content);
 
 		assert.strictEqual(parsed.did, 'did:plc:test123');
-		assert.deepStrictEqual(parsed.rotationKeys, { 'did:key:zQ3shRotation': '01020304' });
-		assert.deepStrictEqual(parsed.verificationKeys, { 'did:key:z6MkVerification': 'aabbccdd' });
+
+		// Check rotation key is multibase encoded with secp256k1-priv prefix (0x8126)
+		const rotationKeyValue = parsed.rotationKeys['did:key:zQ3shRotation'];
+		assert(rotationKeyValue.startsWith('z'), 'Rotation key should be multibase base58btc');
+		const decodedRotation = base58btc.decode(rotationKeyValue);
+		assert.strictEqual(decodedRotation[0], 0x81);
+		assert.strictEqual(decodedRotation[1], 0x26);
+		assert.deepStrictEqual(Array.from(decodedRotation.slice(2)), [0x01, 0x02, 0x03, 0x04]);
+
+		// Check verification key is multibase encoded with ed25519-priv prefix (0x8026)
+		const verificationKeyValue = parsed.verificationKeys['did:key:z6MkVerification'];
+		assert(verificationKeyValue.startsWith('z'), 'Verification key should be multibase base58btc');
+		const decodedVerification = base58btc.decode(verificationKeyValue);
+		assert.strictEqual(decodedVerification[0], 0x80);
+		assert.strictEqual(decodedVerification[1], 0x26);
+		assert.deepStrictEqual(Array.from(decodedVerification.slice(2)), [0xaa, 0xbb, 0xcc, 0xdd]);
 	});
 
 	it('produces valid JSON', () => {
@@ -87,25 +104,54 @@ describe('writeKeyFile', () => {
 	});
 });
 
-describe('encodePrivateKey', () => {
-	it('encodes Uint8Array as hex string', () => {
+describe('encodeRotationKey', () => {
+	it('encodes Uint8Array as multibase base58btc with secp256k1-priv prefix', () => {
 		const key = new Uint8Array([0x01, 0x02, 0x03, 0x04]);
-		assert.strictEqual(encodePrivateKey(key), '01020304');
+		const encoded = encodeRotationKey(key);
+
+		assert(encoded.startsWith('z'), 'Should start with z (base58btc multibase prefix)');
+		const decoded = base58btc.decode(encoded);
+		assert.strictEqual(decoded[0], 0x81);
+		assert.strictEqual(decoded[1], 0x26);
+		assert.deepStrictEqual(Array.from(decoded.slice(2)), [0x01, 0x02, 0x03, 0x04]);
 	});
 
-	it('encodes empty array as empty string', () => {
-		const key = new Uint8Array([]);
-		assert.strictEqual(encodePrivateKey(key), '');
-	});
+	it('encodes 32-byte key correctly', () => {
+		const key = new Uint8Array(32).fill(0xaa);
+		const encoded = encodeRotationKey(key);
+		const decoded = base58btc.decode(encoded);
 
-	it('handles values above 0x0f correctly', () => {
-		const key = new Uint8Array([0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff]);
-		assert.strictEqual(encodePrivateKey(key), 'aabbccddeeff');
+		assert.strictEqual(decoded.length, 34); // 2 prefix + 32 key
+		assert.strictEqual(decoded[0], 0x81);
+		assert.strictEqual(decoded[1], 0x26);
 	});
 });
 
-describe('saveKeyToFile', () => {
-	const testDir = join(tmpdir(), 'fair-tools-save-key-test-' + Date.now());
+describe('encodeVerificationKey', () => {
+	it('encodes Uint8Array as multibase base58btc with ed25519-priv prefix', () => {
+		const key = new Uint8Array([0xaa, 0xbb, 0xcc, 0xdd]);
+		const encoded = encodeVerificationKey(key);
+
+		assert(encoded.startsWith('z'), 'Should start with z (base58btc multibase prefix)');
+		const decoded = base58btc.decode(encoded);
+		assert.strictEqual(decoded[0], 0x80);
+		assert.strictEqual(decoded[1], 0x26);
+		assert.deepStrictEqual(Array.from(decoded.slice(2)), [0xaa, 0xbb, 0xcc, 0xdd]);
+	});
+
+	it('encodes 32-byte key correctly', () => {
+		const key = new Uint8Array(32).fill(0xbb);
+		const encoded = encodeVerificationKey(key);
+		const decoded = base58btc.decode(encoded);
+
+		assert.strictEqual(decoded.length, 34); // 2 prefix + 32 key
+		assert.strictEqual(decoded[0], 0x80);
+		assert.strictEqual(decoded[1], 0x26);
+	});
+});
+
+describe('saveRotationKeyToFile', () => {
+	const testDir = join(tmpdir(), 'fair-tools-save-rotation-key-test-' + Date.now());
 
 	// Helper to create a mock key object from hex string
 	function mockKey(publicKey, hexPrivateKey) {
@@ -123,17 +169,20 @@ describe('saveKeyToFile', () => {
 		await rm(testDir, { recursive: true, force: true });
 	});
 
-	it('writes raw hex when file does not exist', async () => {
+	it('writes multibase key when file does not exist', async () => {
 		const outputFile = join(testDir, 'new-key.txt');
-		const result = await saveKeyToFile({
+		const result = await saveRotationKeyToFile({
 			outputFile,
 			key: mockKey('did:key:zQ3shTest', 'aabbccdd'),
-			keyType: 'rotationKeys',
 		});
 
 		assert.strictEqual(result.appended, false);
 		const content = await readFile(outputFile, 'utf-8');
-		assert.strictEqual(content, 'aabbccdd\n');
+		assert(content.trim().startsWith('z'), 'Should write multibase key');
+		// Verify it decodes correctly
+		const decoded = base58btc.decode(content.trim());
+		assert.strictEqual(decoded[0], 0x81);
+		assert.strictEqual(decoded[1], 0x26);
 	});
 
 	it('appends to rotationKeys when file exists with valid JSON', async () => {
@@ -146,59 +195,36 @@ describe('saveKeyToFile', () => {
 		};
 		await writeFile(outputFile, JSON.stringify(existingData, null, 2));
 
-		const result = await saveKeyToFile({
+		const result = await saveRotationKeyToFile({
 			outputFile,
 			key: mockKey('did:key:zQ3shNew', 'aabbccdd'),
-			keyType: 'rotationKeys',
 		});
 
 		assert.strictEqual(result.appended, true);
 		const content = await readFile(outputFile, 'utf-8');
 		const parsed = JSON.parse(content);
 		assert.strictEqual(parsed.rotationKeys['did:key:zQ3shExisting'], '11223344');
-		assert.strictEqual(parsed.rotationKeys['did:key:zQ3shNew'], 'aabbccdd');
+		// New key should be multibase encoded
+		const newKeyValue = parsed.rotationKeys['did:key:zQ3shNew'];
+		assert(newKeyValue.startsWith('z'), 'New key should be multibase encoded');
 	});
 
-	it('appends to verificationKeys when file exists with valid JSON', async () => {
-		const outputFile = join(testDir, 'existing-verification.json');
-		const existingData = {
-			did: 'did:plc:test',
-			verificationKeys: {
-				'did:key:z6MkExisting': '11223344',
-			},
-		};
-		await writeFile(outputFile, JSON.stringify(existingData, null, 2));
-
-		const result = await saveKeyToFile({
-			outputFile,
-			key: mockKey('did:key:z6MkNew', 'aabbccdd'),
-			keyType: 'verificationKeys',
-		});
-
-		assert.strictEqual(result.appended, true);
-		const content = await readFile(outputFile, 'utf-8');
-		const parsed = JSON.parse(content);
-		assert.strictEqual(parsed.verificationKeys['did:key:z6MkExisting'], '11223344');
-		assert.strictEqual(parsed.verificationKeys['did:key:z6MkNew'], 'aabbccdd');
-	});
-
-	it('creates keyType object when missing from existing JSON', async () => {
+	it('creates rotationKeys object when missing from existing JSON', async () => {
 		const outputFile = join(testDir, 'no-keytype.json');
 		const existingData = {
 			did: 'did:plc:test',
 		};
 		await writeFile(outputFile, JSON.stringify(existingData, null, 2));
 
-		const result = await saveKeyToFile({
+		const result = await saveRotationKeyToFile({
 			outputFile,
 			key: mockKey('did:key:zQ3shNew', 'aabbccdd'),
-			keyType: 'rotationKeys',
 		});
 
 		assert.strictEqual(result.appended, true);
 		const content = await readFile(outputFile, 'utf-8');
 		const parsed = JSON.parse(content);
-		assert.strictEqual(parsed.rotationKeys['did:key:zQ3shNew'], 'aabbccdd');
+		assert(parsed.rotationKeys['did:key:zQ3shNew'].startsWith('z'));
 	});
 
 	it('throws SaveKeyError when file exists but is not valid JSON', async () => {
@@ -206,10 +232,9 @@ describe('saveKeyToFile', () => {
 		await writeFile(outputFile, 'not valid json {{{');
 
 		await assert.rejects(
-			saveKeyToFile({
+			saveRotationKeyToFile({
 				outputFile,
 				key: mockKey('did:key:zQ3shTest', 'aabbccdd'),
-				keyType: 'rotationKeys',
 			}),
 			(err) => {
 				assert(err instanceof SaveKeyError);
@@ -225,10 +250,9 @@ describe('saveKeyToFile', () => {
 		await mkdir(outputFile);
 
 		await assert.rejects(
-			saveKeyToFile({
+			saveRotationKeyToFile({
 				outputFile,
 				key: mockKey('did:key:zQ3shTest', 'aabbccdd'),
-				keyType: 'rotationKeys',
 			}),
 			(err) => {
 				assert(err instanceof SaveKeyError);
@@ -243,10 +267,9 @@ describe('saveKeyToFile', () => {
 		const outputFile = join(testDir, 'nonexistent', 'subdir', 'file.json');
 
 		await assert.rejects(
-			saveKeyToFile({
+			saveRotationKeyToFile({
 				outputFile,
 				key: mockKey('did:key:zQ3shTest', 'aabbccdd'),
-				keyType: 'rotationKeys',
 			}),
 			(err) => {
 				assert(err instanceof SaveKeyError);
@@ -270,10 +293,9 @@ describe('saveKeyToFile', () => {
 		};
 		await writeFile(outputFile, JSON.stringify(existingData, null, 2));
 
-		await saveKeyToFile({
+		await saveRotationKeyToFile({
 			outputFile,
 			key: mockKey('did:key:zQ3shNew', 'aabbccdd'),
-			keyType: 'rotationKeys',
 		});
 
 		const content = await readFile(outputFile, 'utf-8');
@@ -281,7 +303,7 @@ describe('saveKeyToFile', () => {
 		assert.strictEqual(parsed.did, 'did:plc:test');
 		assert.strictEqual(parsed.customField, 'should be preserved');
 		assert.strictEqual(parsed.verificationKeys['did:key:z6MkVerify'], '55667788');
-		assert.strictEqual(parsed.rotationKeys['did:key:zQ3shNew'], 'aabbccdd');
+		assert(parsed.rotationKeys['did:key:zQ3shNew'].startsWith('z'));
 	});
 
 	it('throws SaveKeyError when key already exists in file', async () => {
@@ -295,10 +317,110 @@ describe('saveKeyToFile', () => {
 		await writeFile(outputFile, JSON.stringify(existingData, null, 2));
 
 		await assert.rejects(
-			saveKeyToFile({
+			saveRotationKeyToFile({
 				outputFile,
 				key: mockKey('did:key:zQ3shSame', 'newvalue'),
-				keyType: 'rotationKeys',
+			}),
+			(err) => {
+				assert(err instanceof SaveKeyError);
+				assert.match(err.message, /Key already exists in file/);
+				return true;
+			}
+		);
+	});
+});
+
+describe('saveVerificationKeyToFile', () => {
+	const testDir = join(tmpdir(), 'fair-tools-save-verification-key-test-' + Date.now());
+
+	// Helper to create a mock key object from hex string
+	function mockKey(publicKey, hexPrivateKey) {
+		return {
+			publicKey,
+			privateKey: Buffer.from(hexPrivateKey, 'hex'),
+		};
+	}
+
+	beforeEach(async () => {
+		await mkdir(testDir, { recursive: true });
+	});
+
+	after(async () => {
+		await rm(testDir, { recursive: true, force: true });
+	});
+
+	it('writes multibase key when file does not exist', async () => {
+		const outputFile = join(testDir, 'new-key.txt');
+		const result = await saveVerificationKeyToFile({
+			outputFile,
+			key: mockKey('did:key:z6MkTest', 'aabbccdd'),
+		});
+
+		assert.strictEqual(result.appended, false);
+		const content = await readFile(outputFile, 'utf-8');
+		assert(content.trim().startsWith('z'), 'Should write multibase key');
+		// Verify it decodes correctly with ed25519 prefix
+		const decoded = base58btc.decode(content.trim());
+		assert.strictEqual(decoded[0], 0x80);
+		assert.strictEqual(decoded[1], 0x26);
+	});
+
+	it('appends to verificationKeys when file exists with valid JSON', async () => {
+		const outputFile = join(testDir, 'existing-verification.json');
+		const existingData = {
+			did: 'did:plc:test',
+			verificationKeys: {
+				'did:key:z6MkExisting': '11223344',
+			},
+		};
+		await writeFile(outputFile, JSON.stringify(existingData, null, 2));
+
+		const result = await saveVerificationKeyToFile({
+			outputFile,
+			key: mockKey('did:key:z6MkNew', 'aabbccdd'),
+		});
+
+		assert.strictEqual(result.appended, true);
+		const content = await readFile(outputFile, 'utf-8');
+		const parsed = JSON.parse(content);
+		assert.strictEqual(parsed.verificationKeys['did:key:z6MkExisting'], '11223344');
+		// New key should be multibase encoded
+		const newKeyValue = parsed.verificationKeys['did:key:z6MkNew'];
+		assert(newKeyValue.startsWith('z'), 'New key should be multibase encoded');
+	});
+
+	it('creates verificationKeys object when missing from existing JSON', async () => {
+		const outputFile = join(testDir, 'no-keytype.json');
+		const existingData = {
+			did: 'did:plc:test',
+		};
+		await writeFile(outputFile, JSON.stringify(existingData, null, 2));
+
+		const result = await saveVerificationKeyToFile({
+			outputFile,
+			key: mockKey('did:key:z6MkNew', 'aabbccdd'),
+		});
+
+		assert.strictEqual(result.appended, true);
+		const content = await readFile(outputFile, 'utf-8');
+		const parsed = JSON.parse(content);
+		assert(parsed.verificationKeys['did:key:z6MkNew'].startsWith('z'));
+	});
+
+	it('throws SaveKeyError when key already exists in file', async () => {
+		const outputFile = join(testDir, 'duplicate.json');
+		const existingData = {
+			did: 'did:plc:test',
+			verificationKeys: {
+				'did:key:z6MkSame': 'oldvalue',
+			},
+		};
+		await writeFile(outputFile, JSON.stringify(existingData, null, 2));
+
+		await assert.rejects(
+			saveVerificationKeyToFile({
+				outputFile,
+				key: mockKey('did:key:z6MkSame', 'newvalue'),
 			}),
 			(err) => {
 				assert(err instanceof SaveKeyError);

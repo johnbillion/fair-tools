@@ -3,34 +3,20 @@ import assert from 'node:assert';
 import { writeFile, rm, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { base58btc } from 'multiformats/bases/base58';
 import {
 	loadRotationKey,
 	loadVerificationKey,
 	loadRotationKeyForRevocation,
 	SigningKeyError,
 } from '../../src/cli/lib/signing.js';
+import { base58btc } from 'multiformats/bases/base58';
+import {
+	encodeRotationKey,
+	encodeVerificationKey,
+	SECP256K1_PRIV_PREFIX,
+} from '../../src/keyfile.js';
 
 const testDir = join(tmpdir(), 'fair-tools-signing-test-' + Date.now());
-
-// Multicodec prefixes for private keys
-const MULTICODEC_SECP256K1_PRIV = new Uint8Array([0x81, 0x26]);
-const MULTICODEC_ED25519_PRIV = new Uint8Array([0x80, 0x26]);
-
-/**
- * Create a multibase base58btc encoded private key for testing.
- * @param {string} hexKey - 32-byte key as hex string
- * @param {'rotation'|'verification'} keyType - Key type determines multicodec prefix
- * @returns {string} - Multibase encoded key (starts with 'z')
- */
-function createMultibaseKey(hexKey, keyType) {
-	const prefix = keyType === 'rotation' ? MULTICODEC_SECP256K1_PRIV : MULTICODEC_ED25519_PRIV;
-	const keyBytes = Buffer.from(hexKey, 'hex');
-	const combined = new Uint8Array(prefix.length + keyBytes.length);
-	combined.set(prefix);
-	combined.set(keyBytes, prefix.length);
-	return base58btc.encode(combined);
-}
 
 // Sample key data - 64 character hex keys (32 bytes)
 const sampleKeyFile = {
@@ -47,10 +33,11 @@ const sampleKeyFile = {
 
 // Sample hex key (32 bytes)
 const sampleHexKey = 'aabbccdd112233445566778899aabbccddeeff00112233445566778899001122';
+const sampleKeyBytes = Buffer.from(sampleHexKey, 'hex');
 
 // Sample multibase keys (encoded from sampleHexKey with appropriate prefix)
-const sampleMultibaseRotationKey = createMultibaseKey(sampleHexKey, 'rotation');
-const sampleMultibaseVerificationKey = createMultibaseKey(sampleHexKey, 'verification');
+const sampleMultibaseRotationKey = encodeRotationKey(sampleKeyBytes);
+const sampleMultibaseVerificationKey = encodeVerificationKey(sampleKeyBytes);
 
 describe('signing.js', () => {
 	after(async () => {
@@ -133,6 +120,50 @@ describe('signing.js', () => {
 			});
 
 			assert.strictEqual(result.privateKeyHex, 'eeff0011223344556677889900112233445566778899aabbccddeeff00112233');
+		});
+
+		it('loads multibase-encoded rotation key from JSON file', async () => {
+			await mkdir(testDir, { recursive: true });
+			const filePath = join(testDir, 'rotation-multibase-json.json');
+			const multibaseKeyFile = {
+				did: 'did:plc:test123',
+				rotationKeys: {
+					'did:key:zQ3shRotation1': encodeRotationKey(sampleKeyBytes),
+				},
+			};
+			await writeFile(filePath, JSON.stringify(multibaseKeyFile));
+
+			const result = await loadRotationKey({ signingFile: filePath });
+
+			assert.strictEqual(result.privateKeyHex, sampleHexKey);
+			assert.deepStrictEqual(result.keyData, multibaseKeyFile);
+		});
+
+		it('loads mixed hex and multibase keys from JSON file', async () => {
+			await mkdir(testDir, { recursive: true });
+			const filePath = join(testDir, 'rotation-mixed.json');
+			const mixedKeyFile = {
+				did: 'did:plc:test123',
+				rotationKeys: {
+					'did:key:zQ3shHexKey': sampleHexKey,
+					'did:key:zQ3shMultibaseKey': encodeRotationKey(sampleKeyBytes),
+				},
+			};
+			await writeFile(filePath, JSON.stringify(mixedKeyFile));
+
+			// First key (hex) should load correctly
+			const result1 = await loadRotationKey({
+				signingFile: filePath,
+				signingKey: 'did:key:zQ3shHexKey',
+			});
+			assert.strictEqual(result1.privateKeyHex, sampleHexKey);
+
+			// Second key (multibase) should also load correctly
+			const result2 = await loadRotationKey({
+				signingFile: filePath,
+				signingKey: 'did:key:zQ3shMultibaseKey',
+			});
+			assert.strictEqual(result2.privateKeyHex, sampleHexKey);
 		});
 
 		it('loads multibase key file without trailing newline', async () => {
@@ -224,7 +255,7 @@ describe('signing.js', () => {
 			const filePath = join(testDir, 'rotation-wrong-length.txt');
 			// Create a key with correct secp256k1 prefix but only 8 bytes instead of 32
 			const shortKey = Buffer.from('0011223344556677', 'hex');
-			const prefix = MULTICODEC_SECP256K1_PRIV;
+			const prefix = SECP256K1_PRIV_PREFIX;
 			const combined = new Uint8Array(prefix.length + shortKey.length);
 			combined.set(prefix);
 			combined.set(shortKey, prefix.length);
@@ -359,6 +390,50 @@ describe('signing.js', () => {
 			});
 
 			assert.strictEqual(result.privateKeyHex, '5566778899001122334455667788990011aabbccddeeff00112233445566778899');
+		});
+
+		it('loads multibase-encoded verification key from JSON file', async () => {
+			await mkdir(testDir, { recursive: true });
+			const filePath = join(testDir, 'verification-multibase-json.json');
+			const multibaseKeyFile = {
+				did: 'did:plc:test123',
+				verificationKeys: {
+					'did:key:z6MkVerification1': encodeVerificationKey(sampleKeyBytes),
+				},
+			};
+			await writeFile(filePath, JSON.stringify(multibaseKeyFile));
+
+			const result = await loadVerificationKey({ signingFile: filePath });
+
+			assert.strictEqual(result.privateKeyHex, sampleHexKey);
+			assert.deepStrictEqual(result.keyData, multibaseKeyFile);
+		});
+
+		it('loads mixed hex and multibase verification keys from JSON file', async () => {
+			await mkdir(testDir, { recursive: true });
+			const filePath = join(testDir, 'verification-mixed.json');
+			const mixedKeyFile = {
+				did: 'did:plc:test123',
+				verificationKeys: {
+					'did:key:z6MkHexKey': sampleHexKey,
+					'did:key:z6MkMultibaseKey': encodeVerificationKey(sampleKeyBytes),
+				},
+			};
+			await writeFile(filePath, JSON.stringify(mixedKeyFile));
+
+			// First key (hex) should load correctly
+			const result1 = await loadVerificationKey({
+				signingFile: filePath,
+				signingKey: 'did:key:z6MkHexKey',
+			});
+			assert.strictEqual(result1.privateKeyHex, sampleHexKey);
+
+			// Second key (multibase) should also load correctly
+			const result2 = await loadVerificationKey({
+				signingFile: filePath,
+				signingKey: 'did:key:z6MkMultibaseKey',
+			});
+			assert.strictEqual(result2.privateKeyHex, sampleHexKey);
 		});
 
 		it('loads multibase key file without trailing newline', async () => {

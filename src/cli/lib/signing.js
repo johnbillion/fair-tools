@@ -1,5 +1,12 @@
 import { readFile } from 'node:fs/promises';
 import { base58btc } from 'multiformats/bases/base58';
+import {
+	SECP256K1_PRIV_PREFIX,
+	ED25519_PRIV_PREFIX,
+} from '../../keyfile.js';
+
+const SECP256K1_PRIV_PREFIX_HEX = Buffer.from(SECP256K1_PRIV_PREFIX).toString('hex');
+const ED25519_PRIV_PREFIX_HEX = Buffer.from(ED25519_PRIV_PREFIX).toString('hex');
 
 export class SigningKeyError extends Error {
 	constructor(message) {
@@ -7,12 +14,6 @@ export class SigningKeyError extends Error {
 		this.name = 'SigningKeyError';
 	}
 }
-
-/**
- * Multicodec prefixes for private keys (hex encoded).
- */
-const SECP256K1_PRIV_PREFIX = '8126'; // [0x81, 0x26] secp256k1-priv
-const ED25519_PRIV_PREFIX = '8026';   // [0x80, 0x26] ed25519-priv
 
 /**
  * Decode a multibase base58btc private key string.
@@ -58,11 +59,11 @@ function parseAsMultibaseRotationKey(content) {
 
 	const { prefixHex, rawKey } = decodeMultibasePrivateKey(trimmed);
 
-	if (prefixHex === ED25519_PRIV_PREFIX) {
+	if (prefixHex === ED25519_PRIV_PREFIX_HEX) {
 		throw new SigningKeyError('Wrong key type for this operation. This looks like a verification key, but a rotation key is required.');
 	}
 
-	if (prefixHex !== SECP256K1_PRIV_PREFIX) {
+	if (prefixHex !== SECP256K1_PRIV_PREFIX_HEX) {
 		throw new SigningKeyError(`Unrecognized key type (prefix: ${prefixHex}). Expected a rotation key.`);
 	}
 
@@ -84,15 +85,47 @@ function parseAsMultibaseVerificationKey(content) {
 
 	const { prefixHex, rawKey } = decodeMultibasePrivateKey(trimmed);
 
-	if (prefixHex === SECP256K1_PRIV_PREFIX) {
+	if (prefixHex === SECP256K1_PRIV_PREFIX_HEX) {
 		throw new SigningKeyError('Wrong key type for this operation. This looks like a rotation key, but a verification key is required.');
 	}
 
-	if (prefixHex !== ED25519_PRIV_PREFIX) {
+	if (prefixHex !== ED25519_PRIV_PREFIX_HEX) {
 		throw new SigningKeyError(`Unrecognized key type (prefix: ${prefixHex}). Expected a verification key.`);
 	}
 
 	return Buffer.from(rawKey).toString('hex');
+}
+
+/**
+ * Parse a rotation key value from JSON (could be multibase or hex for backwards compatibility).
+ *
+ * @param {string} value - The key value from JSON
+ * @returns {string} - The hex key
+ * @throws {SigningKeyError} If the value is invalid
+ */
+function parseRotationKeyValue(value) {
+	const multibaseKey = parseAsMultibaseRotationKey(value);
+	if (multibaseKey) {
+		return multibaseKey;
+	}
+	// Assume hex for backwards compatibility
+	return value;
+}
+
+/**
+ * Parse a verification key value from JSON (could be multibase or hex for backwards compatibility).
+ *
+ * @param {string} value - The key value from JSON
+ * @returns {string} - The hex key
+ * @throws {SigningKeyError} If the value is invalid
+ */
+function parseVerificationKeyValue(value) {
+	const multibaseKey = parseAsMultibaseVerificationKey(value);
+	if (multibaseKey) {
+		return multibaseKey;
+	}
+	// Assume hex for backwards compatibility
+	return value;
 }
 
 /**
@@ -148,12 +181,13 @@ export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_
 
 		let privateKeyHex;
 		if (signingKey) {
-			privateKeyHex = rotationKeys[signingKey];
-			if (!privateKeyHex) {
+			const rawValue = rotationKeys[signingKey];
+			if (!rawValue) {
 				throw new SigningKeyError(`Rotation key ${signingKey} not found in key file. Available keys: ${publicKeys.join(', ')}`);
 			}
+			privateKeyHex = parseRotationKeyValue(rawValue);
 		} else {
-			privateKeyHex = rotationKeys[publicKeys[0]];
+			privateKeyHex = parseRotationKeyValue(rotationKeys[publicKeys[0]]);
 		}
 
 		return { privateKeyHex, keyData };
@@ -220,12 +254,13 @@ export async function loadVerificationKey({ signingFile, signingKey, envVar = 'F
 
 		let privateKeyHex;
 		if (signingKey) {
-			privateKeyHex = verificationKeys[signingKey];
-			if (!privateKeyHex) {
+			const rawValue = verificationKeys[signingKey];
+			if (!rawValue) {
 				throw new SigningKeyError(`Verification key ${signingKey} not found in key file. Available keys: ${publicKeys.join(', ')}`);
 			}
+			privateKeyHex = parseVerificationKeyValue(rawValue);
 		} else {
-			privateKeyHex = verificationKeys[publicKeys[0]];
+			privateKeyHex = parseVerificationKeyValue(verificationKeys[publicKeys[0]]);
 		}
 
 		return { privateKeyHex, keyData };
@@ -305,7 +340,7 @@ export async function loadRotationKeyForRevocation({ signingFile, signingKey, re
 			}
 		}
 
-		const privateKeyHex = rotationKeys[signerPublicKey];
+		const privateKeyHex = parseRotationKeyValue(rotationKeys[signerPublicKey]);
 		return { privateKeyHex, keyData };
 	}
 
