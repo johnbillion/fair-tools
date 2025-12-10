@@ -348,7 +348,6 @@ describe('signing.js', () => {
 				revokeKey: 'did:key:zQ3shRotation1',
 			});
 
-			assert.strictEqual(result.signerPublicKey, 'did:key:zQ3shRotation2');
 			assert.strictEqual(result.privateKeyHex, 'eeff0011');
 		});
 
@@ -363,7 +362,6 @@ describe('signing.js', () => {
 				revokeKey: 'did:key:zQ3shRotation1',
 			});
 
-			assert.strictEqual(result.signerPublicKey, 'did:key:zQ3shRotation2');
 			assert.strictEqual(result.privateKeyHex, 'eeff0011');
 		});
 
@@ -377,7 +375,6 @@ describe('signing.js', () => {
 				});
 
 				assert.strictEqual(result.privateKeyHex, 'envrevoke');
-				assert.strictEqual(result.signerPublicKey, null);
 				assert.strictEqual(result.keyData, null);
 			} finally {
 				if (originalEnv !== undefined) {

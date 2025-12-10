@@ -120,7 +120,7 @@ export async function loadVerificationKey({ signingFile, signingKey, envVar = 'F
  * @param {string} [opts.signingKey] - Specific key to use from file
  * @param {string} opts.revokeKey - The key being revoked (to avoid using it for signing)
  * @param {string} [opts.envVar='FAIR_ROTATION_KEY'] - Environment variable name
- * @returns {Promise<{privateKeyHex: string, signerPublicKey: string|null, keyData: object|null}>}
+ * @returns {Promise<{privateKeyHex: string, keyData: object|null}>}
  * @throws {SigningKeyError} If key cannot be loaded
  */
 export async function loadRotationKeyForRevocation({ signingFile, signingKey, revokeKey, envVar = 'FAIR_ROTATION_KEY' }) {
@@ -158,7 +158,7 @@ export async function loadRotationKeyForRevocation({ signingFile, signingKey, re
 		}
 
 		const privateKeyHex = rotationKeys[signerPublicKey];
-		return { privateKeyHex, signerPublicKey, keyData };
+		return { privateKeyHex, keyData };
 	}
 
 	const privateKeyHex = process.env[envVar];
@@ -166,6 +166,5 @@ export async function loadRotationKeyForRevocation({ signingFile, signingKey, re
 		throw new SigningKeyError(`No signing key provided. Use --signing-file <file> or set ${envVar} environment variable.`);
 	}
 
-	// For env var, we'll return null for signerPublicKey - caller must derive it
-	return { privateKeyHex, signerPublicKey: null, keyData: null };
+	return { privateKeyHex, keyData: null };
 }

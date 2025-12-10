@@ -78,9 +78,9 @@ if (values.cleanup && !values['signing-file']) {
 }
 
 // Load signing key
-let privateKeyHex, signerPublicKey, keyData;
+let privateKeyHex, keyData;
 try {
-	({ privateKeyHex, signerPublicKey, keyData } = await loadRotationKeyForRevocation({
+	({ privateKeyHex, keyData } = await loadRotationKeyForRevocation({
 		signingFile: values['signing-file'],
 		signingKey: values['signing-key'],
 		revokeKey: values.revoke,
@@ -93,8 +93,7 @@ try {
 	throw err;
 }
 
-const { keypair: signer, publicKey: derivedPublicKey } = await importRotationKeyPair(privateKeyHex);
-signerPublicKey = signerPublicKey || derivedPublicKey;
+const { keypair: signer, publicKey: signerPublicKey } = await importRotationKeyPair(privateKeyHex);
 
 // Check if env var key is being revoked
 if (signerPublicKey === values.revoke) {
