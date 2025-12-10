@@ -99,7 +99,9 @@ Manually add the new DID to the header of your plugin. The `did:plc:` prefix mus
 
 Most subsequent commands after creating a DID require a signing key. There are two ways to provide one:
 
-1. **Key file**: Use `--signing-file` to specify a JSON file containing your keys. Use `--signing-key` to select a specific key from the file (defaults to first key).
+1. **Key file**: Use `--signing-file` to specify a key file. The file can be either:
+   - A JSON file containing your keys (use `--signing-key` to select a specific key; defaults to first key)
+   - A plain text file containing a multibase base58btc encoded private key (starts with 'z')
 
 2. **Environment variable**: If `--signing-file` is not provided, the command falls back to an environment variable:
    - `FAIR_PRIVATE_KEY` for metadata signing (verification key)

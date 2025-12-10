@@ -29,6 +29,7 @@
 		"@atproto/crypto": "^0.4.4",
 		"@did-plc/lib": "^0.0.4",
 		"@noble/curves": "^1.9.7",
+		"multiformats": "^9.9.0",
 		"uint8arrays": "^3.0.0"
 	}
 }

@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { base58btc } from 'multiformats/bases/base58';
 
 export class SigningKeyError extends Error {
 	constructor(message) {
@@ -8,11 +9,102 @@ export class SigningKeyError extends Error {
 }
 
 /**
+ * Multicodec prefixes for private keys (hex encoded).
+ */
+const SECP256K1_PRIV_PREFIX = '8126'; // [0x81, 0x26] secp256k1-priv
+const ED25519_PRIV_PREFIX = '8026';   // [0x80, 0x26] ed25519-priv
+
+/**
+ * Decode a multibase base58btc private key string.
+ *
+ * @param {string} key - The multibase key (starts with 'z')
+ * @returns {{prefixHex: string, rawKey: Uint8Array}} - The decoded prefix (hex) and raw key
+ * @throws {SigningKeyError} If the key format is invalid
+ */
+function decodeMultibasePrivateKey(key) {
+	let decoded;
+	try {
+		decoded = base58btc.decode(key);
+	} catch (err) {
+		throw new SigningKeyError('Invalid key format. The key could not be decoded.');
+	}
+
+	if (decoded.length < 2) {
+		throw new SigningKeyError('Invalid key format. The key is too short.');
+	}
+
+	const prefixHex = Buffer.from(decoded.slice(0, 2)).toString('hex');
+	const rawKey = decoded.slice(2);
+
+	if (rawKey.length !== 32) {
+		throw new SigningKeyError('Invalid key format. The key has the wrong length.');
+	}
+
+	return { prefixHex, rawKey };
+}
+
+/**
+ * Try to parse content as a multibase base58btc rotation private key.
+ *
+ * @param {string} content - The file content to check
+ * @returns {string|null} - The hex key if valid multibase, null otherwise
+ * @throws {SigningKeyError} If it looks like multibase but is invalid
+ */
+function parseAsMultibaseRotationKey(content) {
+	const trimmed = content.trim();
+	if (!trimmed.startsWith('z')) {
+		return null;
+	}
+
+	const { prefixHex, rawKey } = decodeMultibasePrivateKey(trimmed);
+
+	if (prefixHex === ED25519_PRIV_PREFIX) {
+		throw new SigningKeyError('Wrong key type for this operation. This looks like a verification key, but a rotation key is required.');
+	}
+
+	if (prefixHex !== SECP256K1_PRIV_PREFIX) {
+		throw new SigningKeyError(`Unrecognized key type (prefix: ${prefixHex}). Expected a rotation key.`);
+	}
+
+	return Buffer.from(rawKey).toString('hex');
+}
+
+/**
+ * Try to parse content as a multibase base58btc verification private key.
+ *
+ * @param {string} content - The file content to check
+ * @returns {string|null} - The hex key if valid multibase, null otherwise
+ * @throws {SigningKeyError} If it looks like multibase but is invalid
+ */
+function parseAsMultibaseVerificationKey(content) {
+	const trimmed = content.trim();
+	if (!trimmed.startsWith('z')) {
+		return null;
+	}
+
+	const { prefixHex, rawKey } = decodeMultibasePrivateKey(trimmed);
+
+	if (prefixHex === SECP256K1_PRIV_PREFIX) {
+		throw new SigningKeyError('Wrong key type for this operation. This looks like a rotation key, but a verification key is required.');
+	}
+
+	if (prefixHex !== ED25519_PRIV_PREFIX) {
+		throw new SigningKeyError(`Unrecognized key type (prefix: ${prefixHex}). Expected a verification key.`);
+	}
+
+	return Buffer.from(rawKey).toString('hex');
+}
+
+/**
  * Load a rotation key from a key file or environment variable.
  *
+ * The key file can be either:
+ * - A multibase base58btc encoded private key (starts with 'z')
+ * - A JSON file with a `rotationKeys` object mapping public keys to private keys (hex values)
+ *
  * @param {object} opts
- * @param {string} [opts.signingFile] - Path to key file
- * @param {string} [opts.signingKey] - Specific key to use from file
+ * @param {string} [opts.signingFile] - Path to key file (multibase or JSON)
+ * @param {string} [opts.signingKey] - Specific key to use from JSON file (ignored for multibase)
  * @param {string} [opts.envVar='FAIR_ROTATION_KEY'] - Environment variable name
  * @returns {Promise<{privateKeyHex: string, keyData: object|null}>}
  * @throws {SigningKeyError} If key cannot be loaded
@@ -23,12 +115,28 @@ export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_
 	}
 
 	if (signingFile) {
-		let keyData;
+		let keyContent;
 		try {
-			const keyContent = await readFile(signingFile, 'utf-8');
-			keyData = JSON.parse(keyContent);
+			keyContent = await readFile(signingFile, 'utf-8');
 		} catch (err) {
 			throw new SigningKeyError(`Error reading key file: ${err.message}`);
+		}
+
+		// Try multibase first
+		const multibaseKey = parseAsMultibaseRotationKey(keyContent);
+		if (multibaseKey) {
+			if (signingKey) {
+				throw new SigningKeyError('Cannot specify a signing key when using a multibase key file');
+			}
+			return { privateKeyHex: multibaseKey, keyData: null };
+		}
+
+		// Try JSON
+		let keyData;
+		try {
+			keyData = JSON.parse(keyContent);
+		} catch {
+			throw new SigningKeyError('Key file must be valid JSON or a multibase base58btc encoded key (starting with "z")');
 		}
 
 		const rotationKeys = keyData.rotationKeys || {};
@@ -62,9 +170,13 @@ export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_
 /**
  * Load a verification key from a key file or environment variable.
  *
+ * The key file can be either:
+ * - A multibase base58btc encoded private key (starts with 'z')
+ * - A JSON file with a `verificationKeys` object mapping public keys to private keys (hex values)
+ *
  * @param {object} opts
- * @param {string} [opts.signingFile] - Path to key file
- * @param {string} [opts.signingKey] - Specific key to use from file
+ * @param {string} [opts.signingFile] - Path to key file (multibase or JSON)
+ * @param {string} [opts.signingKey] - Specific key to use from JSON file (ignored for multibase)
  * @param {string} [opts.envVar='FAIR_PRIVATE_KEY'] - Environment variable name
  * @returns {Promise<{privateKeyHex: string, keyData: object|null}>}
  * @throws {SigningKeyError} If key cannot be loaded
@@ -75,12 +187,28 @@ export async function loadVerificationKey({ signingFile, signingKey, envVar = 'F
 	}
 
 	if (signingFile) {
-		let keyData;
+		let keyContent;
 		try {
-			const keyContent = await readFile(signingFile, 'utf-8');
-			keyData = JSON.parse(keyContent);
+			keyContent = await readFile(signingFile, 'utf-8');
 		} catch (err) {
 			throw new SigningKeyError(`Error reading key file: ${err.message}`);
+		}
+
+		// Try multibase first
+		const multibaseKey = parseAsMultibaseVerificationKey(keyContent);
+		if (multibaseKey) {
+			if (signingKey) {
+				throw new SigningKeyError('Cannot specify a signing key when using a multibase key file');
+			}
+			return { privateKeyHex: multibaseKey, keyData: null };
+		}
+
+		// Try JSON
+		let keyData;
+		try {
+			keyData = JSON.parse(keyContent);
+		} catch {
+			throw new SigningKeyError('Key file must be valid JSON or a multibase base58btc encoded key (starting with "z")');
 		}
 
 		const verificationKeys = keyData.verificationKeys || {};
@@ -113,11 +241,15 @@ export async function loadVerificationKey({ signingFile, signingKey, envVar = 'F
 
 /**
  * Load a rotation key for revoking another rotation key.
- * Auto-selects a key that isn't the one being revoked.
+ * Auto-selects a key that isn't the one being revoked (for JSON files only).
+ *
+ * The key file can be either:
+ * - A multibase base58btc encoded private key (starts with 'z')
+ * - A JSON file with a `rotationKeys` object mapping public keys to private keys (hex values)
  *
  * @param {object} opts
- * @param {string} [opts.signingFile] - Path to key file
- * @param {string} [opts.signingKey] - Specific key to use from file
+ * @param {string} [opts.signingFile] - Path to key file (multibase or JSON)
+ * @param {string} [opts.signingKey] - Specific key to use from JSON file (ignored for multibase)
  * @param {string} opts.revokeKey - The key being revoked (to avoid using it for signing)
  * @param {string} [opts.envVar='FAIR_ROTATION_KEY'] - Environment variable name
  * @returns {Promise<{privateKeyHex: string, keyData: object|null}>}
@@ -125,12 +257,28 @@ export async function loadVerificationKey({ signingFile, signingKey, envVar = 'F
  */
 export async function loadRotationKeyForRevocation({ signingFile, signingKey, revokeKey, envVar = 'FAIR_ROTATION_KEY' }) {
 	if (signingFile) {
-		let keyData;
+		let keyContent;
 		try {
-			const keyContent = await readFile(signingFile, 'utf-8');
-			keyData = JSON.parse(keyContent);
+			keyContent = await readFile(signingFile, 'utf-8');
 		} catch (err) {
 			throw new SigningKeyError(`Error reading key file: ${err.message}`);
+		}
+
+		// Try multibase first
+		const multibaseKey = parseAsMultibaseRotationKey(keyContent);
+		if (multibaseKey) {
+			if (signingKey) {
+				throw new SigningKeyError('Cannot specify a signing key when using a multibase key file');
+			}
+			return { privateKeyHex: multibaseKey, keyData: null };
+		}
+
+		// Try JSON
+		let keyData;
+		try {
+			keyData = JSON.parse(keyContent);
+		} catch {
+			throw new SigningKeyError('Key file must be valid JSON or a multibase base58btc encoded key (starting with "z")');
 		}
 
 		const rotationKeys = keyData.rotationKeys || {};
@@ -161,6 +309,7 @@ export async function loadRotationKeyForRevocation({ signingFile, signingKey, re
 		return { privateKeyHex, keyData };
 	}
 
+	// @TODO convert this to a guard condition near the start of the function
 	const privateKeyHex = process.env[envVar];
 	if (!privateKeyHex) {
 		throw new SigningKeyError(`No signing key provided. Set the ${envVar} environment variable or provide a signing file.`);

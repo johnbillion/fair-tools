@@ -46,8 +46,8 @@ Required options:
   -n, --new-url <url>     The new URL
 
 Signing key:
-  -f, --signing-file <file>  Path to key file for signing (JSON with rotationKeys)
-  -k, --signing-key <key>    Which rotation key to sign with (default: first)
+  -f, --signing-file <file>  Path to key file (JSON with rotationKeys, or multibase)
+  -k, --signing-key <key>    Which rotation key to sign with (default: first, JSON only)
 
   If --signing-file is not provided, uses FAIR_ROTATION_KEY environment variable.
 

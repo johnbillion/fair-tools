@@ -59,8 +59,8 @@ Required options:
   -d, --did <did>           Package DID (did:plc:...)
 
 Signing key:
-  -f, --signing-file <file> Path to key file (JSON with verificationKeys)
-  -k, --signing-key <key>   Which verification key to sign with (default: first)
+  -f, --signing-file <file> Path to key file (JSON with verificationKeys, or multibase)
+  -k, --signing-key <key>   Which verification key to sign with (default: first, JSON only)
 
   If --signing-file is not provided, uses FAIR_PRIVATE_KEY environment variable.
 
