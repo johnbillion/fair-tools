@@ -462,3 +462,86 @@ export async function replaceServiceUrl({ did, oldUrl, newUrl, signer, plcUrl = 
 	const client = createPlcClient(plcUrl);
 	await client.updateData(did, signer, (lastOp) => replaceServiceUrlInOp(lastOp, oldUrl, newUrl));
 }
+
+/**
+ * Creates an updated operation with the FAIR service removed.
+ *
+ * This specifically verifies the URL matches before removing,
+ * to prevent accidental removals.
+ *
+ * @param {object} lastOp - The previous operation
+ * @param {string} url - The service endpoint URL to verify before removal
+ * @returns {object} The updated operation
+ * @throws {Error} If the FAIR service doesn't exist or URL doesn't match
+ */
+export function removeServiceUrlFromOp(lastOp, url) {
+	const existingService = lastOp.services?.[FAIR_SERVICE_ID];
+	if (!existingService) {
+		throw new Error(`FAIR service not found in DID`);
+	}
+	if (existingService.endpoint !== url) {
+		throw new Error(`Service URL does not match: expected "${url}", found "${existingService.endpoint}"`);
+	}
+	const { [FAIR_SERVICE_ID]: _, ...remainingServices } = lastOp.services;
+	return {
+		...lastOp,
+		services: remainingServices,
+	};
+}
+
+/**
+ * Removes the FAIR service from an existing DID.
+ *
+ * This verifies the URL matches before removing, to prevent
+ * accidental removals.
+ *
+ * @param {object} opts - Options
+ * @param {string} opts.did - The DID to update
+ * @param {string} opts.url - The service endpoint URL to verify before removal
+ * @param {Secp256k1Keypair} opts.signer - The keypair to sign with (must be a rotation key)
+ * @param {string} [opts.plcUrl] - The PLC directory URL (defaults to https://plc.directory)
+ * @returns {Promise<void>}
+ */
+export async function removeServiceUrl({ did, url, signer, plcUrl = PLC_DIRECTORY_URL }) {
+	const client = createPlcClient(plcUrl);
+	await client.updateData(did, signer, (lastOp) => removeServiceUrlFromOp(lastOp, url));
+}
+
+/**
+ * Creates an updated operation with an alsoKnownAs URL removed.
+ *
+ * This specifically verifies the URL exists before removing,
+ * to prevent errors.
+ *
+ * @param {object} lastOp - The previous operation
+ * @param {string} url - The URL to remove from alsoKnownAs
+ * @returns {object} The updated operation
+ * @throws {Error} If the URL doesn't exist in alsoKnownAs
+ */
+export function removeAlsoKnownAsFromOp(lastOp, url) {
+	const existing = lastOp.alsoKnownAs || [];
+	if (!existing.includes(url)) {
+		throw new Error(`URL not found in alsoKnownAs: ${url}`);
+	}
+	return {
+		...lastOp,
+		alsoKnownAs: existing.filter((u) => u !== url),
+	};
+}
+
+/**
+ * Removes a URL from the alsoKnownAs field of an existing DID.
+ *
+ * This verifies the URL exists before removing, to prevent errors.
+ *
+ * @param {object} opts - Options
+ * @param {string} opts.did - The DID to update
+ * @param {string} opts.url - The URL to remove from alsoKnownAs
+ * @param {Secp256k1Keypair} opts.signer - The keypair to sign with (must be a rotation key)
+ * @param {string} [opts.plcUrl] - The PLC directory URL (defaults to https://plc.directory)
+ * @returns {Promise<void>}
+ */
+export async function removeAlsoKnownAs({ did, url, signer, plcUrl = PLC_DIRECTORY_URL }) {
+	const client = createPlcClient(plcUrl);
+	await client.updateData(did, signer, (lastOp) => removeAlsoKnownAsFromOp(lastOp, url));
+}

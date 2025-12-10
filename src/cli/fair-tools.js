@@ -6,6 +6,7 @@ const commands = {
 		service: {
 			add: { description: 'Add a service URL to a DID', load: () => import('./did-service-add.js') },
 			replace: { description: 'Replace a service URL in a DID', load: () => import('./did-service-replace.js') },
+			remove: { description: 'Remove a service URL from a DID', load: () => import('./did-service-remove.js') },
 		},
 		'verification-key': {
 			add: { description: 'Add a verification key', load: () => import('./did-verification-key-add.js') },
@@ -18,6 +19,7 @@ const commands = {
 		aka: {
 			add: { description: 'Add a URL to the alsoKnownAs field', load: () => import('./did-aka-add.js') },
 			replace: { description: 'Replace a URL in the alsoKnownAs field', load: () => import('./did-aka-replace.js') },
+			remove: { description: 'Remove a URL from the alsoKnownAs field', load: () => import('./did-aka-remove.js') },
 		},
 	},
 	metadata: {

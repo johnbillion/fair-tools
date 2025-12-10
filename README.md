@@ -112,6 +112,16 @@ npm run fair-tools -- did service replace \
   --new-url https://new.example.com/metadata.json
 ```
 
+### Remove DID service URL
+
+Removes the FAIR service URL from a DID. Requires specifying the URL to prevent accidental removals.
+
+```bash
+npm run fair-tools -- did service remove \
+  --did did:plc:xxx \
+  --url https://example.com/metadata.json
+```
+
 ## DID management
 
 Over time you may need to manage the keys for your DID.
@@ -135,6 +145,16 @@ npm run fair-tools -- did aka replace \
   --did did:plc:xxx \
   --old-url at://old.example.com \
   --new-url at://new.example.com
+```
+
+### Remove alsoKnownAs URL
+
+Removes a URL from the alsoKnownAs field of a DID.
+
+```bash
+npm run fair-tools -- did aka remove \
+  --did did:plc:xxx \
+  --url at://example.com
 ```
 
 ### Add verification key
@@ -198,12 +218,14 @@ Commands:
   did create                   Create a new FAIR DID
   did service add              Add a service URL to a DID
   did service replace          Replace a service URL in a DID
+  did service remove           Remove a service URL from a DID
   did verification-key add     Add a verification key
   did verification-key revoke  Revoke a verification key
   did rotation-key add         Add a rotation key
   did rotation-key revoke      Revoke a rotation key
   did aka add                  Add a URL to the alsoKnownAs field
   did aka replace              Replace a URL in the alsoKnownAs field
+  did aka remove               Remove a URL from the alsoKnownAs field
   metadata build               Build a FAIR metadata document
 
 Run 'fair-tools <command> --help' for more information on a command.
