@@ -126,6 +126,17 @@ npm run fair-tools -- did aka add \
   --url at://example.com
 ```
 
+### Replace alsoKnownAs URL
+
+Replaces a URL in the alsoKnownAs field of a DID. Requires specifying the old URL to prevent accidental overwrites.
+
+```bash
+npm run fair-tools -- did aka replace \
+  --did did:plc:xxx \
+  --old-url at://old.example.com \
+  --new-url at://new.example.com
+```
+
 ### Add verification key
 
 Generates a new verification key, adds it to a DID, and saves it to the key file.
@@ -192,6 +203,7 @@ Commands:
   did rotation-key add         Add a rotation key
   did rotation-key revoke      Revoke a rotation key
   did aka add                  Add a URL to the alsoKnownAs field
+  did aka replace              Replace a URL in the alsoKnownAs field
   metadata build               Build a FAIR metadata document
 
 Run 'fair-tools <command> --help' for more information on a command.

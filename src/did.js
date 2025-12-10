@@ -364,6 +364,54 @@ export async function addAlsoKnownAs({ did, url, signer, plcUrl = PLC_DIRECTORY_
 }
 
 /**
+ * Creates an updated operation with an alsoKnownAs URL replaced.
+ *
+ * This specifically verifies the old URL exists before updating,
+ * to prevent accidental overwrites.
+ *
+ * @param {object} lastOp - The previous operation
+ * @param {string} oldUrl - The current alsoKnownAs URL to replace
+ * @param {string} newUrl - The new URL
+ * @returns {object} The updated operation
+ * @throws {Error} If the old URL doesn't exist or new URL already exists
+ */
+export function replaceAlsoKnownAsInOp(lastOp, oldUrl, newUrl) {
+	const existing = lastOp.alsoKnownAs || [];
+	const index = existing.indexOf(oldUrl);
+	if (index === -1) {
+		throw new Error(`URL not found in alsoKnownAs: ${oldUrl}`);
+	}
+	if (existing.includes(newUrl)) {
+		throw new Error(`URL already exists in alsoKnownAs: ${newUrl}`);
+	}
+	const updated = [...existing];
+	updated[index] = newUrl;
+	return {
+		...lastOp,
+		alsoKnownAs: updated,
+	};
+}
+
+/**
+ * Replaces a URL in the alsoKnownAs field of an existing DID.
+ *
+ * This verifies the old URL exists before updating, to prevent
+ * accidental overwrites.
+ *
+ * @param {object} opts - Options
+ * @param {string} opts.did - The DID to update
+ * @param {string} opts.oldUrl - The current alsoKnownAs URL to replace
+ * @param {string} opts.newUrl - The new URL
+ * @param {Secp256k1Keypair} opts.signer - The keypair to sign with (must be a rotation key)
+ * @param {string} [opts.plcUrl] - The PLC directory URL (defaults to https://plc.directory)
+ * @returns {Promise<void>}
+ */
+export async function replaceAlsoKnownAs({ did, oldUrl, newUrl, signer, plcUrl = PLC_DIRECTORY_URL }) {
+	const client = createPlcClient(plcUrl);
+	await client.updateData(did, signer, (lastOp) => replaceAlsoKnownAsInOp(lastOp, oldUrl, newUrl));
+}
+
+/**
  * Creates an updated operation with the FAIR service URL replaced.
  *
  * This specifically verifies the old URL matches before updating,

@@ -17,6 +17,7 @@ const commands = {
 		},
 		aka: {
 			add: { description: 'Add a URL to the alsoKnownAs field', load: () => import('./did-aka-add.js') },
+			replace: { description: 'Replace a URL in the alsoKnownAs field', load: () => import('./did-aka-replace.js') },
 		},
 	},
 	metadata: {

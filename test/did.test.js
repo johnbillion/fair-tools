@@ -10,6 +10,7 @@ import {
 	updateServiceUrlInOp,
 	replaceServiceUrlInOp,
 	addAlsoKnownAsToOp,
+	replaceAlsoKnownAsInOp,
 	FAIR_SERVICE_ID,
 	FAIR_SERVICE_TYPE,
 } from '../src/did.js';
@@ -593,6 +594,113 @@ describe('addAlsoKnownAsToOp', () => {
 			verificationMethods: { fair: 'did:key:z6Mk1', fair2: 'did:key:z6Mk2' },
 			rotationKeys: ['did:key:zQ3sh1', 'did:key:zQ3sh2'],
 			alsoKnownAs: ['at://existing.com', 'at://new.example.com'],
+			services: {
+				fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
+			},
+		});
+	});
+});
+
+describe('replaceAlsoKnownAsInOp', () => {
+	it('replaces the alsoKnownAs URL when old URL matches', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...'],
+			alsoKnownAs: ['at://old.example.com'],
+		};
+		const result = replaceAlsoKnownAsInOp(lastOp, 'at://old.example.com', 'at://new.example.com');
+
+		assert.deepStrictEqual(result.alsoKnownAs, ['at://new.example.com']);
+	});
+
+	it('replaces URL at correct index when multiple URLs exist', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...'],
+			alsoKnownAs: ['at://first.com', 'at://old.example.com', 'at://third.com'],
+		};
+		const result = replaceAlsoKnownAsInOp(lastOp, 'at://old.example.com', 'at://new.example.com');
+
+		assert.deepStrictEqual(result.alsoKnownAs, ['at://first.com', 'at://new.example.com', 'at://third.com']);
+	});
+
+	it('throws if old URL does not exist in alsoKnownAs', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...'],
+			alsoKnownAs: ['at://existing.com'],
+		};
+
+		assert.throws(
+			() => replaceAlsoKnownAsInOp(lastOp, 'at://notfound.com', 'at://new.example.com'),
+			/URL not found in alsoKnownAs: at:\/\/notfound\.com/
+		);
+	});
+
+	it('throws if alsoKnownAs is empty', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...'],
+			alsoKnownAs: [],
+		};
+
+		assert.throws(
+			() => replaceAlsoKnownAsInOp(lastOp, 'at://old.com', 'at://new.com'),
+			/URL not found in alsoKnownAs/
+		);
+	});
+
+	it('throws if alsoKnownAs is missing', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...'],
+		};
+
+		assert.throws(
+			() => replaceAlsoKnownAsInOp(lastOp, 'at://old.com', 'at://new.com'),
+			/URL not found in alsoKnownAs/
+		);
+	});
+
+	it('throws if new URL already exists in alsoKnownAs', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...'],
+			alsoKnownAs: ['at://old.com', 'at://existing.com'],
+		};
+
+		assert.throws(
+			() => replaceAlsoKnownAsInOp(lastOp, 'at://old.com', 'at://existing.com'),
+			/URL already exists in alsoKnownAs: at:\/\/existing\.com/
+		);
+	});
+
+	it('preserves other alsoKnownAs URLs', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...'],
+			alsoKnownAs: ['at://first.com', 'at://second.com', 'at://third.com'],
+		};
+		const result = replaceAlsoKnownAsInOp(lastOp, 'at://second.com', 'at://new.com');
+
+		assert.deepStrictEqual(result.alsoKnownAs, ['at://first.com', 'at://new.com', 'at://third.com']);
+	});
+
+	it('preserves verification methods, rotation keys, and services', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk1', fair2: 'did:key:z6Mk2' },
+			rotationKeys: ['did:key:zQ3sh1', 'did:key:zQ3sh2'],
+			alsoKnownAs: ['at://old.example.com'],
+			services: {
+				fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
+			},
+		};
+		const result = replaceAlsoKnownAsInOp(lastOp, 'at://old.example.com', 'at://new.example.com');
+
+		assert.deepStrictEqual(result, {
+			verificationMethods: { fair: 'did:key:z6Mk1', fair2: 'did:key:z6Mk2' },
+			rotationKeys: ['did:key:zQ3sh1', 'did:key:zQ3sh2'],
+			alsoKnownAs: ['at://new.example.com'],
 			services: {
 				fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
 			},
