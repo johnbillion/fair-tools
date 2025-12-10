@@ -33,6 +33,32 @@ Run with:
 npm run fair-tools -- metadata build --plugin-file ./my-plugin.php ...
 ```
 
+## CLI reference
+
+Run `npm run fair-tools` to see all available commands:
+
+```
+Usage: fair-tools <command> [options]
+
+Commands:
+  did create                   Create a new DID
+  did service add              Add a service URL to a DID
+  did service replace          Replace a service URL in a DID
+  did service remove           Remove a service URL from a DID
+  did verification-key add     Add a verification key
+  did verification-key revoke  Revoke a verification key
+  did rotation-key add         Add a rotation key
+  did rotation-key revoke      Revoke a rotation key
+  did aka add                  Add a URL to the alsoKnownAs field
+  did aka replace              Replace a URL in the alsoKnownAs field
+  did aka remove               Remove a URL from the alsoKnownAs field
+  did domain verify            Verify a domain's DNS record for a DID
+  did domain verify-alias      Verify alsoKnownAs domain aliases for a DID
+  metadata build               Build a FAIR metadata document
+
+Run 'fair-tools <command> --help' for more information on a command.
+```
+
 ## Basic usage
 
 The basic steps to set up a plugin for distribution via FAIR are:
@@ -231,32 +257,6 @@ You cannot revoke the key used to sign the operation, and at least one rotation 
 When using `--signing-file` without `--signing-key`, defaults to signing with the first available rotation key that isn't being revoked.
 
 Use `--cleanup` to delete the revoked key from the key file after success.
-
-## CLI reference
-
-Run `npm run fair-tools` to see all available commands:
-
-```
-Usage: fair-tools <command> [options]
-
-Commands:
-  did create                   Create a new DID
-  did service add              Add a service URL to a DID
-  did service replace          Replace a service URL in a DID
-  did service remove           Remove a service URL from a DID
-  did verification-key add     Add a verification key
-  did verification-key revoke  Revoke a verification key
-  did rotation-key add         Add a rotation key
-  did rotation-key revoke      Revoke a rotation key
-  did aka add                  Add a URL to the alsoKnownAs field
-  did aka replace              Replace a URL in the alsoKnownAs field
-  did aka remove               Remove a URL from the alsoKnownAs field
-  did domain verify            Verify a domain's DNS record for a DID
-  did domain verify-alias      Verify alsoKnownAs domain aliases for a DID
-  metadata build               Build a FAIR metadata document
-
-Run 'fair-tools <command> --help' for more information on a command.
-```
 
 ## License
 
