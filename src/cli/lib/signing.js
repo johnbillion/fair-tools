@@ -18,7 +18,7 @@ export class SigningKeyError extends Error {
 /**
  * Decode a multibase base58btc private key string.
  *
- * @param {string} key - The multibase key (starts with 'z')
+ * @param {string} key - The multibase key (starts with 'z3vL' or 'z3u2')
  * @returns {{prefixHex: string, rawKey: Uint8Array}} - The decoded prefix (hex) and raw key
  * @throws {SigningKeyError} If the key format is invalid
  */
@@ -132,7 +132,7 @@ function parseVerificationKeyValue(value) {
  * Load a rotation key from a key file or environment variable.
  *
  * The key file can be either:
- * - A multibase base58btc encoded private key (starts with 'z')
+ * - A multibase base58btc encoded private key (starts with 'z3vL')
  * - A JSON file with a `rotationKeys` object mapping public keys to private keys
  *
  * @param {{
@@ -170,7 +170,7 @@ export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_
 		try {
 			keyData = JSON.parse(keyContent);
 		} catch {
-			throw new SigningKeyError('Key file must be valid JSON or a multibase base58btc encoded key (starting with "z")');
+			throw new SigningKeyError('Key file must be valid JSON or a multibase base58btc encoded rotation key (starting with "z3vL")');
 		}
 
 		const rotationKeys = keyData.rotationKeys || {};
@@ -206,7 +206,7 @@ export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_
  * Load a verification key from a key file or environment variable.
  *
  * The key file can be either:
- * - A multibase base58btc encoded private key (starts with 'z')
+ * - A multibase base58btc encoded private key (starts with 'z3u2')
  * - A JSON file with a `verificationKeys` object mapping public keys to private keys
  *
  * @param {{
@@ -244,7 +244,7 @@ export async function loadVerificationKey({ signingFile, signingKey, envVar = 'F
 		try {
 			keyData = JSON.parse(keyContent);
 		} catch {
-			throw new SigningKeyError('Key file must be valid JSON or a multibase base58btc encoded key (starting with "z")');
+			throw new SigningKeyError('Key file must be valid JSON or a multibase base58btc encoded verification key (starting with "z3u2")');
 		}
 
 		const verificationKeys = keyData.verificationKeys || {};
@@ -281,7 +281,7 @@ export async function loadVerificationKey({ signingFile, signingKey, envVar = 'F
  * Auto-selects a key that isn't the one being revoked (for JSON files only).
  *
  * The key file can be either:
- * - A multibase base58btc encoded private key (starts with 'z')
+ * - A multibase base58btc encoded private key (starts with 'z3vL')
  * - A JSON file with a `rotationKeys` object mapping public keys to private keys
  *
  * @param {{
@@ -316,7 +316,7 @@ export async function loadRotationKeyForRevocation({ signingFile, signingKey, re
 		try {
 			keyData = JSON.parse(keyContent);
 		} catch {
-			throw new SigningKeyError('Key file must be valid JSON or a multibase base58btc encoded key (starting with "z")');
+			throw new SigningKeyError('Key file must be valid JSON or a multibase base58btc encoded rotation key (starting with "z3vL")');
 		}
 
 		const rotationKeys = keyData.rotationKeys || {};

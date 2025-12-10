@@ -101,7 +101,7 @@ Most subsequent commands after creating a DID require a signing key. There are t
 
 1. **Key file**: Use `--signing-file` to specify a key file. The file can be either:
    - A JSON file containing your keys (use `--signing-key` to select a specific key; defaults to first key)
-   - A plain text file containing a multibase base58btc encoded private key (starts with 'z')
+   - A plain text file containing a multibase base58btc encoded private key (starts with 'z3vL' for rotation keys or 'z3u2' for verification keys)
 
 2. **Environment variable**: If `--signing-file` is not provided, the command falls back to an environment variable:
    - `FAIR_PRIVATE_KEY` for metadata signing (verification key)

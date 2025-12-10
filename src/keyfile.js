@@ -33,7 +33,7 @@ export const ED25519_PRIV_PREFIX = new Uint8Array([0x80, 0x26]);
  * Encodes a rotation key (secp256k1) as a multibase base58btc string.
  *
  * @param {Uint8Array} privateKey - The private key bytes
- * @returns {string} The multibase-encoded private key (starts with 'z')
+ * @returns {string} The multibase-encoded private key (starts with 'z3vL')
  */
 export function encodeRotationKey(privateKey) {
 	const combined = new Uint8Array(SECP256K1_PRIV_PREFIX.length + privateKey.length);
@@ -46,7 +46,7 @@ export function encodeRotationKey(privateKey) {
  * Encodes a verification key (ed25519) as a multibase base58btc string.
  *
  * @param {Uint8Array} privateKey - The private key bytes
- * @returns {string} The multibase-encoded private key (starts with 'z')
+ * @returns {string} The multibase-encoded private key (starts with 'z3u2')
  */
 export function encodeVerificationKey(privateKey) {
 	const combined = new Uint8Array(ED25519_PRIV_PREFIX.length + privateKey.length);

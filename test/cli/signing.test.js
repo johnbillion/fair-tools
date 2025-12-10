@@ -212,7 +212,7 @@ describe('signing.js', () => {
 				loadRotationKey({ signingFile: filePath }),
 				(err) => {
 					assert(err instanceof SigningKeyError);
-					assert.strictEqual(err.message, 'Key file must be valid JSON or a multibase base58btc encoded key (starting with "z")');
+					assert.strictEqual(err.message, 'Key file must be valid JSON or a multibase base58btc encoded rotation key (starting with "z3vL")');
 					return true;
 				}
 			);
@@ -482,7 +482,7 @@ describe('signing.js', () => {
 				loadVerificationKey({ signingFile: filePath }),
 				(err) => {
 					assert(err instanceof SigningKeyError);
-					assert.strictEqual(err.message, 'Key file must be valid JSON or a multibase base58btc encoded key (starting with "z")');
+					assert.strictEqual(err.message, 'Key file must be valid JSON or a multibase base58btc encoded verification key (starting with "z3u2")');
 					return true;
 				}
 			);
@@ -699,7 +699,7 @@ describe('signing.js', () => {
 				}),
 				(err) => {
 					assert(err instanceof SigningKeyError);
-					assert.strictEqual(err.message, 'Key file must be valid JSON or a multibase base58btc encoded key (starting with "z")');
+					assert.strictEqual(err.message, 'Key file must be valid JSON or a multibase base58btc encoded rotation key (starting with "z3vL")');
 					return true;
 				}
 			);
