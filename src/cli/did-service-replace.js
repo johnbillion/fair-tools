@@ -36,9 +36,9 @@ const { values } = parseArgs({
 });
 
 if (values.help) {
-	console.log(`Usage: fair-tools did service update [options]
+	console.log(`Usage: fair-tools did service replace [options]
 
-Update the FAIR service URL for a DID.
+Replace the FAIR service URL for a DID.
 
 Required options:
   -d, --did <did>         The DID to update (did:plc:...)
