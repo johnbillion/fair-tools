@@ -130,13 +130,15 @@ Over time you may need to manage the keys for your DID.
 
 ### Add alsoKnownAs URL
 
-Adds a URL to the alsoKnownAs field of a DID.
+Adds a URL to the alsoKnownAs field of a DID. For FAIR domain aliases, use a `fair://` URL.
 
 ```bash
 npm run fair-tools -- did aka add \
   --did did:plc:xxx \
-  --url at://example.com
+  --url fair://example.com
 ```
+
+Before adding a `fair://` alias, ensure your domain has a TXT record at `_fairpm.<domain>` with the value `did=<your-did>`. Use `did domain verify` to check this. After adding the alias, use `did domain verify-alias` to verify the complete setup.
 
 ### Replace alsoKnownAs URL
 
@@ -145,8 +147,8 @@ Replaces a URL in the alsoKnownAs field of a DID. Requires specifying the old UR
 ```bash
 npm run fair-tools -- did aka replace \
   --did did:plc:xxx \
-  --old-url at://old.example.com \
-  --new-url at://new.example.com
+  --old-url fair://old.example.com \
+  --new-url fair://new.example.com
 ```
 
 ### Remove alsoKnownAs URL
@@ -156,7 +158,28 @@ Removes a URL from the alsoKnownAs field of a DID.
 ```bash
 npm run fair-tools -- did aka remove \
   --did did:plc:xxx \
-  --url at://example.com
+  --url fair://example.com
+```
+
+### Verify domain
+
+Verifies that a domain's DNS TXT record is correctly configured for a DID. Use this to check DNS propagation before adding a domain alias to your DID.
+
+```bash
+npm run fair-tools -- did domain verify \
+  --domain example.com \
+  --did did:plc:xxx
+```
+
+The domain requires a TXT record at `_fairpm.<domain>` with the value `did=<your-did>`.
+
+### Verify domain alias
+
+Verifies the `fair://` domain alias in a DID's alsoKnownAs field by fetching the DID document, extracting the alias, and checking the corresponding DNS TXT record.
+
+```bash
+npm run fair-tools -- did domain verify-alias \
+  --did did:plc:xxx
 ```
 
 ### Add verification key
@@ -228,6 +251,8 @@ Commands:
   did aka add                  Add a URL to the alsoKnownAs field
   did aka replace              Replace a URL in the alsoKnownAs field
   did aka remove               Remove a URL from the alsoKnownAs field
+  did domain verify            Verify a domain's DNS record for a DID
+  did domain verify-alias      Verify alsoKnownAs domain aliases for a DID
   metadata build               Build a FAIR metadata document
 
 Run 'fair-tools <command> --help' for more information on a command.

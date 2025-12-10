@@ -1,0 +1,84 @@
+#!/usr/bin/env node
+
+import { parseArgs } from 'node:util';
+import {
+	DnsRecordNotFoundError,
+	DnsRecordInvalidError,
+	getFairAlias,
+	verifyDomainDid,
+} from '../domain.js';
+
+const { values } = parseArgs({
+	options: {
+		did: {
+			type: 'string',
+			short: 'd',
+		},
+		help: {
+			type: 'boolean',
+			short: 'h',
+		},
+	},
+});
+
+if (values.help) {
+	console.log(`Usage: fair-tools did domain verify-alias [options]
+
+Verify the fair:// domain alias in a DID's alsoKnownAs field.
+
+This command fetches the DID document, extracts the fair:// alias from
+the alsoKnownAs field, and verifies it by checking the corresponding
+DNS TXT record.
+
+Required options:
+  -d, --did <did>         The DID to verify the alias for (did:plc:...)
+
+Optional:
+  -h, --help              Show this help message
+
+DNS Record Setup:
+  The fair:// alias requires a TXT record at _fairpm.<domain> with the value:
+    did=<your-did>
+
+  Example:
+    Host: _fairpm.example.com
+    Type: TXT
+    Value: did=did:plc:abc123...`);
+	process.exit(0);
+}
+
+// Validate required options
+if (!values.did) {
+	console.error('Error: Missing required option: --did');
+	console.error('Run with --help for usage information.');
+	process.exit(1);
+}
+
+console.log(`Fetching DID document for ${values.did}...`);
+
+let alias;
+try {
+	alias = await getFairAlias(values.did);
+} catch (err) {
+	console.error(`\n✗ ${err.message}`);
+	process.exit(1);
+}
+
+const domain = alias.replace(/^fair:\/\//, '').replace(/\/$/, '');
+
+console.log(`\nVerifying ${alias}...`);
+
+try {
+	await verifyDomainDid(domain, values.did);
+	console.log(`\n✓ Domain verified: ${domain}`);
+	console.log(`  DNS record: _fairpm.${domain}`);
+	console.log(`  DID: ${values.did}`);
+} catch (err) {
+	console.error(`\n✗ ${err.message}`);
+	if (err instanceof DnsRecordNotFoundError || err instanceof DnsRecordInvalidError) {
+		console.error(`\n  To verify this domain, add a TXT record:`);
+		console.error(`    Host: _fairpm.${domain}`);
+		console.error(`    Value: did=${values.did}`);
+	}
+	process.exit(1);
+}

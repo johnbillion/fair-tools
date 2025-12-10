@@ -21,6 +21,10 @@ const commands = {
 			replace: { description: 'Replace a URL in the alsoKnownAs field', load: () => import('./did-aka-replace.js') },
 			remove: { description: 'Remove a URL from the alsoKnownAs field', load: () => import('./did-aka-remove.js') },
 		},
+		domain: {
+			verify: { description: 'Verify a domain\'s DNS record for a DID', load: () => import('./did-domain-verify.js') },
+			'verify-alias': { description: 'Verify alsoKnownAs domain aliases for a DID', load: () => import('./did-domain-verify-alias.js') },
+		},
 	},
 	metadata: {
 		build: { description: 'Build a FAIR metadata document', load: () => import('./metadata-build.js') },

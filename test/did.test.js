@@ -150,7 +150,7 @@ describe('addVerificationKeyToOp', () => {
 		const lastOp = {
 			verificationMethods: {},
 			rotationKeys: ['did:key:zQ3sh...'],
-			alsoKnownAs: ['at://example.com'],
+			alsoKnownAs: ['fair://example.com'],
 			services: { test: { type: 'Test', endpoint: 'https://example.com' } },
 		};
 		const result = addVerificationKeyToOp(lastOp, 'did:key:z6MkNew');
@@ -158,7 +158,7 @@ describe('addVerificationKeyToOp', () => {
 		assert.deepStrictEqual(result, {
 			verificationMethods: { fair: 'did:key:z6MkNew' },
 			rotationKeys: ['did:key:zQ3sh...'],
-			alsoKnownAs: ['at://example.com'],
+			alsoKnownAs: ['fair://example.com'],
 			services: { test: { type: 'Test', endpoint: 'https://example.com' } },
 		});
 	});
@@ -201,7 +201,7 @@ describe('addRotationKeyToOp', () => {
 		const lastOp = {
 			verificationMethods: { fair: 'did:key:z6Mk...' },
 			rotationKeys: ['did:key:zQ3sh...'],
-			alsoKnownAs: ['at://example.com'],
+			alsoKnownAs: ['fair://example.com'],
 			services: { test: { type: 'Test', endpoint: 'https://example.com' } },
 		};
 		const result = addRotationKeyToOp(lastOp, 'did:key:zQ3shNew');
@@ -209,7 +209,7 @@ describe('addRotationKeyToOp', () => {
 		assert.deepStrictEqual(result, {
 			verificationMethods: { fair: 'did:key:z6Mk...' },
 			rotationKeys: ['did:key:zQ3sh...', 'did:key:zQ3shNew'],
-			alsoKnownAs: ['at://example.com'],
+			alsoKnownAs: ['fair://example.com'],
 			services: { test: { type: 'Test', endpoint: 'https://example.com' } },
 		});
 	});
@@ -273,7 +273,7 @@ describe('revokeVerificationKeyFromOp', () => {
 		const lastOp = {
 			verificationMethods: { fair: 'did:key:z6Mk1', fair2: 'did:key:z6Mk2' },
 			rotationKeys: ['did:key:zQ3sh1', 'did:key:zQ3sh2'],
-			alsoKnownAs: ['at://example.com'],
+			alsoKnownAs: ['fair://example.com'],
 			services: {
 				fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
 			},
@@ -283,7 +283,7 @@ describe('revokeVerificationKeyFromOp', () => {
 		assert.deepStrictEqual(result, {
 			verificationMethods: { fair2: 'did:key:z6Mk2' },
 			rotationKeys: ['did:key:zQ3sh1', 'did:key:zQ3sh2'],
-			alsoKnownAs: ['at://example.com'],
+			alsoKnownAs: ['fair://example.com'],
 			services: {
 				fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
 			},
@@ -346,7 +346,7 @@ describe('updateServiceUrlInOp', () => {
 		const lastOp = {
 			verificationMethods: { fair: 'did:key:z6Mk...' },
 			rotationKeys: ['did:key:zQ3sh...'],
-			alsoKnownAs: ['at://example.com'],
+			alsoKnownAs: ['fair://example.com'],
 			services: {},
 		};
 		const result = updateServiceUrlInOp(lastOp, 'https://example.com/metadata.json');
@@ -354,7 +354,7 @@ describe('updateServiceUrlInOp', () => {
 		assert.deepStrictEqual(result, {
 			verificationMethods: { fair: 'did:key:z6Mk...' },
 			rotationKeys: ['did:key:zQ3sh...'],
-			alsoKnownAs: ['at://example.com'],
+			alsoKnownAs: ['fair://example.com'],
 			services: {
 				[FAIR_SERVICE_ID]: {
 					type: FAIR_SERVICE_TYPE,
@@ -444,7 +444,7 @@ describe('replaceServiceUrlInOp', () => {
 		const lastOp = {
 			verificationMethods: { fair: 'did:key:z6Mk...' },
 			rotationKeys: ['did:key:zQ3sh...'],
-			alsoKnownAs: ['at://example.com'],
+			alsoKnownAs: ['fair://example.com'],
 			services: {
 				[FAIR_SERVICE_ID]: {
 					type: FAIR_SERVICE_TYPE,
@@ -457,7 +457,7 @@ describe('replaceServiceUrlInOp', () => {
 		assert.deepStrictEqual(result, {
 			verificationMethods: { fair: 'did:key:z6Mk...' },
 			rotationKeys: ['did:key:zQ3sh...'],
-			alsoKnownAs: ['at://example.com'],
+			alsoKnownAs: ['fair://example.com'],
 			services: {
 				[FAIR_SERVICE_ID]: {
 					type: FAIR_SERVICE_TYPE,
@@ -517,7 +517,7 @@ describe('revokeRotationKeyFromOp', () => {
 		const lastOp = {
 			verificationMethods: { fair: 'did:key:z6Mk1', fair2: 'did:key:z6Mk2' },
 			rotationKeys: ['did:key:zQ3sh1', 'did:key:zQ3sh2'],
-			alsoKnownAs: ['at://example.com'],
+			alsoKnownAs: ['fair://example.com'],
 			services: {
 				fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
 			},
@@ -527,7 +527,7 @@ describe('revokeRotationKeyFromOp', () => {
 		assert.deepStrictEqual(result, {
 			verificationMethods: { fair: 'did:key:z6Mk1', fair2: 'did:key:z6Mk2' },
 			rotationKeys: ['did:key:zQ3sh2'],
-			alsoKnownAs: ['at://example.com'],
+			alsoKnownAs: ['fair://example.com'],
 			services: {
 				fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
 			},
@@ -542,20 +542,20 @@ describe('addAlsoKnownAsToOp', () => {
 			rotationKeys: ['did:key:zQ3sh...'],
 			alsoKnownAs: [],
 		};
-		const result = addAlsoKnownAsToOp(lastOp, 'at://example.com');
+		const result = addAlsoKnownAsToOp(lastOp, 'fair://example.com');
 
-		assert.deepStrictEqual(result.alsoKnownAs, ['at://example.com']);
+		assert.deepStrictEqual(result.alsoKnownAs, ['fair://example.com']);
 	});
 
 	it('appends URL to existing alsoKnownAs array', () => {
 		const lastOp = {
 			verificationMethods: { fair: 'did:key:z6Mk...' },
 			rotationKeys: ['did:key:zQ3sh...'],
-			alsoKnownAs: ['at://existing.com'],
+			alsoKnownAs: ['fair://existing.com'],
 		};
-		const result = addAlsoKnownAsToOp(lastOp, 'at://new.example.com');
+		const result = addAlsoKnownAsToOp(lastOp, 'fair://new.example.com');
 
-		assert.deepStrictEqual(result.alsoKnownAs, ['at://existing.com', 'at://new.example.com']);
+		assert.deepStrictEqual(result.alsoKnownAs, ['fair://existing.com', 'fair://new.example.com']);
 	});
 
 	it('handles missing alsoKnownAs field', () => {
@@ -563,20 +563,20 @@ describe('addAlsoKnownAsToOp', () => {
 			verificationMethods: { fair: 'did:key:z6Mk...' },
 			rotationKeys: ['did:key:zQ3sh...'],
 		};
-		const result = addAlsoKnownAsToOp(lastOp, 'at://example.com');
+		const result = addAlsoKnownAsToOp(lastOp, 'fair://example.com');
 
-		assert.deepStrictEqual(result.alsoKnownAs, ['at://example.com']);
+		assert.deepStrictEqual(result.alsoKnownAs, ['fair://example.com']);
 	});
 
 	it('throws if URL already exists in alsoKnownAs', () => {
 		const lastOp = {
 			verificationMethods: { fair: 'did:key:z6Mk...' },
 			rotationKeys: ['did:key:zQ3sh...'],
-			alsoKnownAs: ['at://existing.com'],
+			alsoKnownAs: ['fair://existing.com'],
 		};
 
 		assert.throws(
-			() => addAlsoKnownAsToOp(lastOp, 'at://existing.com'),
+			() => addAlsoKnownAsToOp(lastOp, 'fair://existing.com'),
 			/URL already exists in alsoKnownAs/
 		);
 	});
@@ -585,17 +585,17 @@ describe('addAlsoKnownAsToOp', () => {
 		const lastOp = {
 			verificationMethods: { fair: 'did:key:z6Mk1', fair2: 'did:key:z6Mk2' },
 			rotationKeys: ['did:key:zQ3sh1', 'did:key:zQ3sh2'],
-			alsoKnownAs: ['at://existing.com'],
+			alsoKnownAs: ['fair://existing.com'],
 			services: {
 				fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
 			},
 		};
-		const result = addAlsoKnownAsToOp(lastOp, 'at://new.example.com');
+		const result = addAlsoKnownAsToOp(lastOp, 'fair://new.example.com');
 
 		assert.deepStrictEqual(result, {
 			verificationMethods: { fair: 'did:key:z6Mk1', fair2: 'did:key:z6Mk2' },
 			rotationKeys: ['did:key:zQ3sh1', 'did:key:zQ3sh2'],
-			alsoKnownAs: ['at://existing.com', 'at://new.example.com'],
+			alsoKnownAs: ['fair://existing.com', 'fair://new.example.com'],
 			services: {
 				fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
 			},
@@ -608,34 +608,34 @@ describe('replaceAlsoKnownAsInOp', () => {
 		const lastOp = {
 			verificationMethods: { fair: 'did:key:z6Mk...' },
 			rotationKeys: ['did:key:zQ3sh...'],
-			alsoKnownAs: ['at://old.example.com'],
+			alsoKnownAs: ['fair://old.example.com'],
 		};
-		const result = replaceAlsoKnownAsInOp(lastOp, 'at://old.example.com', 'at://new.example.com');
+		const result = replaceAlsoKnownAsInOp(lastOp, 'fair://old.example.com', 'fair://new.example.com');
 
-		assert.deepStrictEqual(result.alsoKnownAs, ['at://new.example.com']);
+		assert.deepStrictEqual(result.alsoKnownAs, ['fair://new.example.com']);
 	});
 
 	it('replaces URL at correct index when multiple URLs exist', () => {
 		const lastOp = {
 			verificationMethods: { fair: 'did:key:z6Mk...' },
 			rotationKeys: ['did:key:zQ3sh...'],
-			alsoKnownAs: ['at://first.com', 'at://old.example.com', 'at://third.com'],
+			alsoKnownAs: ['fair://first.com', 'fair://old.example.com', 'fair://third.com'],
 		};
-		const result = replaceAlsoKnownAsInOp(lastOp, 'at://old.example.com', 'at://new.example.com');
+		const result = replaceAlsoKnownAsInOp(lastOp, 'fair://old.example.com', 'fair://new.example.com');
 
-		assert.deepStrictEqual(result.alsoKnownAs, ['at://first.com', 'at://new.example.com', 'at://third.com']);
+		assert.deepStrictEqual(result.alsoKnownAs, ['fair://first.com', 'fair://new.example.com', 'fair://third.com']);
 	});
 
 	it('throws if old URL does not exist in alsoKnownAs', () => {
 		const lastOp = {
 			verificationMethods: { fair: 'did:key:z6Mk...' },
 			rotationKeys: ['did:key:zQ3sh...'],
-			alsoKnownAs: ['at://existing.com'],
+			alsoKnownAs: ['fair://existing.com'],
 		};
 
 		assert.throws(
-			() => replaceAlsoKnownAsInOp(lastOp, 'at://notfound.com', 'at://new.example.com'),
-			/URL not found in alsoKnownAs: at:\/\/notfound\.com/
+			() => replaceAlsoKnownAsInOp(lastOp, 'fair://notfound.com', 'fair://new.example.com'),
+			/URL not found in alsoKnownAs: fair:\/\/notfound\.com/
 		);
 	});
 
@@ -647,7 +647,7 @@ describe('replaceAlsoKnownAsInOp', () => {
 		};
 
 		assert.throws(
-			() => replaceAlsoKnownAsInOp(lastOp, 'at://old.com', 'at://new.com'),
+			() => replaceAlsoKnownAsInOp(lastOp, 'fair://old.com', 'fair://new.com'),
 			/URL not found in alsoKnownAs/
 		);
 	});
@@ -659,7 +659,7 @@ describe('replaceAlsoKnownAsInOp', () => {
 		};
 
 		assert.throws(
-			() => replaceAlsoKnownAsInOp(lastOp, 'at://old.com', 'at://new.com'),
+			() => replaceAlsoKnownAsInOp(lastOp, 'fair://old.com', 'fair://new.com'),
 			/URL not found in alsoKnownAs/
 		);
 	});
@@ -668,12 +668,12 @@ describe('replaceAlsoKnownAsInOp', () => {
 		const lastOp = {
 			verificationMethods: { fair: 'did:key:z6Mk...' },
 			rotationKeys: ['did:key:zQ3sh...'],
-			alsoKnownAs: ['at://old.com', 'at://existing.com'],
+			alsoKnownAs: ['fair://old.com', 'fair://existing.com'],
 		};
 
 		assert.throws(
-			() => replaceAlsoKnownAsInOp(lastOp, 'at://old.com', 'at://existing.com'),
-			/URL already exists in alsoKnownAs: at:\/\/existing\.com/
+			() => replaceAlsoKnownAsInOp(lastOp, 'fair://old.com', 'fair://existing.com'),
+			/URL already exists in alsoKnownAs: fair:\/\/existing\.com/
 		);
 	});
 
@@ -681,28 +681,28 @@ describe('replaceAlsoKnownAsInOp', () => {
 		const lastOp = {
 			verificationMethods: { fair: 'did:key:z6Mk...' },
 			rotationKeys: ['did:key:zQ3sh...'],
-			alsoKnownAs: ['at://first.com', 'at://second.com', 'at://third.com'],
+			alsoKnownAs: ['fair://first.com', 'fair://second.com', 'fair://third.com'],
 		};
-		const result = replaceAlsoKnownAsInOp(lastOp, 'at://second.com', 'at://new.com');
+		const result = replaceAlsoKnownAsInOp(lastOp, 'fair://second.com', 'fair://new.com');
 
-		assert.deepStrictEqual(result.alsoKnownAs, ['at://first.com', 'at://new.com', 'at://third.com']);
+		assert.deepStrictEqual(result.alsoKnownAs, ['fair://first.com', 'fair://new.com', 'fair://third.com']);
 	});
 
 	it('preserves verification methods, rotation keys, and services', () => {
 		const lastOp = {
 			verificationMethods: { fair: 'did:key:z6Mk1', fair2: 'did:key:z6Mk2' },
 			rotationKeys: ['did:key:zQ3sh1', 'did:key:zQ3sh2'],
-			alsoKnownAs: ['at://old.example.com'],
+			alsoKnownAs: ['fair://old.example.com'],
 			services: {
 				fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
 			},
 		};
-		const result = replaceAlsoKnownAsInOp(lastOp, 'at://old.example.com', 'at://new.example.com');
+		const result = replaceAlsoKnownAsInOp(lastOp, 'fair://old.example.com', 'fair://new.example.com');
 
 		assert.deepStrictEqual(result, {
 			verificationMethods: { fair: 'did:key:z6Mk1', fair2: 'did:key:z6Mk2' },
 			rotationKeys: ['did:key:zQ3sh1', 'did:key:zQ3sh2'],
-			alsoKnownAs: ['at://new.example.com'],
+			alsoKnownAs: ['fair://new.example.com'],
 			services: {
 				fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
 			},
@@ -798,7 +798,7 @@ describe('removeServiceUrlFromOp', () => {
 		const lastOp = {
 			verificationMethods: { fair: 'did:key:z6Mk...' },
 			rotationKeys: ['did:key:zQ3sh...'],
-			alsoKnownAs: ['at://example.com'],
+			alsoKnownAs: ['fair://example.com'],
 			services: {
 				[FAIR_SERVICE_ID]: {
 					type: FAIR_SERVICE_TYPE,
@@ -811,7 +811,7 @@ describe('removeServiceUrlFromOp', () => {
 		assert.deepStrictEqual(result, {
 			verificationMethods: { fair: 'did:key:z6Mk...' },
 			rotationKeys: ['did:key:zQ3sh...'],
-			alsoKnownAs: ['at://example.com'],
+			alsoKnownAs: ['fair://example.com'],
 			services: {},
 		});
 	});
@@ -822,9 +822,9 @@ describe('removeAlsoKnownAsFromOp', () => {
 		const lastOp = {
 			verificationMethods: { fair: 'did:key:z6Mk...' },
 			rotationKeys: ['did:key:zQ3sh...'],
-			alsoKnownAs: ['at://example.com'],
+			alsoKnownAs: ['fair://example.com'],
 		};
-		const result = removeAlsoKnownAsFromOp(lastOp, 'at://example.com');
+		const result = removeAlsoKnownAsFromOp(lastOp, 'fair://example.com');
 
 		assert.deepStrictEqual(result.alsoKnownAs, []);
 	});
@@ -833,9 +833,9 @@ describe('removeAlsoKnownAsFromOp', () => {
 		const lastOp = {
 			verificationMethods: { fair: 'did:key:z6Mk...' },
 			rotationKeys: ['did:key:zQ3sh...'],
-			alsoKnownAs: ['at://only.example.com'],
+			alsoKnownAs: ['fair://only.example.com'],
 		};
-		const result = removeAlsoKnownAsFromOp(lastOp, 'at://only.example.com');
+		const result = removeAlsoKnownAsFromOp(lastOp, 'fair://only.example.com');
 
 		assert.deepStrictEqual(result.alsoKnownAs, []);
 		assert.strictEqual(result.alsoKnownAs.length, 0);
@@ -845,23 +845,23 @@ describe('removeAlsoKnownAsFromOp', () => {
 		const lastOp = {
 			verificationMethods: { fair: 'did:key:z6Mk...' },
 			rotationKeys: ['did:key:zQ3sh...'],
-			alsoKnownAs: ['at://first.com', 'at://second.com', 'at://third.com'],
+			alsoKnownAs: ['fair://first.com', 'fair://second.com', 'fair://third.com'],
 		};
-		const result = removeAlsoKnownAsFromOp(lastOp, 'at://second.com');
+		const result = removeAlsoKnownAsFromOp(lastOp, 'fair://second.com');
 
-		assert.deepStrictEqual(result.alsoKnownAs, ['at://first.com', 'at://third.com']);
+		assert.deepStrictEqual(result.alsoKnownAs, ['fair://first.com', 'fair://third.com']);
 	});
 
 	it('throws if URL does not exist in alsoKnownAs', () => {
 		const lastOp = {
 			verificationMethods: { fair: 'did:key:z6Mk...' },
 			rotationKeys: ['did:key:zQ3sh...'],
-			alsoKnownAs: ['at://existing.com'],
+			alsoKnownAs: ['fair://existing.com'],
 		};
 
 		assert.throws(
-			() => removeAlsoKnownAsFromOp(lastOp, 'at://notfound.com'),
-			/URL not found in alsoKnownAs: at:\/\/notfound\.com/
+			() => removeAlsoKnownAsFromOp(lastOp, 'fair://notfound.com'),
+			/URL not found in alsoKnownAs: fair:\/\/notfound\.com/
 		);
 	});
 
@@ -873,7 +873,7 @@ describe('removeAlsoKnownAsFromOp', () => {
 		};
 
 		assert.throws(
-			() => removeAlsoKnownAsFromOp(lastOp, 'at://example.com'),
+			() => removeAlsoKnownAsFromOp(lastOp, 'fair://example.com'),
 			/URL not found in alsoKnownAs/
 		);
 	});
@@ -885,7 +885,7 @@ describe('removeAlsoKnownAsFromOp', () => {
 		};
 
 		assert.throws(
-			() => removeAlsoKnownAsFromOp(lastOp, 'at://example.com'),
+			() => removeAlsoKnownAsFromOp(lastOp, 'fair://example.com'),
 			/URL not found in alsoKnownAs/
 		);
 	});
@@ -894,17 +894,17 @@ describe('removeAlsoKnownAsFromOp', () => {
 		const lastOp = {
 			verificationMethods: { fair: 'did:key:z6Mk1', fair2: 'did:key:z6Mk2' },
 			rotationKeys: ['did:key:zQ3sh1', 'did:key:zQ3sh2'],
-			alsoKnownAs: ['at://example.com', 'at://other.com'],
+			alsoKnownAs: ['fair://example.com', 'fair://other.com'],
 			services: {
 				fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
 			},
 		};
-		const result = removeAlsoKnownAsFromOp(lastOp, 'at://example.com');
+		const result = removeAlsoKnownAsFromOp(lastOp, 'fair://example.com');
 
 		assert.deepStrictEqual(result, {
 			verificationMethods: { fair: 'did:key:z6Mk1', fair2: 'did:key:z6Mk2' },
 			rotationKeys: ['did:key:zQ3sh1', 'did:key:zQ3sh2'],
-			alsoKnownAs: ['at://other.com'],
+			alsoKnownAs: ['fair://other.com'],
 			services: {
 				fairpm_repo: { type: 'FairPackageManagementRepo', endpoint: 'https://example.com/metadata.json' },
 			},
