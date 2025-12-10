@@ -27,12 +27,6 @@ Then add `fair-tools` to your `package.json` scripts:
 }
 ```
 
-Run with:
-
-```bash
-npm run fair-tools -- metadata build --plugin-file ./my-plugin.php ...
-```
-
 ## CLI reference
 
 Run `npm run fair-tools` to see all available commands:
