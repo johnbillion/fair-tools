@@ -8,6 +8,7 @@ import {
 	revokeVerificationKeyFromOp,
 	revokeRotationKeyFromOp,
 	updateServiceUrlInOp,
+	replaceServiceUrlInOp,
 	addAlsoKnownAsToOp,
 	FAIR_SERVICE_ID,
 	FAIR_SERVICE_TYPE,
@@ -355,6 +356,109 @@ describe('updateServiceUrlInOp', () => {
 				[FAIR_SERVICE_ID]: {
 					type: FAIR_SERVICE_TYPE,
 					endpoint: 'https://example.com/metadata.json',
+				},
+			},
+		});
+	});
+});
+
+describe('replaceServiceUrlInOp', () => {
+	it('replaces the FAIR service URL when old URL matches', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...'],
+			services: {
+				[FAIR_SERVICE_ID]: {
+					type: FAIR_SERVICE_TYPE,
+					endpoint: 'https://old.example.com/metadata.json',
+				},
+			},
+		};
+		const result = replaceServiceUrlInOp(lastOp, 'https://old.example.com/metadata.json', 'https://new.example.com/metadata.json');
+
+		assert.deepStrictEqual(result.services[FAIR_SERVICE_ID], {
+			type: FAIR_SERVICE_TYPE,
+			endpoint: 'https://new.example.com/metadata.json',
+		});
+	});
+
+	it('throws if FAIR service does not exist', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...'],
+			services: {},
+		};
+
+		assert.throws(
+			() => replaceServiceUrlInOp(lastOp, 'https://old.example.com/metadata.json', 'https://new.example.com/metadata.json'),
+			/FAIR service not found in DID/
+		);
+	});
+
+	it('throws if old URL does not match current URL', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...'],
+			services: {
+				[FAIR_SERVICE_ID]: {
+					type: FAIR_SERVICE_TYPE,
+					endpoint: 'https://current.example.com/metadata.json',
+				},
+			},
+		};
+
+		assert.throws(
+			() => replaceServiceUrlInOp(lastOp, 'https://wrong.example.com/metadata.json', 'https://new.example.com/metadata.json'),
+			/Current service URL does not match: expected "https:\/\/wrong\.example\.com\/metadata\.json", found "https:\/\/current\.example\.com\/metadata\.json"/
+		);
+	});
+
+	it('preserves other services', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...'],
+			services: {
+				[FAIR_SERVICE_ID]: {
+					type: FAIR_SERVICE_TYPE,
+					endpoint: 'https://old.example.com/metadata.json',
+				},
+				other: { type: 'OtherService', endpoint: 'https://other.example.com' },
+			},
+		};
+		const result = replaceServiceUrlInOp(lastOp, 'https://old.example.com/metadata.json', 'https://new.example.com/metadata.json');
+
+		assert.deepStrictEqual(result.services.other, {
+			type: 'OtherService',
+			endpoint: 'https://other.example.com',
+		});
+		assert.deepStrictEqual(result.services[FAIR_SERVICE_ID], {
+			type: FAIR_SERVICE_TYPE,
+			endpoint: 'https://new.example.com/metadata.json',
+		});
+	});
+
+	it('preserves other operation properties', () => {
+		const lastOp = {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...'],
+			alsoKnownAs: ['at://example.com'],
+			services: {
+				[FAIR_SERVICE_ID]: {
+					type: FAIR_SERVICE_TYPE,
+					endpoint: 'https://old.example.com/metadata.json',
+				},
+			},
+		};
+		const result = replaceServiceUrlInOp(lastOp, 'https://old.example.com/metadata.json', 'https://new.example.com/metadata.json');
+
+		assert.deepStrictEqual(result, {
+			verificationMethods: { fair: 'did:key:z6Mk...' },
+			rotationKeys: ['did:key:zQ3sh...'],
+			alsoKnownAs: ['at://example.com'],
+			services: {
+				[FAIR_SERVICE_ID]: {
+					type: FAIR_SERVICE_TYPE,
+					endpoint: 'https://new.example.com/metadata.json',
 				},
 			},
 		});

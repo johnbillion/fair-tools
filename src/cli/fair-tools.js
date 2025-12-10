@@ -5,6 +5,7 @@ const commands = {
 		create: { description: 'Create a new FAIR DID', load: () => import('./did-create.js') },
 		service: {
 			add: { description: 'Add a service URL to a DID', load: () => import('./did-service-add.js') },
+			update: { description: 'Update a service URL in a DID', load: () => import('./did-service-update.js') },
 		},
 		'verification-key': {
 			add: { description: 'Add a verification key', load: () => import('./did-verification-key-add.js') },

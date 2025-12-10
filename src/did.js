@@ -362,3 +362,55 @@ export async function addAlsoKnownAs({ did, url, signer, plcUrl = PLC_DIRECTORY_
 	const client = createPlcClient(plcUrl);
 	await client.updateData(did, signer, (lastOp) => addAlsoKnownAsToOp(lastOp, url));
 }
+
+/**
+ * Creates an updated operation with the FAIR service URL replaced.
+ *
+ * This specifically verifies the old URL matches before updating,
+ * to prevent accidental overwrites.
+ *
+ * @param {object} lastOp - The previous operation
+ * @param {string} oldUrl - The current service endpoint URL to replace
+ * @param {string} newUrl - The new service endpoint URL
+ * @returns {object} The updated operation
+ * @throws {Error} If the FAIR service doesn't exist or oldUrl doesn't match
+ */
+export function replaceServiceUrlInOp(lastOp, oldUrl, newUrl) {
+	const existingService = lastOp.services?.[FAIR_SERVICE_ID];
+	if (!existingService) {
+		throw new Error(`FAIR service not found in DID`);
+	}
+	if (existingService.endpoint !== oldUrl) {
+		throw new Error(`Current service URL does not match: expected "${oldUrl}", found "${existingService.endpoint}"`);
+	}
+	return {
+		...lastOp,
+		services: {
+			...lastOp.services,
+			[FAIR_SERVICE_ID]: {
+				type: FAIR_SERVICE_TYPE,
+				endpoint: newUrl,
+			},
+		},
+	};
+}
+
+/**
+ * Replaces the FAIR service URL for an existing DID.
+ *
+ * This verifies the old URL matches before updating, to prevent
+ * accidental overwrites. Use updateDID() if you want to set the
+ * URL without verifying the current value.
+ *
+ * @param {object} opts - Options
+ * @param {string} opts.did - The DID to update
+ * @param {string} opts.oldUrl - The current service endpoint URL to replace
+ * @param {string} opts.newUrl - The new service endpoint URL
+ * @param {Secp256k1Keypair} opts.signer - The keypair to sign with (must be a rotation key)
+ * @param {string} [opts.plcUrl] - The PLC directory URL (defaults to https://plc.directory)
+ * @returns {Promise<void>}
+ */
+export async function replaceServiceUrl({ did, oldUrl, newUrl, signer, plcUrl = PLC_DIRECTORY_URL }) {
+	const client = createPlcClient(plcUrl);
+	await client.updateData(did, signer, (lastOp) => replaceServiceUrlInOp(lastOp, oldUrl, newUrl));
+}

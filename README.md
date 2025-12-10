@@ -101,6 +101,17 @@ npm run fair-tools -- did service add \
   --url https://example.com/did:plc:xxx/metadata.json
 ```
 
+### Update DID service URL
+
+Updates the FAIR service URL for a DID. Requires specifying the old URL to prevent accidental overwrites.
+
+```bash
+npm run fair-tools -- did service update \
+  --did did:plc:xxx \
+  --old-url https://old.example.com/metadata.json \
+  --new-url https://new.example.com/metadata.json
+```
+
 ## DID management
 
 Over time you may need to manage the keys for your DID.
@@ -175,6 +186,7 @@ Usage: fair-tools <command> [options]
 Commands:
   did create                   Create a new FAIR DID
   did service add              Add a service URL to a DID
+  did service update           Update a service URL in a DID
   did verification-key add     Add a verification key
   did verification-key revoke  Revoke a verification key
   did rotation-key add         Add a rotation key
