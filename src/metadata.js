@@ -212,18 +212,19 @@ export function parsePackageJson(content) {
 /**
  * Creates a metadata document for a package.
  *
- * @param {object} options
- * @param {string} options.id - Package DID (did:plc:... or did:web:...)
- * @param {string} options.type - Package type (e.g., 'wp-plugin' or 'wp-theme')
- * @param {string} options.name - Human-readable name
- * @param {string} options.slug - URL-safe slug
- * @param {string} options.description - Package description
- * @param {Array} options.authors - Array of {name, url?, email?} objects
- * @param {string} options.license - License identifier (e.g., 'GPL-2.0-or-later')
- * @param {Array} [options.security] - Security contact info
- * @param {Array} [options.keywords] - Search keywords (max 5)
- * @param {object} [options.sections] - Additional info sections
- * @param {Array} [options.releases] - Array of release documents
+ * @param {{
+ *   id: string, // did:plc:... or did:web:...
+ *   type: string, // e.g., 'wp-plugin' or 'wp-theme'
+ *   name: string,
+ *   slug: string,
+ *   description: string,
+ *   authors: Array<{name: string, url?: string, email?: string}>,
+ *   license: string, // e.g., 'GPL-2.0-or-later'
+ *   security?: Array,
+ *   keywords?: Array<string>, // max 5
+ *   sections?: object,
+ *   releases?: Array
+ * }} options
  * @returns {object} Metadata document
  */
 export function createMetadataDocument(options) {
@@ -262,12 +263,13 @@ export function createMetadataDocument(options) {
 /**
  * Creates a release document for a specific version.
  *
- * @param {object} options
- * @param {string} options.version - Semantic version string
- * @param {object} options.artifacts - Artifact objects keyed by type
- * @param {object} [options.requires] - Requirements (e.g., {'env:wp': '>=6.0'})
- * @param {object} [options.suggests] - Suggested packages
- * @param {object} [options.provides] - Provided capabilities
+ * @param {{
+ *   version: string,
+ *   artifacts: object, // keyed by type
+ *   requires?: object, // e.g., {'env:wp': '>=6.0'}
+ *   suggests?: object,
+ *   provides?: object
+ * }} options
  * @returns {object} Release document
  */
 export function createReleaseDocument(options) {
@@ -295,11 +297,12 @@ export function createReleaseDocument(options) {
 /**
  * Creates an artifact entry for a release.
  *
- * @param {object} options
- * @param {string} options.url - Download URL
- * @param {string} options.checksum - Checksum in format 'algorithm:hash'
- * @param {string} [options.signature] - Base64url-encoded signature
- * @param {string} [options.contentType] - MIME type of the artifact
+ * @param {{
+ *   url: string,
+ *   checksum: string, // format 'algorithm:hash'
+ *   signature?: string, // base64url-encoded
+ *   contentType?: string // MIME type
+ * }} options
  * @returns {object} Artifact object
  */
 export function createArtifact(options) {
@@ -321,11 +324,12 @@ export function createArtifact(options) {
  * Signs the artifact data using Ed25519 over the SHA-384 hash, matching the
  * format expected by the verify_file_signature() function in WordPress.
  *
- * @param {object} options
- * @param {string} options.url - Download URL
- * @param {Buffer|Uint8Array} options.data - File contents to checksum and sign
- * @param {object} options.keypair - Verification keypair for signing
- * @param {string} [options.contentType] - MIME type of the artifact
+ * @param {{
+ *   url: string,
+ *   data: Buffer|Uint8Array,
+ *   keypair: object, // verification keypair for signing
+ *   contentType?: string // MIME type
+ * }} options
  * @returns {Promise<object>} Artifact with url, checksum, signature, and content-type
  */
 export async function createSignedArtifact(options) {
@@ -357,22 +361,23 @@ function formatSecurityContact(value) {
  * This is the core metadata building function that accepts pre-resolved final values.
  * Use buildMetadata() for a file-based wrapper that handles parsing and priority resolution.
  *
- * @param {object} options
- * @param {object} options.keypair - Verification keypair for signing artifacts
- * @param {string} options.did - Package DID
- * @param {string} options.name - Plugin name (defaults to slug)
- * @param {string} options.slug - Plugin slug
- * @param {string} options.description - Plugin description
- * @param {object} options.author - Author object {name, url?}
- * @param {string} options.license - License identifier
- * @param {string} [options.securityContact] - Security contact (email or URL)
- * @param {Array<string>} [options.keywords] - Search keywords
- * @param {Array} [options.existingReleases] - Existing releases to preserve
- * @param {string} options.version - Version string (required)
- * @param {string} [options.requiresWp] - Minimum WordPress version
- * @param {string} [options.requiresPhp] - Minimum PHP version
- * @param {Buffer|Uint8Array} options.zipData - Plugin zip file contents
- * @param {string} options.downloadUrl - Public download URL for the zip
+ * @param {{
+ *   keypair: object,
+ *   did: string, // did:plc:...
+ *   name: string,
+ *   slug: string,
+ *   description: string,
+ *   author: {name: string, url?: string},
+ *   license: string,
+ *   securityContact?: string, // email or URL
+ *   keywords?: Array<string>,
+ *   existingReleases?: Array,
+ *   version: string,
+ *   requiresWp?: string,
+ *   requiresPhp?: string,
+ *   zipData: Buffer|Uint8Array,
+ *   downloadUrl: string
+ * }} options
  * @returns {Promise<object>} Complete metadata document with release
  */
 export async function buildMetadataFromContent(options) {
@@ -460,13 +465,14 @@ export async function buildMetadataFromContent(options) {
  * File-based wrapper that handles all file reading, parsing, and priority resolution,
  * then delegates to buildMetadataFromContent() with final values.
  *
- * @param {object} options
- * @param {string} options.did - Package DID
- * @param {object} options.keypair - Verification keypair for signing artifacts
- * @param {string} options.pluginFile - Path to main plugin PHP file
- * @param {string} options.zipFile - Path to zip file
- * @param {string} options.downloadUrl - Public download URL for the zip
- * @param {Array} [options.existingReleases] - Existing releases to preserve
+ * @param {{
+ *   did: string, // did:plc:...
+ *   keypair: object, // verification keypair for signing artifacts
+ *   pluginFile: string, // path to main plugin PHP file
+ *   zipFile: string,
+ *   downloadUrl: string,
+ *   existingReleases?: Array
+ * }} options
  * @returns {Promise<object>} Complete metadata document with release
  */
 export async function buildMetadata(options) {

@@ -133,12 +133,13 @@ function parseVerificationKeyValue(value) {
  *
  * The key file can be either:
  * - A multibase base58btc encoded private key (starts with 'z')
- * - A JSON file with a `rotationKeys` object mapping public keys to private keys (hex values)
+ * - A JSON file with a `rotationKeys` object mapping public keys to private keys
  *
- * @param {object} opts
- * @param {string} [opts.signingFile] - Path to key file (multibase or JSON)
- * @param {string} [opts.signingKey] - Specific key to use from JSON file (ignored for multibase)
- * @param {string} [opts.envVar='FAIR_ROTATION_KEY'] - Environment variable name
+ * @param {{
+ *   signingFile?: string,
+ *   signingKey?: string, // ignored for multibase files
+ *   envVar?: string // defaults to 'FAIR_ROTATION_KEY'
+ * }} opts
  * @returns {Promise<{privateKeyHex: string, keyData: object|null}>}
  * @throws {SigningKeyError} If key cannot be loaded
  */
@@ -206,12 +207,13 @@ export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_
  *
  * The key file can be either:
  * - A multibase base58btc encoded private key (starts with 'z')
- * - A JSON file with a `verificationKeys` object mapping public keys to private keys (hex values)
+ * - A JSON file with a `verificationKeys` object mapping public keys to private keys
  *
- * @param {object} opts
- * @param {string} [opts.signingFile] - Path to key file (multibase or JSON)
- * @param {string} [opts.signingKey] - Specific key to use from JSON file (ignored for multibase)
- * @param {string} [opts.envVar='FAIR_PRIVATE_KEY'] - Environment variable name
+ * @param {{
+ *   signingFile?: string,
+ *   signingKey?: string, // ignored for multibase files
+ *   envVar?: string // defaults to 'FAIR_PRIVATE_KEY'
+ * }} opts
  * @returns {Promise<{privateKeyHex: string, keyData: object|null}>}
  * @throws {SigningKeyError} If key cannot be loaded
  */
@@ -280,13 +282,14 @@ export async function loadVerificationKey({ signingFile, signingKey, envVar = 'F
  *
  * The key file can be either:
  * - A multibase base58btc encoded private key (starts with 'z')
- * - A JSON file with a `rotationKeys` object mapping public keys to private keys (hex values)
+ * - A JSON file with a `rotationKeys` object mapping public keys to private keys
  *
- * @param {object} opts
- * @param {string} [opts.signingFile] - Path to key file (multibase or JSON)
- * @param {string} [opts.signingKey] - Specific key to use from JSON file (ignored for multibase)
- * @param {string} opts.revokeKey - The key being revoked (to avoid using it for signing)
- * @param {string} [opts.envVar='FAIR_ROTATION_KEY'] - Environment variable name
+ * @param {{
+ *   signingFile?: string,
+ *   signingKey?: string, // ignored for multibase files
+ *   revokeKey: string, // the key being revoked (to avoid using it for signing)
+ *   envVar?: string // defaults to 'FAIR_ROTATION_KEY'
+ * }} opts
  * @returns {Promise<{privateKeyHex: string, keyData: object|null}>}
  * @throws {SigningKeyError} If key cannot be loaded
  */

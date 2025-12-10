@@ -35,9 +35,10 @@ export const FAIR_SERVICE_ID = 'fairpm_repo';
  * The operation does NOT include the FAIR service - this should be
  * added in a subsequent update operation after the DID is created.
  *
- * @param {object} opts - Options for the operation
- * @param {string} opts.verificationKey - The verification key (did:key format)
- * @param {string[]} opts.rotationKeys - Array of rotation keys (did:key format)
+ * @param {{
+ *   verificationKey: string, // did:key:z6Mk...
+ *   rotationKeys: string[] // did:key:zQ3sh...
+ * }} opts
  * @returns {object} The unsigned genesis operation
  */
 function createGenesisOperation({ verificationKey, rotationKeys }) {
@@ -60,11 +61,12 @@ function createGenesisOperation({ verificationKey, rotationKeys }) {
  * The operation does NOT include the FAIR service - this should be
  * added in a subsequent updateDID() operation after the DID is created.
  *
- * @param {object} opts - Options for the operation
- * @param {string} opts.verificationKey - The verification public key
- * @param {string} opts.rotationKey - The rotation public key
- * @param {Secp256k1Keypair} opts.keypair - The rotation keypair to sign with
- * @returns {Promise<{ op: object, did: string }>} The signed operation and the generated DID
+ * @param {{
+ *   verificationKey: string, // did:key:z6Mk...
+ *   rotationKey: string, // did:key:zQ3sh...
+ *   keypair: Secp256k1Keypair
+ * }} opts
+ * @returns {Promise<{op: object, did: string}>}
  */
 export async function generateDID({ verificationKey, rotationKey, keypair }) {
 	const unsigned = createGenesisOperation({ verificationKey, rotationKeys: [rotationKey] });
@@ -86,10 +88,11 @@ function createPlcClient(url = PLC_DIRECTORY_URL) {
 /**
  * Submits a genesis operation to the PLC directory.
  *
- * @param {object} opts - Options
- * @param {object} opts.op - The signed genesis operation
- * @param {string} opts.did - The DID for this operation
- * @param {string} [opts.plcUrl] - The PLC directory URL (defaults to https://plc.directory)
+ * @param {{
+ *   op: object,
+ *   did: string, // did:plc:...
+ *   plcUrl?: string // defaults to https://plc.directory
+ * }} opts
  * @returns {Promise<void>}
  */
 async function submitDID({ op, did, plcUrl = PLC_DIRECTORY_URL }) {
@@ -103,11 +106,12 @@ async function submitDID({ op, did, plcUrl = PLC_DIRECTORY_URL }) {
  * This creates the DID without a FAIR service initially. Use updateDID()
  * to add the service URL after the DID is created.
  *
- * @param {object} opts - Options
- * @param {string} opts.verificationKey - The verification public key (did:key format)
- * @param {string} opts.rotationKey - The rotation public key (did:key format)
- * @param {Secp256k1Keypair} opts.keypair - The rotation keypair to sign with
- * @param {string} [opts.plcUrl] - The PLC directory URL (defaults to https://plc.directory)
+ * @param {{
+ *   verificationKey: string, // did:key:z6Mk...
+ *   rotationKey: string, // did:key:zQ3sh...
+ *   keypair: Secp256k1Keypair,
+ *   plcUrl?: string // defaults to https://plc.directory
+ * }} opts
  * @returns {Promise<string>} The created DID
  */
 export async function createDID({ verificationKey, rotationKey, keypair, plcUrl = PLC_DIRECTORY_URL }) {
@@ -146,11 +150,12 @@ export function updateServiceUrlInOp(lastOp, serviceUrl) {
  * This adds or updates the FAIR package management service endpoint
  * in the DID document.
  *
- * @param {object} opts - Options
- * @param {string} opts.did - The DID to update
- * @param {string} opts.serviceUrl - The FAIR service endpoint URL
- * @param {Secp256k1Keypair} opts.signer - The keypair to sign with (must be a rotation key)
- * @param {string} [opts.plcUrl] - The PLC directory URL (defaults to https://plc.directory)
+ * @param {{
+ *   did: string, // did:plc:...
+ *   serviceUrl: string,
+ *   signer: Secp256k1Keypair, // must be a rotation key
+ *   plcUrl?: string // defaults to https://plc.directory
+ * }} opts
  * @returns {Promise<void>}
  */
 export async function updateDID({ did, serviceUrl, signer, plcUrl = PLC_DIRECTORY_URL }) {
@@ -198,11 +203,12 @@ export function addVerificationKeyToOp(lastOp, verificationKey) {
  *
  * The new key is added with a unique ID (fair, fair2, fair3, etc.).
  *
- * @param {object} opts - Options
- * @param {string} opts.did - The DID to update
- * @param {string} opts.verificationKey - The new verification key (did:key format)
- * @param {Secp256k1Keypair} opts.signer - The keypair to sign with (must be a rotation key)
- * @param {string} [opts.plcUrl] - The PLC directory URL (defaults to https://plc.directory)
+ * @param {{
+ *   did: string, // did:plc:...
+ *   verificationKey: string, // did:key:z6Mk...
+ *   signer: Secp256k1Keypair, // must be a rotation key
+ *   plcUrl?: string // defaults to https://plc.directory
+ * }} opts
  * @returns {Promise<void>}
  */
 export async function addVerificationKey({ did, verificationKey, signer, plcUrl = PLC_DIRECTORY_URL }) {
@@ -233,11 +239,12 @@ export function addRotationKeyToOp(lastOp, rotationKey) {
  *
  * The new key is appended to the existing rotation keys.
  *
- * @param {object} opts - Options
- * @param {string} opts.did - The DID to update
- * @param {string} opts.rotationKey - The new rotation key (did:key format)
- * @param {Secp256k1Keypair} opts.signer - The keypair to sign with (must be an existing rotation key)
- * @param {string} [opts.plcUrl] - The PLC directory URL (defaults to https://plc.directory)
+ * @param {{
+ *   did: string, // did:plc:...
+ *   rotationKey: string, // did:key:zQ3sh...
+ *   signer: Secp256k1Keypair, // must be an existing rotation key
+ *   plcUrl?: string // defaults to https://plc.directory
+ * }} opts
  * @returns {Promise<void>}
  */
 export async function addRotationKey({ did, rotationKey, signer, plcUrl = PLC_DIRECTORY_URL }) {
@@ -271,11 +278,12 @@ export function revokeVerificationKeyFromOp(lastOp, publicKey) {
  *
  * Removes the specified verification method from the DID document.
  *
- * @param {object} opts - Options
- * @param {string} opts.did - The DID to update
- * @param {string} opts.publicKey - The verification key to revoke (did:key format)
- * @param {Secp256k1Keypair} opts.signer - The keypair to sign with (must be a rotation key)
- * @param {string} [opts.plcUrl] - The PLC directory URL (defaults to https://plc.directory)
+ * @param {{
+ *   did: string, // did:plc:...
+ *   publicKey: string, // did:key:z6Mk... to revoke
+ *   signer: Secp256k1Keypair, // must be a rotation key
+ *   plcUrl?: string // defaults to https://plc.directory
+ * }} opts
  * @returns {Promise<void>}
  */
 export async function revokeVerificationKey({ did, publicKey, signer, plcUrl = PLC_DIRECTORY_URL }) {
@@ -311,11 +319,12 @@ export function revokeRotationKeyFromOp(lastOp, rotationKey) {
  * Removes the specified rotation key from the DID document.
  * Cannot remove the last rotation key - at least one must remain.
  *
- * @param {object} opts - Options
- * @param {string} opts.did - The DID to update
- * @param {string} opts.rotationKey - The rotation key to revoke (did:key format)
- * @param {Secp256k1Keypair} opts.signer - The keypair to sign with (must be an existing rotation key)
- * @param {string} [opts.plcUrl] - The PLC directory URL (defaults to https://plc.directory)
+ * @param {{
+ *   did: string, // did:plc:...
+ *   rotationKey: string, // did:key:zQ3sh... to revoke
+ *   signer: Secp256k1Keypair, // must be an existing rotation key
+ *   plcUrl?: string // defaults to https://plc.directory
+ * }} opts
  * @returns {Promise<void>}
  */
 export async function revokeRotationKey({ did, rotationKey, signer, plcUrl = PLC_DIRECTORY_URL }) {
@@ -351,11 +360,12 @@ export function addAlsoKnownAsToOp(lastOp, url) {
  *
  * The URL is appended to the existing alsoKnownAs array.
  *
- * @param {object} opts - Options
- * @param {string} opts.did - The DID to update
- * @param {string} opts.url - The URL to add to alsoKnownAs
- * @param {Secp256k1Keypair} opts.signer - The keypair to sign with (must be a rotation key)
- * @param {string} [opts.plcUrl] - The PLC directory URL (defaults to https://plc.directory)
+ * @param {{
+ *   did: string, // did:plc:...
+ *   url: string,
+ *   signer: Secp256k1Keypair, // must be a rotation key
+ *   plcUrl?: string // defaults to https://plc.directory
+ * }} opts
  * @returns {Promise<void>}
  */
 export async function addAlsoKnownAs({ did, url, signer, plcUrl = PLC_DIRECTORY_URL }) {
@@ -398,12 +408,13 @@ export function replaceAlsoKnownAsInOp(lastOp, oldUrl, newUrl) {
  * This verifies the old URL exists before updating, to prevent
  * accidental overwrites.
  *
- * @param {object} opts - Options
- * @param {string} opts.did - The DID to update
- * @param {string} opts.oldUrl - The current alsoKnownAs URL to replace
- * @param {string} opts.newUrl - The new URL
- * @param {Secp256k1Keypair} opts.signer - The keypair to sign with (must be a rotation key)
- * @param {string} [opts.plcUrl] - The PLC directory URL (defaults to https://plc.directory)
+ * @param {{
+ *   did: string, // did:plc:...
+ *   oldUrl: string,
+ *   newUrl: string,
+ *   signer: Secp256k1Keypair, // must be a rotation key
+ *   plcUrl?: string // defaults to https://plc.directory
+ * }} opts
  * @returns {Promise<void>}
  */
 export async function replaceAlsoKnownAs({ did, oldUrl, newUrl, signer, plcUrl = PLC_DIRECTORY_URL }) {
@@ -450,12 +461,13 @@ export function replaceServiceUrlInOp(lastOp, oldUrl, newUrl) {
  * accidental overwrites. Use updateDID() if you want to set the
  * URL without verifying the current value.
  *
- * @param {object} opts - Options
- * @param {string} opts.did - The DID to update
- * @param {string} opts.oldUrl - The current service endpoint URL to replace
- * @param {string} opts.newUrl - The new service endpoint URL
- * @param {Secp256k1Keypair} opts.signer - The keypair to sign with (must be a rotation key)
- * @param {string} [opts.plcUrl] - The PLC directory URL (defaults to https://plc.directory)
+ * @param {{
+ *   did: string, // did:plc:...
+ *   oldUrl: string,
+ *   newUrl: string,
+ *   signer: Secp256k1Keypair, // must be a rotation key
+ *   plcUrl?: string // defaults to https://plc.directory
+ * }} opts
  * @returns {Promise<void>}
  */
 export async function replaceServiceUrl({ did, oldUrl, newUrl, signer, plcUrl = PLC_DIRECTORY_URL }) {
@@ -495,11 +507,12 @@ export function removeServiceUrlFromOp(lastOp, url) {
  * This verifies the URL matches before removing, to prevent
  * accidental removals.
  *
- * @param {object} opts - Options
- * @param {string} opts.did - The DID to update
- * @param {string} opts.url - The service endpoint URL to verify before removal
- * @param {Secp256k1Keypair} opts.signer - The keypair to sign with (must be a rotation key)
- * @param {string} [opts.plcUrl] - The PLC directory URL (defaults to https://plc.directory)
+ * @param {{
+ *   did: string, // did:plc:...
+ *   url: string, // service endpoint URL to verify before removal
+ *   signer: Secp256k1Keypair, // must be a rotation key
+ *   plcUrl?: string // defaults to https://plc.directory
+ * }} opts
  * @returns {Promise<void>}
  */
 export async function removeServiceUrl({ did, url, signer, plcUrl = PLC_DIRECTORY_URL }) {
@@ -534,11 +547,12 @@ export function removeAlsoKnownAsFromOp(lastOp, url) {
  *
  * This verifies the URL exists before removing, to prevent errors.
  *
- * @param {object} opts - Options
- * @param {string} opts.did - The DID to update
- * @param {string} opts.url - The URL to remove from alsoKnownAs
- * @param {Secp256k1Keypair} opts.signer - The keypair to sign with (must be a rotation key)
- * @param {string} [opts.plcUrl] - The PLC directory URL (defaults to https://plc.directory)
+ * @param {{
+ *   did: string, // did:plc:...
+ *   url: string,
+ *   signer: Secp256k1Keypair, // must be a rotation key
+ *   plcUrl?: string // defaults to https://plc.directory
+ * }} opts
  * @returns {Promise<void>}
  */
 export async function removeAlsoKnownAs({ did, url, signer, plcUrl = PLC_DIRECTORY_URL }) {

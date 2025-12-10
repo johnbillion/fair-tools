@@ -82,14 +82,17 @@ export function getKeyFilePath(directory, did) {
  * Keys are stored as objects keyed by public key, with values encoded as
  * multibase base58btc strings with appropriate multicodec prefixes.
  *
- * @param {object} options
- * @param {string} options.did - The DID
- * @param {object} options.rotationKey - The rotation key pair
- * @param {string} options.rotationKey.publicKey - The public key
- * @param {Uint8Array} options.rotationKey.privateKey - The private key
- * @param {object} options.verificationKey - The verification key pair
- * @param {string} options.verificationKey.publicKey - The public key
- * @param {Uint8Array} options.verificationKey.privateKey - The private key
+ * @param {{
+ *   did: string, // did:plc:...
+ *   rotationKey: {
+ *     publicKey: string, // did:key:zQ3sh...
+ *     privateKey: Uint8Array
+ *   },
+ *   verificationKey: {
+ *     publicKey: string, // did:key:z6Mk...
+ *     privateKey: Uint8Array
+ *   }
+ * }} options
  * @returns {string} The JSON content to write
  */
 export function formatKeyFileContent({ did, rotationKey, verificationKey }) {
@@ -121,9 +124,13 @@ export async function writeKeyFile(path, content) {
  * If the file exists and is valid JSON, appends the key to the rotationKeys object.
  * If the file doesn't exist, writes the multibase-encoded key.
  *
- * @param {object} opts
- * @param {string} opts.outputFile - Path to output file
- * @param {{publicKey: string, privateKey: Uint8Array}} opts.key - The key pair to save
+ * @param {{
+ *   outputFile: string,
+ *   key: {
+ *     publicKey: string, // did:key:zQ3sh...
+ *     privateKey: Uint8Array
+ *   }
+ * }} opts
  * @returns {Promise<{appended: boolean}>} Whether the key was appended to existing file
  * @throws {SaveKeyError} If reading or writing fails, or if key already exists
  */
@@ -176,9 +183,13 @@ export async function saveRotationKeyToFile({ outputFile, key }) {
  * If the file exists and is valid JSON, appends the key to the verificationKeys object.
  * If the file doesn't exist, writes the multibase-encoded key.
  *
- * @param {object} opts
- * @param {string} opts.outputFile - Path to output file
- * @param {{publicKey: string, privateKey: Uint8Array}} opts.key - The key pair to save
+ * @param {{
+ *   outputFile: string,
+ *   key: {
+ *     publicKey: string, // did:key:z6Mk...
+ *     privateKey: Uint8Array
+ *   }
+ * }} opts
  * @returns {Promise<{appended: boolean}>} Whether the key was appended to existing file
  * @throws {SaveKeyError} If reading or writing fails, or if key already exists
  */
