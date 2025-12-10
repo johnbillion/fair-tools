@@ -301,12 +301,16 @@ export function createReleaseDocument(options) {
  * @param {string} options.url - Download URL
  * @param {string} options.checksum - Checksum in format 'algorithm:hash'
  * @param {string} [options.signature] - Base64url-encoded signature
+ * @param {string} [options.contentType] - MIME type of the artifact
  * @returns {object} Artifact object
  */
 export function createArtifact(options) {
-	const { url, checksum, signature } = options;
+	const { url, checksum, signature, contentType } = options;
 
 	const artifact = { url, checksum };
+	if (contentType) {
+		artifact['content-type'] = contentType;
+	}
 	if (signature) {
 		artifact.signature = signature;
 	}
@@ -323,15 +327,16 @@ export function createArtifact(options) {
  * @param {string} options.url - Download URL
  * @param {Buffer|Uint8Array} options.data - File contents to checksum and sign
  * @param {object} options.keypair - Verification keypair for signing
- * @returns {Promise<object>} Artifact with url, checksum, and signature
+ * @param {string} [options.contentType] - MIME type of the artifact
+ * @returns {Promise<object>} Artifact with url, checksum, signature, and content-type
  */
 export async function createSignedArtifact(options) {
-	const { url, data, keypair } = options;
+	const { url, data, keypair, contentType } = options;
 
 	const checksum = await calculateChecksum(data);
 	const signature = await signArtifact(data, keypair);
 
-	return createArtifact({ url, checksum, signature });
+	return createArtifact({ url, checksum, signature, contentType });
 }
 
 /**
@@ -404,6 +409,7 @@ export async function buildMetadataFromContent(options) {
 		url: downloadUrl,
 		data: zipData,
 		keypair,
+		contentType: 'application/zip',
 	});
 
 	// Build requirements

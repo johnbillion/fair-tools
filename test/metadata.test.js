@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { buildMetadataFromContent, parseComposerJson, parsePackageJson, parsePluginHeaders, parseReadmeFile } from '../src/metadata.js';
+import { buildMetadataFromContent, createArtifact, createSignedArtifact, parseComposerJson, parsePackageJson, parsePluginHeaders, parseReadmeFile } from '../src/metadata.js';
 import { generateVerificationKeyPair } from '../src/keys.js';
 
 describe('buildMetadataFromContent', () => {
@@ -451,5 +451,115 @@ describe('parsePackageJson', () => {
 
 		const data = parsePackageJson(content);
 		assert.deepStrictEqual(data, {});
+	});
+});
+
+describe('createArtifact', () => {
+	it('creates artifact with url and checksum', () => {
+		const artifact = createArtifact({
+			url: 'https://example.com/file.zip',
+			checksum: 'sha256:abc123',
+		});
+
+		assert.deepStrictEqual(artifact, {
+			url: 'https://example.com/file.zip',
+			checksum: 'sha256:abc123',
+		});
+	});
+
+	it('includes signature when provided', () => {
+		const artifact = createArtifact({
+			url: 'https://example.com/file.zip',
+			checksum: 'sha256:abc123',
+			signature: 'sig123',
+		});
+
+		assert.deepStrictEqual(artifact, {
+			url: 'https://example.com/file.zip',
+			checksum: 'sha256:abc123',
+			signature: 'sig123',
+		});
+	});
+
+	it('includes content-type when provided', () => {
+		const artifact = createArtifact({
+			url: 'https://example.com/file.zip',
+			checksum: 'sha256:abc123',
+			contentType: 'application/zip',
+		});
+
+		assert.deepStrictEqual(artifact, {
+			url: 'https://example.com/file.zip',
+			checksum: 'sha256:abc123',
+			'content-type': 'application/zip',
+		});
+	});
+
+	it('includes all optional fields when provided', () => {
+		const artifact = createArtifact({
+			url: 'https://example.com/file.zip',
+			checksum: 'sha256:abc123',
+			contentType: 'application/zip',
+			signature: 'sig123',
+		});
+
+		assert.deepStrictEqual(artifact, {
+			url: 'https://example.com/file.zip',
+			checksum: 'sha256:abc123',
+			'content-type': 'application/zip',
+			signature: 'sig123',
+		});
+	});
+});
+
+describe('createSignedArtifact', () => {
+	it('creates artifact with url, checksum, and signature', async () => {
+		const { keypair } = await generateVerificationKeyPair();
+
+		const artifact = await createSignedArtifact({
+			url: 'https://example.com/file.zip',
+			data: Buffer.from('test data'),
+			keypair,
+		});
+
+		assert.deepStrictEqual(Object.keys(artifact).sort(), ['checksum', 'signature', 'url']);
+		assert.strictEqual(artifact.url, 'https://example.com/file.zip');
+		assert.ok(artifact.checksum.startsWith('sha256:'));
+		assert.ok(artifact.signature);
+	});
+
+	it('includes content-type when provided', async () => {
+		const { keypair } = await generateVerificationKeyPair();
+
+		const artifact = await createSignedArtifact({
+			url: 'https://example.com/file.zip',
+			data: Buffer.from('test data'),
+			keypair,
+			contentType: 'application/zip',
+		});
+
+		assert.deepStrictEqual(Object.keys(artifact).sort(), ['checksum', 'content-type', 'signature', 'url']);
+		assert.strictEqual(artifact.url, 'https://example.com/file.zip');
+		assert.ok(artifact.checksum.startsWith('sha256:'));
+		assert.ok(artifact.signature);
+		assert.strictEqual(artifact['content-type'], 'application/zip');
+	});
+});
+
+describe('buildMetadataFromContent artifact content-type', () => {
+	it('includes application/zip content-type in artifact', async () => {
+		const { keypair } = await generateVerificationKeyPair();
+
+		const metadata = await buildMetadataFromContent({
+			did: 'did:plc:test123',
+			keypair,
+			slug: 'test-plugin',
+			version: '1.0.0',
+			zipData: Buffer.from('fake zip'),
+			downloadUrl: 'https://example.com/test.zip',
+		});
+
+		const artifact = metadata.releases[0].artifacts.package[0];
+		assert.strictEqual(artifact['content-type'], 'application/zip');
 	});
 });
