@@ -50,7 +50,7 @@ const { values } = parseArgs({
 if (values.help) {
 	console.log(`Usage: fair-tools metadata build [options]
 
-Build a FAIR metadata document for a WordPress plugin.
+Build a FAIR metadata document for a release of a plugin for WordPress.
 
 Required options:
   -p, --plugin-file <file>  Path to main plugin PHP file

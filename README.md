@@ -103,7 +103,7 @@ Most subsequent commands after creating a DID require a signing key. There are t
 
 ### Build metadata
 
-Builds signed FAIR metadata for a WordPress plugin release.
+Builds signed FAIR metadata for a release of a plugin for WordPress.
 
 ```bash
 npm run fair-tools -- metadata build \

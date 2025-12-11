@@ -2,7 +2,7 @@
  * FAIR Protocol metadata document generation.
  *
  * Generates JSON-LD metadata and accompanying release documents,
- * with support for WordPress plugins and themes.
+ * with support for plugins and themes for WordPress.
  */
 
 import { readFile } from 'node:fs/promises';
@@ -73,7 +73,7 @@ export async function verifyArtifact(data, signature, keypair) {
 }
 
 /**
- * Parses WordPress plugin headers from PHP file content.
+ * Parses plugin headers from PHP file content.
  *
  * @param {string} content - PHP file content
  * @returns {object} Parsed headers
@@ -356,7 +356,7 @@ function formatSecurityContact(value) {
 }
 
 /**
- * Builds complete FAIR metadata for a WordPress plugin release.
+ * Builds complete FAIR metadata for a release of a plugin for WordPress.
  *
  * This is the core metadata building function that accepts pre-resolved final values.
  * Use buildMetadata() for a file-based wrapper that handles parsing and priority resolution.
@@ -460,7 +460,7 @@ export async function buildMetadataFromContent(options) {
 }
 
 /**
- * Builds complete FAIR metadata for a WordPress plugin release.
+ * Builds complete FAIR metadata for a release of a plugin for WordPress.
  *
  * File-based wrapper that handles all file reading, parsing, and priority resolution,
  * then delegates to buildMetadataFromContent() with final values.
