@@ -5,43 +5,43 @@
  * with secure permissions.
  */
 
+import crypto from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { base58btc } from 'multiformats/bases/base58';
+import { secp256k1 } from '@noble/curves/secp256k1';
+import { ed25519 } from '@noble/curves/ed25519';
 
 /**
  * Error thrown when saving a key to a file fails.
  */
-export class SaveKeyError extends Error {
-	constructor(message) {
-		super(message);
-		this.name = 'SaveKeyError';
-	}
-}
+export class SaveKeyError extends Error {}
 
 /**
- * Multicodec prefix for secp256k1 private keys (rotation keys).
- * Used when reading multibase-encoded keys for interoperability with FAIR Beacon.
- */
-export const SECP256K1_PRIV_PREFIX = new Uint8Array([0x81, 0x26]);
-
-/**
- * Multicodec prefix for ed25519 private keys (verification keys).
- * Used when reading multibase-encoded keys for interoperability with FAIR Beacon.
- */
-export const ED25519_PRIV_PREFIX = new Uint8Array([0x80, 0x26]);
-
-/**
- * Encodes a rotation key (secp256k1) as a multibase base58btc string.
+ * Encodes a rotation key (secp256k1) as a PEM string in SEC1 format.
  *
  * @param {Uint8Array} privateKey - The 32-byte private key
  * @returns {string} The PEM-encoded private key (-----BEGIN EC PRIVATE KEY-----)
  */
 export function encodeRotationKey(privateKey) {
-	const combined = new Uint8Array(SECP256K1_PRIV_PREFIX.length + privateKey.length);
-	combined.set(SECP256K1_PRIV_PREFIX);
-	combined.set(privateKey, SECP256K1_PRIV_PREFIX.length);
-	return base58btc.encode(combined);
+	const uncompressedPublicKey = secp256k1.getPublicKey(privateKey, false);
+	const publicKeyX = uncompressedPublicKey.slice(1, 33);
+	const publicKeyY = uncompressedPublicKey.slice(33, 65);
+
+	const keyObject = crypto.createPrivateKey({
+		key: {
+			kty: 'EC',
+			crv: 'secp256k1',
+			d: Buffer.from(privateKey).toString('base64url'),
+			x: Buffer.from(publicKeyX).toString('base64url'),
+			y: Buffer.from(publicKeyY).toString('base64url'),
+		},
+		format: 'jwk',
+	});
+
+	return keyObject.export({
+		type: 'sec1',
+		format: 'pem',
+	}).trim();
 }
 
 /**
@@ -51,10 +51,21 @@ export function encodeRotationKey(privateKey) {
  * @returns {string} The PEM-encoded private key (-----BEGIN PRIVATE KEY-----)
  */
 export function encodeVerificationKey(privateKey) {
-	const combined = new Uint8Array(ED25519_PRIV_PREFIX.length + privateKey.length);
-	combined.set(ED25519_PRIV_PREFIX);
-	combined.set(privateKey, ED25519_PRIV_PREFIX.length);
-	return base58btc.encode(combined);
+	const publicKey = ed25519.getPublicKey(privateKey);
+	const keyObject = crypto.createPrivateKey({
+		key: {
+			kty: 'OKP',
+			crv: 'Ed25519',
+			d: Buffer.from(privateKey).toString('base64url'),
+			x: Buffer.from(publicKey).toString('base64url'),
+		},
+		format: 'jwk',
+	});
+
+	return keyObject.export({
+		type: 'pkcs8',
+		format: 'pem',
+	}).trim();
 }
 
 /**
@@ -140,7 +151,12 @@ export async function writeKeyFile(path, content) {
  */
 export async function saveRotationKeyToFile({ outputFile, key }) {
 	const publicKey = key.publicKey;
-	const encodedKey = encodeRotationKey(key.privateKey);
+	let encodedKey;
+	try {
+		encodedKey = encodeRotationKey(key.privateKey);
+	} catch (err) {
+		throw new SaveKeyError(`Invalid private key: ${err.message}`);
+	}
 	let outputData = null;
 
 	try {
@@ -199,7 +215,12 @@ export async function saveRotationKeyToFile({ outputFile, key }) {
  */
 export async function saveVerificationKeyToFile({ outputFile, key }) {
 	const publicKey = key.publicKey;
-	const encodedKey = encodeVerificationKey(key.privateKey);
+	let encodedKey;
+	try {
+		encodedKey = encodeVerificationKey(key.privateKey);
+	} catch (err) {
+		throw new SaveKeyError(`Invalid private key: ${err.message}`);
+	}
 	let outputData = null;
 
 	try {

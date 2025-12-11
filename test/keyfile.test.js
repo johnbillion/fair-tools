@@ -1,9 +1,9 @@
 import { describe, it, after, beforeEach } from 'node:test';
 import assert from 'node:assert';
+import crypto from 'node:crypto';
 import { stat, rm, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { base58btc } from 'multiformats/bases/base58';
 import {
 	getKeyFilePath,
 	formatKeyFileContent,
@@ -14,6 +14,10 @@ import {
 	encodeRotationKey,
 	encodeVerificationKey,
 } from '../src/keyfile.js';
+
+// Sample 32-byte private keys for testing
+const sampleRotationKey = new Uint8Array(32).fill(0xaa);
+const sampleVerificationKey = new Uint8Array(32).fill(0xbb);
 
 describe('getKeyFilePath', () => {
 	it('returns path with DID as filename', () => {
@@ -27,11 +31,11 @@ describe('formatKeyFileContent', () => {
 		const did = 'did:plc:test123';
 		const rotationKey = {
 			publicKey: 'did:key:zQ3shRotation',
-			privateKey: new Uint8Array([0x01, 0x02, 0x03, 0x04]),
+			privateKey: sampleRotationKey,
 		};
 		const verificationKey = {
 			publicKey: 'did:key:z6MkVerification',
-			privateKey: new Uint8Array([0xaa, 0xbb, 0xcc, 0xdd]),
+			privateKey: sampleVerificationKey,
 		};
 
 		const content = formatKeyFileContent({ did, rotationKey, verificationKey });
@@ -41,26 +45,20 @@ describe('formatKeyFileContent', () => {
 
 		// Check rotation key is PEM encoded (SEC1 format for secp256k1)
 		const rotationKeyValue = parsed.rotationKeys['did:key:zQ3shRotation'];
-		assert(rotationKeyValue.startsWith('z'), 'Rotation key should be multibase base58btc');
-		const decodedRotation = base58btc.decode(rotationKeyValue);
-		assert.strictEqual(decodedRotation[0], 0x81);
-		assert.strictEqual(decodedRotation[1], 0x26);
-		assert.deepStrictEqual(Array.from(decodedRotation.slice(2)), [0x01, 0x02, 0x03, 0x04]);
+		assert(rotationKeyValue.startsWith('-----BEGIN EC PRIVATE KEY-----'), 'Rotation key should be SEC1 PEM');
+		assert(rotationKeyValue.endsWith('-----END EC PRIVATE KEY-----'), 'Rotation key should end with SEC1 footer');
 
 		// Check verification key is PEM encoded (PKCS#8 format for Ed25519)
 		const verificationKeyValue = parsed.verificationKeys['did:key:z6MkVerification'];
-		assert(verificationKeyValue.startsWith('z'), 'Verification key should be multibase base58btc');
-		const decodedVerification = base58btc.decode(verificationKeyValue);
-		assert.strictEqual(decodedVerification[0], 0x80);
-		assert.strictEqual(decodedVerification[1], 0x26);
-		assert.deepStrictEqual(Array.from(decodedVerification.slice(2)), [0xaa, 0xbb, 0xcc, 0xdd]);
+		assert(verificationKeyValue.startsWith('-----BEGIN PRIVATE KEY-----'), 'Verification key should be PKCS#8 PEM');
+		assert(verificationKeyValue.endsWith('-----END PRIVATE KEY-----'), 'Verification key should end with PKCS#8 footer');
 	});
 
 	it('produces valid JSON', () => {
 		const content = formatKeyFileContent({
 			did: 'did:plc:test',
-			rotationKey: { publicKey: 'pub1', privateKey: new Uint8Array([1]) },
-			verificationKey: { publicKey: 'pub2', privateKey: new Uint8Array([2]) },
+			rotationKey: { publicKey: 'pub1', privateKey: sampleRotationKey },
+			verificationKey: { publicKey: 'pub2', privateKey: sampleVerificationKey },
 		});
 
 		assert.doesNotThrow(() => JSON.parse(content));
@@ -92,8 +90,8 @@ describe('writeKeyFile', () => {
 		const filePath = join(testDir, 'test-json.json');
 		const content = formatKeyFileContent({
 			did: 'did:plc:jsontest',
-			rotationKey: { publicKey: 'rk', privateKey: new Uint8Array([1, 2, 3]) },
-			verificationKey: { publicKey: 'vk', privateKey: new Uint8Array([4, 5, 6]) },
+			rotationKey: { publicKey: 'rk', privateKey: sampleRotationKey },
+			verificationKey: { publicKey: 'vk', privateKey: sampleVerificationKey },
 		});
 
 		await writeKeyFile(filePath, content);
@@ -105,59 +103,67 @@ describe('writeKeyFile', () => {
 });
 
 describe('encodeRotationKey', () => {
-	it('encodes Uint8Array as multibase base58btc with secp256k1-priv prefix', () => {
-		const key = new Uint8Array([0x01, 0x02, 0x03, 0x04]);
-		const encoded = encodeRotationKey(key);
+	it('encodes 32-byte key as SEC1 PEM format', () => {
+		const encoded = encodeRotationKey(sampleRotationKey);
 
-		assert(encoded.startsWith('z'), 'Should start with z (base58btc multibase prefix)');
-		const decoded = base58btc.decode(encoded);
-		assert.strictEqual(decoded[0], 0x81);
-		assert.strictEqual(decoded[1], 0x26);
-		assert.deepStrictEqual(Array.from(decoded.slice(2)), [0x01, 0x02, 0x03, 0x04]);
+		assert(encoded.startsWith('-----BEGIN EC PRIVATE KEY-----'), 'Should start with SEC1 header');
+		assert(encoded.endsWith('-----END EC PRIVATE KEY-----'), 'Should end with SEC1 footer');
 	});
 
-	it('encodes 32-byte key correctly', () => {
-		const key = new Uint8Array(32).fill(0xaa);
-		const encoded = encodeRotationKey(key);
-		const decoded = base58btc.decode(encoded);
+	it('produces a valid PEM that can be parsed by Node.js crypto', () => {
+		const encoded = encodeRotationKey(sampleRotationKey);
 
-		assert.strictEqual(decoded.length, 34); // 2 prefix + 32 key
-		assert.strictEqual(decoded[0], 0x81);
-		assert.strictEqual(decoded[1], 0x26);
+		// Should be able to import the key
+		const keyObject = crypto.createPrivateKey({ key: encoded, format: 'pem' });
+		assert.strictEqual(keyObject.type, 'private');
+		assert.strictEqual(keyObject.asymmetricKeyType, 'ec');
+	});
+
+	it('round-trips through Node.js crypto', () => {
+		const encoded = encodeRotationKey(sampleRotationKey);
+		const keyObject = crypto.createPrivateKey({ key: encoded, format: 'pem' });
+		const jwk = keyObject.export({ format: 'jwk' });
+		const recovered = Buffer.from(jwk.d, 'base64url');
+
+		assert.deepStrictEqual(new Uint8Array(recovered), sampleRotationKey);
 	});
 });
 
 describe('encodeVerificationKey', () => {
-	it('encodes Uint8Array as multibase base58btc with ed25519-priv prefix', () => {
-		const key = new Uint8Array([0xaa, 0xbb, 0xcc, 0xdd]);
-		const encoded = encodeVerificationKey(key);
+	it('encodes 32-byte key as PKCS#8 PEM format', () => {
+		const encoded = encodeVerificationKey(sampleVerificationKey);
 
-		assert(encoded.startsWith('z'), 'Should start with z (base58btc multibase prefix)');
-		const decoded = base58btc.decode(encoded);
-		assert.strictEqual(decoded[0], 0x80);
-		assert.strictEqual(decoded[1], 0x26);
-		assert.deepStrictEqual(Array.from(decoded.slice(2)), [0xaa, 0xbb, 0xcc, 0xdd]);
+		assert(encoded.startsWith('-----BEGIN PRIVATE KEY-----'), 'Should start with PKCS#8 header');
+		assert(encoded.endsWith('-----END PRIVATE KEY-----'), 'Should end with PKCS#8 footer');
 	});
 
-	it('encodes 32-byte key correctly', () => {
-		const key = new Uint8Array(32).fill(0xbb);
-		const encoded = encodeVerificationKey(key);
-		const decoded = base58btc.decode(encoded);
+	it('produces a valid PEM that can be parsed by Node.js crypto', () => {
+		const encoded = encodeVerificationKey(sampleVerificationKey);
 
-		assert.strictEqual(decoded.length, 34); // 2 prefix + 32 key
-		assert.strictEqual(decoded[0], 0x80);
-		assert.strictEqual(decoded[1], 0x26);
+		// Should be able to import the key
+		const keyObject = crypto.createPrivateKey({ key: encoded, format: 'pem' });
+		assert.strictEqual(keyObject.type, 'private');
+		assert.strictEqual(keyObject.asymmetricKeyType, 'ed25519');
+	});
+
+	it('round-trips through Node.js crypto', () => {
+		const encoded = encodeVerificationKey(sampleVerificationKey);
+		const keyObject = crypto.createPrivateKey({ key: encoded, format: 'pem' });
+		const jwk = keyObject.export({ format: 'jwk' });
+		const recovered = Buffer.from(jwk.d, 'base64url');
+
+		assert.deepStrictEqual(new Uint8Array(recovered), sampleVerificationKey);
 	});
 });
 
 describe('saveRotationKeyToFile', () => {
 	const testDir = join(tmpdir(), 'fair-tools-save-rotation-key-test-' + Date.now());
 
-	// Helper to create a mock key object from hex string
-	function mockKey(publicKey, hexPrivateKey) {
+	// Helper to create a mock key object with a 32-byte key
+	function mockKey(publicKey) {
 		return {
 			publicKey,
-			privateKey: Buffer.from(hexPrivateKey, 'hex'),
+			privateKey: sampleRotationKey,
 		};
 	}
 
@@ -169,20 +175,17 @@ describe('saveRotationKeyToFile', () => {
 		await rm(testDir, { recursive: true, force: true });
 	});
 
-	it('writes multibase key when file does not exist', async () => {
-		const outputFile = join(testDir, 'new-key.txt');
+	it('writes PEM key when file does not exist', async () => {
+		const outputFile = join(testDir, 'new-key.pem');
 		const result = await saveRotationKeyToFile({
 			outputFile,
-			key: mockKey('did:key:zQ3shTest', 'aabbccdd'),
+			key: mockKey('did:key:zQ3shTest'),
 		});
 
 		assert.strictEqual(result.appended, false);
 		const content = await readFile(outputFile, 'utf-8');
-		assert(content.trim().startsWith('z'), 'Should write multibase key');
-		// Verify it decodes correctly
-		const decoded = base58btc.decode(content.trim());
-		assert.strictEqual(decoded[0], 0x81);
-		assert.strictEqual(decoded[1], 0x26);
+		assert(content.startsWith('-----BEGIN EC PRIVATE KEY-----'), 'Should start with PEM header');
+		assert(content.endsWith('-----END EC PRIVATE KEY-----\n'), 'Should end with PEM footer and trailing newline');
 	});
 
 	it('appends to rotationKeys when file exists with valid JSON', async () => {
@@ -197,7 +200,7 @@ describe('saveRotationKeyToFile', () => {
 
 		const result = await saveRotationKeyToFile({
 			outputFile,
-			key: mockKey('did:key:zQ3shNew', 'aabbccdd'),
+			key: mockKey('did:key:zQ3shNew'),
 		});
 
 		assert.strictEqual(result.appended, true);
@@ -206,7 +209,8 @@ describe('saveRotationKeyToFile', () => {
 		assert.strictEqual(parsed.rotationKeys['did:key:zQ3shExisting'], '11223344');
 		// New key should be PEM encoded
 		const newKeyValue = parsed.rotationKeys['did:key:zQ3shNew'];
-		assert(newKeyValue.startsWith('z'), 'New key should be multibase encoded');
+		assert(newKeyValue.startsWith('-----BEGIN EC PRIVATE KEY-----'), 'New key should start with PEM header');
+		assert(newKeyValue.endsWith('-----END EC PRIVATE KEY-----'), 'New key should end with PEM footer');
 	});
 
 	it('creates rotationKeys object when missing from existing JSON', async () => {
@@ -218,13 +222,14 @@ describe('saveRotationKeyToFile', () => {
 
 		const result = await saveRotationKeyToFile({
 			outputFile,
-			key: mockKey('did:key:zQ3shNew', 'aabbccdd'),
+			key: mockKey('did:key:zQ3shNew'),
 		});
 
 		assert.strictEqual(result.appended, true);
 		const content = await readFile(outputFile, 'utf-8');
 		const parsed = JSON.parse(content);
-		assert(parsed.rotationKeys['did:key:zQ3shNew'].startsWith('z'));
+		assert(parsed.rotationKeys['did:key:zQ3shNew'].startsWith('-----BEGIN EC PRIVATE KEY-----'), 'Should start with PEM header');
+		assert(parsed.rotationKeys['did:key:zQ3shNew'].endsWith('-----END EC PRIVATE KEY-----'), 'Should end with PEM footer');
 	});
 
 	it('throws SaveKeyError when file exists but is not valid JSON', async () => {
@@ -234,7 +239,7 @@ describe('saveRotationKeyToFile', () => {
 		await assert.rejects(
 			saveRotationKeyToFile({
 				outputFile,
-				key: mockKey('did:key:zQ3shTest', 'aabbccdd'),
+				key: mockKey('did:key:zQ3shTest'),
 			}),
 			(err) => {
 				assert(err instanceof SaveKeyError);
@@ -252,7 +257,7 @@ describe('saveRotationKeyToFile', () => {
 		await assert.rejects(
 			saveRotationKeyToFile({
 				outputFile,
-				key: mockKey('did:key:zQ3shTest', 'aabbccdd'),
+				key: mockKey('did:key:zQ3shTest'),
 			}),
 			(err) => {
 				assert(err instanceof SaveKeyError);
@@ -269,7 +274,7 @@ describe('saveRotationKeyToFile', () => {
 		await assert.rejects(
 			saveRotationKeyToFile({
 				outputFile,
-				key: mockKey('did:key:zQ3shTest', 'aabbccdd'),
+				key: mockKey('did:key:zQ3shTest'),
 			}),
 			(err) => {
 				assert(err instanceof SaveKeyError);
@@ -295,7 +300,7 @@ describe('saveRotationKeyToFile', () => {
 
 		await saveRotationKeyToFile({
 			outputFile,
-			key: mockKey('did:key:zQ3shNew', 'aabbccdd'),
+			key: mockKey('did:key:zQ3shNew'),
 		});
 
 		const content = await readFile(outputFile, 'utf-8');
@@ -303,7 +308,8 @@ describe('saveRotationKeyToFile', () => {
 		assert.strictEqual(parsed.did, 'did:plc:test');
 		assert.strictEqual(parsed.customField, 'should be preserved');
 		assert.strictEqual(parsed.verificationKeys['did:key:z6MkVerify'], '55667788');
-		assert(parsed.rotationKeys['did:key:zQ3shNew'].startsWith('z'));
+		assert(parsed.rotationKeys['did:key:zQ3shNew'].startsWith('-----BEGIN EC PRIVATE KEY-----'), 'Should start with PEM header');
+		assert(parsed.rotationKeys['did:key:zQ3shNew'].endsWith('-----END EC PRIVATE KEY-----'), 'Should end with PEM footer');
 	});
 
 	it('throws SaveKeyError when key already exists in file', async () => {
@@ -319,11 +325,11 @@ describe('saveRotationKeyToFile', () => {
 		await assert.rejects(
 			saveRotationKeyToFile({
 				outputFile,
-				key: mockKey('did:key:zQ3shSame', 'newvalue'),
+				key: mockKey('did:key:zQ3shSame'),
 			}),
 			(err) => {
 				assert(err instanceof SaveKeyError);
-				assert.match(err.message, /Key already exists in file/);
+				assert.strictEqual(err.message, 'Key already exists in file: did:key:zQ3shSame');
 				return true;
 			}
 		);
@@ -333,11 +339,11 @@ describe('saveRotationKeyToFile', () => {
 describe('saveVerificationKeyToFile', () => {
 	const testDir = join(tmpdir(), 'fair-tools-save-verification-key-test-' + Date.now());
 
-	// Helper to create a mock key object from hex string
-	function mockKey(publicKey, hexPrivateKey) {
+	// Helper to create a mock key object with a 32-byte key
+	function mockKey(publicKey) {
 		return {
 			publicKey,
-			privateKey: Buffer.from(hexPrivateKey, 'hex'),
+			privateKey: sampleVerificationKey,
 		};
 	}
 
@@ -349,20 +355,17 @@ describe('saveVerificationKeyToFile', () => {
 		await rm(testDir, { recursive: true, force: true });
 	});
 
-	it('writes multibase key when file does not exist', async () => {
-		const outputFile = join(testDir, 'new-key.txt');
+	it('writes PEM key when file does not exist', async () => {
+		const outputFile = join(testDir, 'new-key.pem');
 		const result = await saveVerificationKeyToFile({
 			outputFile,
-			key: mockKey('did:key:z6MkTest', 'aabbccdd'),
+			key: mockKey('did:key:z6MkTest'),
 		});
 
 		assert.strictEqual(result.appended, false);
 		const content = await readFile(outputFile, 'utf-8');
-		assert(content.trim().startsWith('z'), 'Should write multibase key');
-		// Verify it decodes correctly with ed25519 prefix
-		const decoded = base58btc.decode(content.trim());
-		assert.strictEqual(decoded[0], 0x80);
-		assert.strictEqual(decoded[1], 0x26);
+		assert(content.startsWith('-----BEGIN PRIVATE KEY-----'), 'Should start with PEM header');
+		assert(content.endsWith('-----END PRIVATE KEY-----\n'), 'Should end with PEM footer and trailing newline');
 	});
 
 	it('appends to verificationKeys when file exists with valid JSON', async () => {
@@ -377,7 +380,7 @@ describe('saveVerificationKeyToFile', () => {
 
 		const result = await saveVerificationKeyToFile({
 			outputFile,
-			key: mockKey('did:key:z6MkNew', 'aabbccdd'),
+			key: mockKey('did:key:z6MkNew'),
 		});
 
 		assert.strictEqual(result.appended, true);
@@ -386,7 +389,8 @@ describe('saveVerificationKeyToFile', () => {
 		assert.strictEqual(parsed.verificationKeys['did:key:z6MkExisting'], '11223344');
 		// New key should be PEM encoded
 		const newKeyValue = parsed.verificationKeys['did:key:z6MkNew'];
-		assert(newKeyValue.startsWith('z'), 'New key should be multibase encoded');
+		assert(newKeyValue.startsWith('-----BEGIN PRIVATE KEY-----'), 'New key should start with PEM header');
+		assert(newKeyValue.endsWith('-----END PRIVATE KEY-----'), 'New key should end with PEM footer');
 	});
 
 	it('creates verificationKeys object when missing from existing JSON', async () => {
@@ -398,13 +402,14 @@ describe('saveVerificationKeyToFile', () => {
 
 		const result = await saveVerificationKeyToFile({
 			outputFile,
-			key: mockKey('did:key:z6MkNew', 'aabbccdd'),
+			key: mockKey('did:key:z6MkNew'),
 		});
 
 		assert.strictEqual(result.appended, true);
 		const content = await readFile(outputFile, 'utf-8');
 		const parsed = JSON.parse(content);
-		assert(parsed.verificationKeys['did:key:z6MkNew'].startsWith('z'));
+		assert(parsed.verificationKeys['did:key:z6MkNew'].startsWith('-----BEGIN PRIVATE KEY-----'), 'Should start with PEM header');
+		assert(parsed.verificationKeys['did:key:z6MkNew'].endsWith('-----END PRIVATE KEY-----'), 'Should end with PEM footer');
 	});
 
 	it('throws SaveKeyError when key already exists in file', async () => {
@@ -420,11 +425,11 @@ describe('saveVerificationKeyToFile', () => {
 		await assert.rejects(
 			saveVerificationKeyToFile({
 				outputFile,
-				key: mockKey('did:key:z6MkSame', 'newvalue'),
+				key: mockKey('did:key:z6MkSame'),
 			}),
 			(err) => {
 				assert(err instanceof SaveKeyError);
-				assert.match(err.message, /Key already exists in file/);
+				assert.strictEqual(err.message, 'Key already exists in file: did:key:z6MkSame');
 				return true;
 			}
 		);

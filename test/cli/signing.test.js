@@ -13,21 +13,28 @@ import { base58btc } from 'multiformats/bases/base58';
 import {
 	encodeRotationKey,
 	encodeVerificationKey,
-	SECP256K1_PRIV_PREFIX,
 } from '../../src/keyfile.js';
+
+// Multicodec prefixes for test data generation
+const SECP256K1_PRIV_PREFIX = new Uint8Array([0x81, 0x26]);
 
 const testDir = join(tmpdir(), 'fair-tools-signing-test-' + Date.now());
 
-// Sample key data - 64 character hex keys (32 bytes)
+// Sample key data - PEM-encoded keys
+const sampleRotationKeyBytes1 = Buffer.from('aabbccdd112233445566778899aabbccddeeff00112233445566778899001122', 'hex');
+const sampleRotationKeyBytes2 = Buffer.from('eeff0011223344556677889900112233445566778899aabbccddeeff00112233', 'hex');
+const sampleVerificationKeyBytes1 = Buffer.from('112233445566778899001122334455667788aabbccddeeff0011223344556677', 'hex');
+const sampleVerificationKeyBytes2 = Buffer.from('556677889900112233445566778899001122aabbccddeeff0011223344556677', 'hex');
+
 const sampleKeyFile = {
 	did: 'did:plc:test123',
 	rotationKeys: {
-		'did:key:zQ3shRotation1': 'aabbccdd112233445566778899aabbccddeeff00112233445566778899001122',
-		'did:key:zQ3shRotation2': 'eeff0011223344556677889900112233445566778899aabbccddeeff00112233',
+		'did:key:zQ3shRotation1': encodeRotationKey(sampleRotationKeyBytes1),
+		'did:key:zQ3shRotation2': encodeRotationKey(sampleRotationKeyBytes2),
 	},
 	verificationKeys: {
-		'did:key:z6MkVerification1': '112233445566778899001122334455667788aabbccddeeff0011223344556677',
-		'did:key:z6MkVerification2': '5566778899001122334455667788990011aabbccddeeff00112233445566778899',
+		'did:key:z6MkVerification1': encodeVerificationKey(sampleVerificationKeyBytes1),
+		'did:key:z6MkVerification2': encodeVerificationKey(sampleVerificationKeyBytes2),
 	},
 };
 
@@ -35,9 +42,18 @@ const sampleKeyFile = {
 const sampleHexKey = 'aabbccdd112233445566778899aabbccddeeff00112233445566778899001122';
 const sampleKeyBytes = Buffer.from(sampleHexKey, 'hex');
 
+// Sample PEM keys (encoded from sampleHexKey)
+const samplePemRotationKey = encodeRotationKey(sampleKeyBytes);
+const samplePemVerificationKey = encodeVerificationKey(sampleKeyBytes);
+
 // Sample multibase keys (encoded from sampleHexKey with appropriate prefix)
-const sampleMultibaseRotationKey = encodeRotationKey(sampleKeyBytes);
-const sampleMultibaseVerificationKey = encodeVerificationKey(sampleKeyBytes);
+const sampleMultibaseRotationKey = base58btc.encode(Buffer.concat([SECP256K1_PRIV_PREFIX, sampleKeyBytes]));
+// Sodium format verification key: 64 bytes (32-byte seed + 32-byte public key)
+// The first 32 bytes are sampleHexKey, followed by 32 dummy bytes for the public key portion
+const sodiumPublicKeyPortion = Buffer.alloc(32, 0xff); // dummy public key bytes
+const sampleMultibaseVerificationKey = base58btc.encode(
+	Buffer.concat([Buffer.from([0x80, 0x26]), sampleKeyBytes, sodiumPublicKeyPortion])
+);
 
 describe('signing.js', () => {
 	after(async () => {
@@ -105,7 +121,7 @@ describe('signing.js', () => {
 
 			const result = await loadRotationKey({ signingFile: filePath });
 
-			assert.strictEqual(result.privateKeyHex, 'aabbccdd112233445566778899aabbccddeeff00112233445566778899001122');
+			assert.strictEqual(result.privateKeyHex, sampleRotationKeyBytes1.toString('hex'));
 			assert.deepStrictEqual(result.keyData, sampleKeyFile);
 		});
 
@@ -119,7 +135,7 @@ describe('signing.js', () => {
 				signingKey: 'did:key:zQ3shRotation2',
 			});
 
-			assert.strictEqual(result.privateKeyHex, 'eeff0011223344556677889900112233445566778899aabbccddeeff00112233');
+			assert.strictEqual(result.privateKeyHex, sampleRotationKeyBytes2.toString('hex'));
 		});
 
 		it('loads multibase-encoded rotation key from JSON file', async () => {
@@ -188,7 +204,29 @@ describe('signing.js', () => {
 			assert.strictEqual(result.keyData, null);
 		});
 
-		it('throws when --signing-key used with multibase key file', async () => {
+		it('loads PEM key file without trailing newline', async () => {
+			await mkdir(testDir, { recursive: true });
+			const filePath = join(testDir, 'rotation-pem.txt');
+			await writeFile(filePath, samplePemRotationKey);
+
+			const result = await loadRotationKey({ signingFile: filePath });
+
+			assert.strictEqual(result.privateKeyHex, sampleHexKey);
+			assert.strictEqual(result.keyData, null);
+		});
+
+		it('loads PEM key file with trailing newline', async () => {
+			await mkdir(testDir, { recursive: true });
+			const filePath = join(testDir, 'rotation-pem-newline.txt');
+			await writeFile(filePath, samplePemRotationKey + '\n');
+
+			const result = await loadRotationKey({ signingFile: filePath });
+
+			assert.strictEqual(result.privateKeyHex, sampleHexKey);
+			assert.strictEqual(result.keyData, null);
+		});
+
+		it('throws when --signing-key used with standalone key file', async () => {
 			await mkdir(testDir, { recursive: true });
 			const filePath = join(testDir, 'rotation-multibase-with-key.txt');
 			await writeFile(filePath, sampleMultibaseRotationKey);
@@ -376,7 +414,7 @@ describe('signing.js', () => {
 
 			const result = await loadVerificationKey({ signingFile: filePath });
 
-			assert.strictEqual(result.privateKeyHex, '112233445566778899001122334455667788aabbccddeeff0011223344556677');
+			assert.strictEqual(result.privateKeyHex, sampleVerificationKeyBytes1.toString('hex'));
 		});
 
 		it('loads specific verification key when specified', async () => {
@@ -389,7 +427,7 @@ describe('signing.js', () => {
 				signingKey: 'did:key:z6MkVerification2',
 			});
 
-			assert.strictEqual(result.privateKeyHex, '5566778899001122334455667788990011aabbccddeeff00112233445566778899');
+			assert.strictEqual(result.privateKeyHex, sampleVerificationKeyBytes2.toString('hex'));
 		});
 
 		it('loads multibase-encoded verification key from JSON file', async () => {
@@ -458,7 +496,29 @@ describe('signing.js', () => {
 			assert.strictEqual(result.keyData, null);
 		});
 
-		it('throws when --signing-key used with multibase key file', async () => {
+		it('loads PEM key file without trailing newline', async () => {
+			await mkdir(testDir, { recursive: true });
+			const filePath = join(testDir, 'verification-pem.txt');
+			await writeFile(filePath, samplePemVerificationKey);
+
+			const result = await loadVerificationKey({ signingFile: filePath });
+
+			assert.strictEqual(result.privateKeyHex, sampleHexKey);
+			assert.strictEqual(result.keyData, null);
+		});
+
+		it('loads PEM key file with trailing newline', async () => {
+			await mkdir(testDir, { recursive: true });
+			const filePath = join(testDir, 'verification-pem-newline.txt');
+			await writeFile(filePath, samplePemVerificationKey + '\n');
+
+			const result = await loadVerificationKey({ signingFile: filePath });
+
+			assert.strictEqual(result.privateKeyHex, sampleHexKey);
+			assert.strictEqual(result.keyData, null);
+		});
+
+		it('throws when --signing-key used with standalone key file', async () => {
 			await mkdir(testDir, { recursive: true });
 			const filePath = join(testDir, 'verification-multibase-with-key.txt');
 			await writeFile(filePath, sampleMultibaseVerificationKey);
@@ -623,7 +683,7 @@ describe('signing.js', () => {
 				revokeKey: 'did:key:zQ3shRotation1',
 			});
 
-			assert.strictEqual(result.privateKeyHex, 'eeff0011223344556677889900112233445566778899aabbccddeeff00112233');
+			assert.strictEqual(result.privateKeyHex, sampleRotationKeyBytes2.toString('hex'));
 		});
 
 		it('uses specified signing key when different from revoke key', async () => {
@@ -637,7 +697,7 @@ describe('signing.js', () => {
 				revokeKey: 'did:key:zQ3shRotation1',
 			});
 
-			assert.strictEqual(result.privateKeyHex, 'eeff0011223344556677889900112233445566778899aabbccddeeff00112233');
+			assert.strictEqual(result.privateKeyHex, sampleRotationKeyBytes2.toString('hex'));
 		});
 
 		it('loads multibase key file without trailing newline', async () => {
@@ -668,7 +728,35 @@ describe('signing.js', () => {
 			assert.strictEqual(result.keyData, null);
 		});
 
-		it('throws when --signing-key used with multibase key file', async () => {
+		it('loads PEM key file without trailing newline', async () => {
+			await mkdir(testDir, { recursive: true });
+			const filePath = join(testDir, 'revoke-pem.txt');
+			await writeFile(filePath, samplePemRotationKey);
+
+			const result = await loadRotationKeyForRevocation({
+				signingFile: filePath,
+				revokeKey: 'did:key:zQ3shSomeKey',
+			});
+
+			assert.strictEqual(result.privateKeyHex, sampleHexKey);
+			assert.strictEqual(result.keyData, null);
+		});
+
+		it('loads PEM key file with trailing newline', async () => {
+			await mkdir(testDir, { recursive: true });
+			const filePath = join(testDir, 'revoke-pem-newline.txt');
+			await writeFile(filePath, samplePemRotationKey + '\n');
+
+			const result = await loadRotationKeyForRevocation({
+				signingFile: filePath,
+				revokeKey: 'did:key:zQ3shSomeKey',
+			});
+
+			assert.strictEqual(result.privateKeyHex, sampleHexKey);
+			assert.strictEqual(result.keyData, null);
+		});
+
+		it('throws when --signing-key used with standalone key file', async () => {
 			await mkdir(testDir, { recursive: true });
 			const filePath = join(testDir, 'revoke-multibase-with-key.txt');
 			await writeFile(filePath, sampleMultibaseRotationKey);

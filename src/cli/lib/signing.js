@@ -1,28 +1,42 @@
+import crypto from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { base58btc } from 'multiformats/bases/base58';
-import {
-	SECP256K1_PRIV_PREFIX,
-	ED25519_PRIV_PREFIX,
-} from '../../keyfile.js';
+
+/**
+ * Multicodec prefix for secp256k1 private keys (rotation keys).
+ * Used when reading multibase-encoded keys for interoperability with FAIR Beacon.
+ */
+const SECP256K1_PRIV_PREFIX = new Uint8Array([0x81, 0x26]);
+
+/**
+ * Multicodec prefix for ed25519 private keys (verification keys).
+ * Used when reading multibase-encoded keys for interoperability with FAIR Beacon.
+ */
+const ED25519_PRIV_PREFIX = new Uint8Array([0x80, 0x26]);
 
 const SECP256K1_PRIV_PREFIX_HEX = Buffer.from(SECP256K1_PRIV_PREFIX).toString('hex');
 const ED25519_PRIV_PREFIX_HEX = Buffer.from(ED25519_PRIV_PREFIX).toString('hex');
 
-export class SigningKeyError extends Error {
-	constructor(message) {
-		super(message);
-		this.name = 'SigningKeyError';
-	}
-}
+/**
+ * PEM header for EC private keys (SEC1 format, used for secp256k1 rotation keys).
+ */
+const EC_PRIVATE_KEY_HEADER = '-----BEGIN EC PRIVATE KEY-----';
+
+/**
+ * PEM header for PKCS#8 private keys (used for Ed25519 verification keys).
+ */
+const PKCS8_PRIVATE_KEY_HEADER = '-----BEGIN PRIVATE KEY-----';
+
+export class SigningKeyError extends Error {}
 
 /**
  * Decode a multibase base58btc rotation private key string (32-byte key).
  *
- * @param {string} key - The multibase key (starts with 'z3vL' or 'z3u2')
- * @returns {{prefixHex: string, rawKey: Uint8Array}} - The decoded prefix (hex) and raw key
+ * @param {string} key - The multibase key (starts with 'z3vL')
+ * @returns {Uint8Array} - The 32-byte private key
  * @throws {SigningKeyError} If the key format is invalid
  */
-function decodeMultibasePrivateKey(key) {
+function decodeMultibaseRotationKey(key) {
 	let decoded;
 	try {
 		decoded = base58btc.decode(key);
@@ -35,32 +49,6 @@ function decodeMultibasePrivateKey(key) {
 	}
 
 	const prefixHex = Buffer.from(decoded.slice(0, 2)).toString('hex');
-	const rawKey = decoded.slice(2);
-
-	if (rawKey.length !== 32) {
-		throw new SigningKeyError('Invalid key format. The key has the wrong length.');
-	}
-
-	return { prefixHex, rawKey };
-}
-
-/**
- * Decode a multibase base58btc verification private key string (Sodium 64-byte format).
- *
- * Sodium stores Ed25519 secret keys as 64 bytes: the 32-byte seed concatenated with
- * the 32-byte public key. This function extracts just the 32-byte seed.
- *
- * @param {string} content - The file content to check
- * @returns {string|null} - The hex key if valid multibase, null otherwise
- * @throws {SigningKeyError} If it looks like multibase but is invalid
- */
-function parseAsMultibaseRotationKey(content) {
-	const trimmed = content.trim();
-	if (!trimmed.startsWith('z')) {
-		return null;
-	}
-
-	const { prefixHex, rawKey } = decodeMultibasePrivateKey(trimmed);
 
 	if (prefixHex === ED25519_PRIV_PREFIX_HEX) {
 		throw new SigningKeyError('Wrong key type for this operation. This looks like a verification key, but a rotation key is required.');
@@ -70,23 +58,38 @@ function parseAsMultibaseRotationKey(content) {
 		throw new SigningKeyError(`Unrecognized key type (prefix: ${prefixHex}). Expected a rotation key.`);
 	}
 
-	return Buffer.from(rawKey).toString('hex');
+	const rawKey = decoded.slice(2);
+
+	if (rawKey.length !== 32) {
+		throw new SigningKeyError('Invalid key format. The key has the wrong length.');
+	}
+
+	return rawKey;
 }
 
 /**
- * Decode a PEM-encoded EC private key (SEC1 format) to raw bytes.
+ * Decode a multibase base58btc verification private key string (Sodium 64-byte format).
  *
- * @param {string} content - The file content to check
- * @returns {string|null} - The hex key if valid multibase, null otherwise
- * @throws {SigningKeyError} If it looks like multibase but is invalid
+ * Sodium stores Ed25519 secret keys as 64 bytes: the 32-byte seed concatenated with
+ * the 32-byte public key. This function extracts just the 32-byte seed.
+ *
+ * @param {string} key - The multibase key (starts with 'zru' or 'zrv')
+ * @returns {Uint8Array} - The 32-byte private key seed
+ * @throws {SigningKeyError} If the key format is invalid
  */
-function parseAsMultibaseVerificationKey(content) {
-	const trimmed = content.trim();
-	if (!trimmed.startsWith('z')) {
-		return null;
+function decodeMultibaseVerificationKey(key) {
+	let decoded;
+	try {
+		decoded = base58btc.decode(key);
+	} catch (err) {
+		throw new SigningKeyError('Invalid key format. The key could not be decoded.');
 	}
 
-	const { prefixHex, rawKey } = decodeMultibasePrivateKey(trimmed);
+	if (decoded.length < 2) {
+		throw new SigningKeyError('Invalid key format. The key is too short.');
+	}
+
+	const prefixHex = Buffer.from(decoded.slice(0, 2)).toString('hex');
 
 	if (prefixHex === SECP256K1_PRIV_PREFIX_HEX) {
 		throw new SigningKeyError('Wrong key type for this operation. This looks like a rotation key, but a verification key is required.');
@@ -96,23 +99,149 @@ function parseAsMultibaseVerificationKey(content) {
 		throw new SigningKeyError(`Unrecognized key type (prefix: ${prefixHex}). Expected a verification key.`);
 	}
 
-	return Buffer.from(rawKey).toString('hex');
+	const rawKey = decoded.slice(2);
+
+	// Sodium format: 64 bytes (32-byte seed + 32-byte public key)
+	if (rawKey.length === 64) {
+		return rawKey.slice(0, 32);
+	}
+
+	throw new SigningKeyError('Invalid key format. Expected a 64-byte Sodium-format Ed25519 key.');
+}
+
+/**
+ * Decode a PEM-encoded EC private key (SEC1 format) to raw bytes.
+ *
+ * @param {string} key - The PEM string (-----BEGIN EC PRIVATE KEY-----)
+ * @returns {Uint8Array} - The 32-byte raw private key
+ * @throws {SigningKeyError} If the PEM format is invalid
+ */
+function decodeECPrivateKeyPEM(key) {
+	let keyObject;
+	try {
+		keyObject = crypto.createPrivateKey({
+			key,
+			format: 'pem',
+		});
+	} catch {
+		throw new SigningKeyError('Invalid rotation key. The PEM file could not be parsed.');
+	}
+
+	// Export as JWK to get the raw 'd' parameter (private key)
+	const jwk = keyObject.export({
+		format: 'jwk',
+	});
+	if (!jwk.d) {
+		throw new SigningKeyError('Invalid rotation key. The PEM file is missing private key data.');
+	}
+
+	// JWK 'd' is base64url-encoded
+	const rawKey = Buffer.from(jwk.d, 'base64url');
+	if (rawKey.length !== 32) {
+		throw new SigningKeyError('Invalid rotation key. The key has the wrong length.');
+	}
+
+	return new Uint8Array(rawKey);
+}
+
+/**
+ * Decode a PEM-encoded PKCS#8 private key (Ed25519) to raw bytes.
+ *
+ * @param {string} key - The PEM string (-----BEGIN PRIVATE KEY-----)
+ * @returns {Uint8Array} - The 32-byte raw private key
+ * @throws {SigningKeyError} If the PEM format is invalid
+ */
+function decodePKCS8PrivateKeyPEM(key) {
+	let keyObject;
+	try {
+		keyObject = crypto.createPrivateKey({
+			key,
+			format: 'pem',
+		});
+	} catch {
+		throw new SigningKeyError('Invalid verification key. The PEM file could not be parsed.');
+	}
+
+	// Export as JWK to get the raw 'd' parameter (private key)
+	const jwk = keyObject.export({
+		format: 'jwk',
+	});
+	if (!jwk.d) {
+		throw new SigningKeyError('Invalid verification key. The PEM file is missing private key data.');
+	}
+
+	// JWK 'd' is base64url-encoded
+	const rawKey = Buffer.from(jwk.d, 'base64url');
+	if (rawKey.length !== 32) {
+		throw new SigningKeyError('Invalid verification key. The key has the wrong length.');
+	}
+
+	return new Uint8Array(rawKey);
 }
 
 /**
  * Check if content looks like a PEM-encoded EC private key (rotation key).
  *
  * @param {string} content - The content to check
+ * @returns {boolean}
+ */
+function isECPrivateKeyPEM(content) {
+	return content.startsWith(EC_PRIVATE_KEY_HEADER);
+}
+
+/**
+ * Check if content looks like a PEM-encoded PKCS#8 private key (verification key).
+ *
+ * @param {string} content - The content to check
+ * @returns {boolean}
+ */
+function isPKCS8PrivateKeyPEM(content) {
+	return content.startsWith(PKCS8_PRIVATE_KEY_HEADER);
+}
+
+/**
+ * Check if content looks like a 32-byte hex-encoded private key.
+ *
+ * @param {string} content - The content to check
+ * @returns {boolean}
+ */
+function isHexPrivateKey(content) {
+	return /^[a-f0-9]{64}$/i.test(content);
+}
+
+/**
+ * Parse content as a rotation private key (PEM, multibase, or hex).
+ *
+ * @param {string} content - The file content to parse
  * @returns {string} - The hex key
  * @throws {SigningKeyError} If the format is invalid or unrecognized
  */
-function parseRotationKeyValue(value) {
-	const multibaseKey = parseAsMultibaseRotationKey(value);
-	if (multibaseKey) {
-		return multibaseKey;
+function parseAsRotationKey(content) {
+	const trimmed = content.trim();
+
+	// Try PEM format first (EC PRIVATE KEY for secp256k1)
+	if (isECPrivateKeyPEM(trimmed)) {
+		const rawKey = decodeECPrivateKeyPEM(trimmed);
+		return Buffer.from(rawKey).toString('hex');
 	}
-	// Assume hex for backwards compatibility
-	return value;
+
+	// Check if it's a PKCS#8 PEM (wrong type for rotation key)
+	if (isPKCS8PrivateKeyPEM(trimmed)) {
+		throw new SigningKeyError('Wrong key type for this operation. This looks like a verification key, but a rotation key is required.');
+	}
+
+	// Try multibase format
+	if (trimmed.startsWith('z')) {
+		const rawKey = decodeMultibaseRotationKey(trimmed);
+		return Buffer.from(rawKey).toString('hex');
+	}
+
+	// Try raw hex format
+	if (isHexPrivateKey(trimmed)) {
+		return trimmed.toLowerCase();
+	}
+
+	throw new SigningKeyError('Unrecognized key format. Expected a PEM, multibase, or hex encoded rotation key.');
 }
 
 /**
@@ -122,13 +251,32 @@ function parseRotationKeyValue(value) {
  * @returns {string} - The hex key
  * @throws {SigningKeyError} If the format is invalid or unrecognized
  */
-function parseVerificationKeyValue(value) {
-	const multibaseKey = parseAsMultibaseVerificationKey(value);
-	if (multibaseKey) {
-		return multibaseKey;
+function parseAsVerificationKey(content) {
+	const trimmed = content.trim();
+
+	// Try PEM format first (PKCS#8 for Ed25519)
+	if (isPKCS8PrivateKeyPEM(trimmed)) {
+		const rawKey = decodePKCS8PrivateKeyPEM(trimmed);
+		return Buffer.from(rawKey).toString('hex');
 	}
-	// Assume hex for backwards compatibility
-	return value;
+
+	// Check if it's an EC PEM (wrong type for verification key)
+	if (isECPrivateKeyPEM(trimmed)) {
+		throw new SigningKeyError('Wrong key type for this operation. This looks like a rotation key, but a verification key is required.');
+	}
+
+	// Try multibase format
+	if (trimmed.startsWith('z')) {
+		const rawKey = decodeMultibaseVerificationKey(trimmed);
+		return Buffer.from(rawKey).toString('hex');
+	}
+
+	// Try raw hex format
+	if (isHexPrivateKey(trimmed)) {
+		return trimmed.toLowerCase();
+	}
+
+	throw new SigningKeyError('Unrecognized key format. Expected a PEM, multibase, or hex encoded verification key.');
 }
 
 /**
@@ -161,13 +309,14 @@ export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_
 			throw new SigningKeyError(`Error reading key file: ${err.message}`);
 		}
 
-		// Try multibase first
-		const multibaseKey = parseAsMultibaseRotationKey(keyContent);
-		if (multibaseKey) {
+		// Try PEM, multibase, or hex format first (standalone key file)
+		const trimmed = keyContent.trim();
+		if (trimmed.startsWith('-----BEGIN') || trimmed.startsWith('z') || isHexPrivateKey(trimmed)) {
+			const standaloneKey = parseAsRotationKey(keyContent);
 			if (signingKey) {
 				throw new SigningKeyError('Cannot specify a signing key when using a standalone key file');
 			}
-			return { privateKeyHex: multibaseKey, keyData: null };
+			return { privateKeyHex: standaloneKey, keyData: null };
 		}
 
 		// Try JSON
@@ -191,9 +340,9 @@ export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_
 			if (!rawValue) {
 				throw new SigningKeyError(`Rotation key ${signingKey} not found in key file. Available keys: ${publicKeys.join(', ')}`);
 			}
-			privateKeyHex = parseRotationKeyValue(rawValue);
+			privateKeyHex = parseAsRotationKey(rawValue);
 		} else {
-			privateKeyHex = parseRotationKeyValue(rotationKeys[publicKeys[0]]);
+			privateKeyHex = parseAsRotationKey(rotationKeys[publicKeys[0]]);
 		}
 
 		return { privateKeyHex, keyData };
@@ -212,7 +361,7 @@ export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_
  *
  * The key file can contain one of:
  * - A single PEM-encoded PKCS#8 private key (-----BEGIN PRIVATE KEY-----)
- * - A single multibase base58btc encoded private key (starts with 'zru' or 'zrv')
+ * - A single multibase base58btc encoded private key in Sodium 64-byte format (starts with 'zru' or 'zrv')
  * - A single 64-character hex string (32-byte private key)
  * - A JSON-encoded string containing a `verificationKeys` object mapping public keys to private keys
  *
@@ -237,13 +386,14 @@ export async function loadVerificationKey({ signingFile, signingKey, envVar = 'F
 			throw new SigningKeyError(`Error reading key file: ${err.message}`);
 		}
 
-		// Try multibase first
-		const multibaseKey = parseAsMultibaseVerificationKey(keyContent);
-		if (multibaseKey) {
+		// Try PEM, multibase, or hex format first (standalone key file)
+		const trimmed = keyContent.trim();
+		if (trimmed.startsWith('-----BEGIN') || trimmed.startsWith('z') || isHexPrivateKey(trimmed)) {
+			const standaloneKey = parseAsVerificationKey(keyContent);
 			if (signingKey) {
 				throw new SigningKeyError('Cannot specify a signing key when using a standalone key file');
 			}
-			return { privateKeyHex: multibaseKey, keyData: null };
+			return { privateKeyHex: standaloneKey, keyData: null };
 		}
 
 		// Try JSON
@@ -267,9 +417,9 @@ export async function loadVerificationKey({ signingFile, signingKey, envVar = 'F
 			if (!rawValue) {
 				throw new SigningKeyError(`Verification key ${signingKey} not found in key file. Available keys: ${publicKeys.join(', ')}`);
 			}
-			privateKeyHex = parseVerificationKeyValue(rawValue);
+			privateKeyHex = parseAsVerificationKey(rawValue);
 		} else {
-			privateKeyHex = parseVerificationKeyValue(verificationKeys[publicKeys[0]]);
+			privateKeyHex = parseAsVerificationKey(verificationKeys[publicKeys[0]]);
 		}
 
 		return { privateKeyHex, keyData };
@@ -311,13 +461,14 @@ export async function loadRotationKeyForRevocation({ signingFile, signingKey, re
 			throw new SigningKeyError(`Error reading key file: ${err.message}`);
 		}
 
-		// Try multibase first
-		const multibaseKey = parseAsMultibaseRotationKey(keyContent);
-		if (multibaseKey) {
+		// Try PEM, multibase, or hex format first (standalone key file)
+		const trimmed = keyContent.trim();
+		if (trimmed.startsWith('-----BEGIN') || trimmed.startsWith('z') || isHexPrivateKey(trimmed)) {
+			const standaloneKey = parseAsRotationKey(keyContent);
 			if (signingKey) {
 				throw new SigningKeyError('Cannot specify a signing key when using a standalone key file');
 			}
-			return { privateKeyHex: multibaseKey, keyData: null };
+			return { privateKeyHex: standaloneKey, keyData: null };
 		}
 
 		// Try JSON
@@ -352,7 +503,7 @@ export async function loadRotationKeyForRevocation({ signingFile, signingKey, re
 			}
 		}
 
-		const privateKeyHex = parseRotationKeyValue(rotationKeys[signerPublicKey]);
+		const privateKeyHex = parseAsRotationKey(rotationKeys[signerPublicKey]);
 		return { privateKeyHex, keyData };
 	}
 
