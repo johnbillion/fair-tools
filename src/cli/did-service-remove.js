@@ -5,6 +5,7 @@ import { importRotationKeyPair } from '../keys.js';
 import { removeServiceUrl } from '../did.js';
 import { loadRotationKey, SigningKeyError } from './lib/signing.js';
 import { logPlcError } from './lib/plc-error.js';
+import { rotationKeyHelp } from './lib/help.js';
 
 const { values } = parseArgs({
 	options: {
@@ -40,11 +41,7 @@ Required options:
   -d, --did <did>         The DID to update (did:plc:...)
   -u, --url <url>         The current FAIR service URL (must match)
 
-Signing key:
-  -f, --signing-file <file>  Path to key file (JSON with rotationKeys, or multibase)
-  -k, --signing-key <key>    Which rotation key to sign with (default: first, JSON only)
-
-  If --signing-file is not provided, uses FAIR_ROTATION_KEY environment variable.
+${rotationKeyHelp()}
 
 Optional:
   -h, --help              Show this help message`);

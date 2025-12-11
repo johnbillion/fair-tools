@@ -5,6 +5,7 @@ import { parseArgs } from 'node:util';
 import { importVerificationKeyPair } from '../keys.js';
 import { buildMetadata } from '../metadata.js';
 import { loadVerificationKey, SigningKeyError } from './lib/signing.js';
+import { verificationKeyHelp } from './lib/help.js';
 
 const { values } = parseArgs({
 	options: {
@@ -58,11 +59,7 @@ Required options:
   -u, --url <url>           Public download URL for the zip
   -d, --did <did>           Package DID (did:plc:...)
 
-Signing key:
-  -f, --signing-file <file> Path to key file (JSON with verificationKeys, or multibase)
-  -k, --signing-key <key>   Which verification key to sign with (default: first, JSON only)
-
-  If --signing-file is not provided, uses FAIR_VERIFICATION_KEY environment variable.
+${verificationKeyHelp()}
 
 Optional:
   -m, --metadata-file <file>  Path to existing metadata.json to preserve previous releases
