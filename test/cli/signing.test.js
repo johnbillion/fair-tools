@@ -197,13 +197,13 @@ describe('signing.js', () => {
 				loadRotationKey({ signingFile: filePath, signingKey: 'did:key:zQ3sh...' }),
 				(err) => {
 					assert(err instanceof SigningKeyError);
-					assert.strictEqual(err.message, 'Cannot specify a signing key when using a multibase key file');
+					assert.strictEqual(err.message, 'Cannot specify a signing key when using a standalone key file');
 					return true;
 				}
 			);
 		});
 
-		it('throws for invalid file content (not JSON or multibase)', async () => {
+		it('throws for invalid file content (not JSON, PEM, multibase, or hex)', async () => {
 			await mkdir(testDir, { recursive: true });
 			const filePath = join(testDir, 'rotation-invalid.txt');
 			await writeFile(filePath, 'this is not valid');
@@ -212,13 +212,13 @@ describe('signing.js', () => {
 				loadRotationKey({ signingFile: filePath }),
 				(err) => {
 					assert(err instanceof SigningKeyError);
-					assert.strictEqual(err.message, 'Key file must be valid JSON or a multibase base58btc encoded rotation key (starting with "z3vL")');
+					assert.strictEqual(err.message, 'Key file must be valid JSON or a standalone key (PEM, multibase, or hex)');
 					return true;
 				}
 			);
 		});
 
-		it('throws when multibase key has wrong prefix (ed25519 instead of secp256k1)', async () => {
+		it('throws when standalone key has wrong type (verification instead of rotation)', async () => {
 			await mkdir(testDir, { recursive: true });
 			const filePath = join(testDir, 'rotation-wrong-prefix.txt');
 			// Use a verification key (ed25519) where rotation key (secp256k1) is expected
@@ -467,13 +467,13 @@ describe('signing.js', () => {
 				loadVerificationKey({ signingFile: filePath, signingKey: 'did:key:z6Mk...' }),
 				(err) => {
 					assert(err instanceof SigningKeyError);
-					assert.strictEqual(err.message, 'Cannot specify a signing key when using a multibase key file');
+					assert.strictEqual(err.message, 'Cannot specify a signing key when using a standalone key file');
 					return true;
 				}
 			);
 		});
 
-		it('throws for invalid file content (not JSON or multibase)', async () => {
+		it('throws for invalid file content (not JSON, PEM, multibase, or hex)', async () => {
 			await mkdir(testDir, { recursive: true });
 			const filePath = join(testDir, 'verification-invalid.txt');
 			await writeFile(filePath, 'this is not valid');
@@ -482,13 +482,13 @@ describe('signing.js', () => {
 				loadVerificationKey({ signingFile: filePath }),
 				(err) => {
 					assert(err instanceof SigningKeyError);
-					assert.strictEqual(err.message, 'Key file must be valid JSON or a multibase base58btc encoded verification key (starting with "z3u2")');
+					assert.strictEqual(err.message, 'Key file must be valid JSON or a standalone key (PEM, multibase, or hex)');
 					return true;
 				}
 			);
 		});
 
-		it('throws when multibase key has wrong prefix (secp256k1 instead of ed25519)', async () => {
+		it('throws when standalone key has wrong type (rotation instead of verification)', async () => {
 			await mkdir(testDir, { recursive: true });
 			const filePath = join(testDir, 'verification-wrong-prefix.txt');
 			// Use a rotation key (secp256k1) where verification key (ed25519) is expected
@@ -681,13 +681,13 @@ describe('signing.js', () => {
 				}),
 				(err) => {
 					assert(err instanceof SigningKeyError);
-					assert.strictEqual(err.message, 'Cannot specify a signing key when using a multibase key file');
+					assert.strictEqual(err.message, 'Cannot specify a signing key when using a standalone key file');
 					return true;
 				}
 			);
 		});
 
-		it('throws for invalid file content (not JSON or multibase)', async () => {
+		it('throws for invalid file content (not JSON, PEM, multibase, or hex)', async () => {
 			await mkdir(testDir, { recursive: true });
 			const filePath = join(testDir, 'revoke-invalid.txt');
 			await writeFile(filePath, 'this is not valid');
@@ -699,13 +699,13 @@ describe('signing.js', () => {
 				}),
 				(err) => {
 					assert(err instanceof SigningKeyError);
-					assert.strictEqual(err.message, 'Key file must be valid JSON or a multibase base58btc encoded rotation key (starting with "z3vL")');
+					assert.strictEqual(err.message, 'Key file must be valid JSON or a standalone key (PEM, multibase, or hex)');
 					return true;
 				}
 			);
 		});
 
-		it('throws when multibase key has wrong prefix (ed25519 instead of secp256k1)', async () => {
+		it('throws when standalone key has wrong type (verification instead of rotation)', async () => {
 			await mkdir(testDir, { recursive: true });
 			const filePath = join(testDir, 'revoke-wrong-prefix.txt');
 			// Use a verification key (ed25519) where rotation key (secp256k1) is expected

@@ -10,7 +10,7 @@
  */
 export function rotationKeyHelp({ signingKeyDefault = 'first' } = {}) {
 	return `Signing key:
-  -f, --signing-file <file>  Path to key file (JSON with rotationKeys, or multibase)
+  -f, --signing-file <file>  Path to key file (JSON with rotationKeys, or PEM)
   -k, --signing-key <key>    Which rotation key to sign with (default: ${signingKeyDefault}, JSON only)
 
   If --signing-file is not provided, uses FAIR_ROTATION_KEY environment variable.`;
@@ -23,7 +23,7 @@ export function rotationKeyHelp({ signingKeyDefault = 'first' } = {}) {
  */
 export function verificationKeyHelp() {
 	return `Signing key:
-  -f, --signing-file <file>  Path to key file (JSON with verificationKeys, or multibase)
+  -f, --signing-file <file>  Path to key file (JSON with verificationKeys, or PEM)
   -k, --signing-key <key>    Which verification key to sign with (default: first, JSON only)
 
   If --signing-file is not provided, uses FAIR_VERIFICATION_KEY environment variable.`;

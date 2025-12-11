@@ -23,7 +23,7 @@ describe('getKeyFilePath', () => {
 });
 
 describe('formatKeyFileContent', () => {
-	it('formats keys as JSON with multibase-encoded private keys', () => {
+	it('formats keys as JSON with PEM-encoded private keys', () => {
 		const did = 'did:plc:test123';
 		const rotationKey = {
 			publicKey: 'did:key:zQ3shRotation',
@@ -39,7 +39,7 @@ describe('formatKeyFileContent', () => {
 
 		assert.strictEqual(parsed.did, 'did:plc:test123');
 
-		// Check rotation key is multibase encoded with secp256k1-priv prefix (0x8126)
+		// Check rotation key is PEM encoded (SEC1 format for secp256k1)
 		const rotationKeyValue = parsed.rotationKeys['did:key:zQ3shRotation'];
 		assert(rotationKeyValue.startsWith('z'), 'Rotation key should be multibase base58btc');
 		const decodedRotation = base58btc.decode(rotationKeyValue);
@@ -47,7 +47,7 @@ describe('formatKeyFileContent', () => {
 		assert.strictEqual(decodedRotation[1], 0x26);
 		assert.deepStrictEqual(Array.from(decodedRotation.slice(2)), [0x01, 0x02, 0x03, 0x04]);
 
-		// Check verification key is multibase encoded with ed25519-priv prefix (0x8026)
+		// Check verification key is PEM encoded (PKCS#8 format for Ed25519)
 		const verificationKeyValue = parsed.verificationKeys['did:key:z6MkVerification'];
 		assert(verificationKeyValue.startsWith('z'), 'Verification key should be multibase base58btc');
 		const decodedVerification = base58btc.decode(verificationKeyValue);
@@ -204,7 +204,7 @@ describe('saveRotationKeyToFile', () => {
 		const content = await readFile(outputFile, 'utf-8');
 		const parsed = JSON.parse(content);
 		assert.strictEqual(parsed.rotationKeys['did:key:zQ3shExisting'], '11223344');
-		// New key should be multibase encoded
+		// New key should be PEM encoded
 		const newKeyValue = parsed.rotationKeys['did:key:zQ3shNew'];
 		assert(newKeyValue.startsWith('z'), 'New key should be multibase encoded');
 	});
@@ -384,7 +384,7 @@ describe('saveVerificationKeyToFile', () => {
 		const content = await readFile(outputFile, 'utf-8');
 		const parsed = JSON.parse(content);
 		assert.strictEqual(parsed.verificationKeys['did:key:z6MkExisting'], '11223344');
-		// New key should be multibase encoded
+		// New key should be PEM encoded
 		const newKeyValue = parsed.verificationKeys['did:key:z6MkNew'];
 		assert(newKeyValue.startsWith('z'), 'New key should be multibase encoded');
 	});

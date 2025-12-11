@@ -16,7 +16,7 @@ export class SigningKeyError extends Error {
 }
 
 /**
- * Decode a multibase base58btc private key string.
+ * Decode a multibase base58btc rotation private key string (32-byte key).
  *
  * @param {string} key - The multibase key (starts with 'z3vL' or 'z3u2')
  * @returns {{prefixHex: string, rawKey: Uint8Array}} - The decoded prefix (hex) and raw key
@@ -45,7 +45,10 @@ function decodeMultibasePrivateKey(key) {
 }
 
 /**
- * Try to parse content as a multibase base58btc rotation private key.
+ * Decode a multibase base58btc verification private key string (Sodium 64-byte format).
+ *
+ * Sodium stores Ed25519 secret keys as 64 bytes: the 32-byte seed concatenated with
+ * the 32-byte public key. This function extracts just the 32-byte seed.
  *
  * @param {string} content - The file content to check
  * @returns {string|null} - The hex key if valid multibase, null otherwise
@@ -71,7 +74,7 @@ function parseAsMultibaseRotationKey(content) {
 }
 
 /**
- * Try to parse content as a multibase base58btc verification private key.
+ * Decode a PEM-encoded EC private key (SEC1 format) to raw bytes.
  *
  * @param {string} content - The file content to check
  * @returns {string|null} - The hex key if valid multibase, null otherwise
@@ -97,11 +100,11 @@ function parseAsMultibaseVerificationKey(content) {
 }
 
 /**
- * Parse a rotation key value from JSON (could be multibase or hex for backwards compatibility).
+ * Check if content looks like a PEM-encoded EC private key (rotation key).
  *
- * @param {string} value - The key value from JSON
+ * @param {string} content - The content to check
  * @returns {string} - The hex key
- * @throws {SigningKeyError} If the value is invalid
+ * @throws {SigningKeyError} If the format is invalid or unrecognized
  */
 function parseRotationKeyValue(value) {
 	const multibaseKey = parseAsMultibaseRotationKey(value);
@@ -113,11 +116,11 @@ function parseRotationKeyValue(value) {
 }
 
 /**
- * Parse a verification key value from JSON (could be multibase or hex for backwards compatibility).
+ * Parse content as a verification private key (PEM, multibase, or hex).
  *
- * @param {string} value - The key value from JSON
+ * @param {string} content - The file content to parse
  * @returns {string} - The hex key
- * @throws {SigningKeyError} If the value is invalid
+ * @throws {SigningKeyError} If the format is invalid or unrecognized
  */
 function parseVerificationKeyValue(value) {
 	const multibaseKey = parseAsMultibaseVerificationKey(value);
@@ -131,13 +134,15 @@ function parseVerificationKeyValue(value) {
 /**
  * Load a rotation key from a key file or environment variable.
  *
- * The key file can be either:
- * - A multibase base58btc encoded private key (starts with 'z3vL')
- * - A JSON file with a `rotationKeys` object mapping public keys to private keys
+ * The key file can contain one of:
+ * - A single PEM-encoded EC private key (-----BEGIN EC PRIVATE KEY-----)
+ * - A single multibase base58btc encoded private key (starts with 'z3vL')
+ * - A single 64-character hex string (32-byte private key)
+ * - A JSON-encoded string containing a `rotationKeys` object mapping public keys to private keys
  *
  * @param {{
  *   signingFile?: string,
- *   signingKey?: string, // ignored for multibase files
+ *   signingKey?: string, // ignored for standalone key files
  *   envVar?: string // defaults to 'FAIR_ROTATION_KEY'
  * }} opts
  * @returns {Promise<{privateKeyHex: string, keyData: object|null}>}
@@ -160,7 +165,7 @@ export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_
 		const multibaseKey = parseAsMultibaseRotationKey(keyContent);
 		if (multibaseKey) {
 			if (signingKey) {
-				throw new SigningKeyError('Cannot specify a signing key when using a multibase key file');
+				throw new SigningKeyError('Cannot specify a signing key when using a standalone key file');
 			}
 			return { privateKeyHex: multibaseKey, keyData: null };
 		}
@@ -170,7 +175,7 @@ export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_
 		try {
 			keyData = JSON.parse(keyContent);
 		} catch {
-			throw new SigningKeyError('Key file must be valid JSON or a multibase base58btc encoded rotation key (starting with "z3vL")');
+			throw new SigningKeyError('Key file must be valid JSON or a standalone key (PEM, multibase, or hex)');
 		}
 
 		const rotationKeys = keyData.rotationKeys || {};
@@ -205,13 +210,15 @@ export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_
 /**
  * Load a verification key from a key file or environment variable.
  *
- * The key file can be either:
- * - A multibase base58btc encoded private key (starts with 'z3u2')
- * - A JSON file with a `verificationKeys` object mapping public keys to private keys
+ * The key file can contain one of:
+ * - A single PEM-encoded PKCS#8 private key (-----BEGIN PRIVATE KEY-----)
+ * - A single multibase base58btc encoded private key (starts with 'zru' or 'zrv')
+ * - A single 64-character hex string (32-byte private key)
+ * - A JSON-encoded string containing a `verificationKeys` object mapping public keys to private keys
  *
  * @param {{
  *   signingFile?: string,
- *   signingKey?: string, // ignored for multibase files
+ *   signingKey?: string, // ignored for standalone key files
  *   envVar?: string // defaults to 'FAIR_VERIFICATION_KEY'
  * }} opts
  * @returns {Promise<{privateKeyHex: string, keyData: object|null}>}
@@ -234,7 +241,7 @@ export async function loadVerificationKey({ signingFile, signingKey, envVar = 'F
 		const multibaseKey = parseAsMultibaseVerificationKey(keyContent);
 		if (multibaseKey) {
 			if (signingKey) {
-				throw new SigningKeyError('Cannot specify a signing key when using a multibase key file');
+				throw new SigningKeyError('Cannot specify a signing key when using a standalone key file');
 			}
 			return { privateKeyHex: multibaseKey, keyData: null };
 		}
@@ -244,7 +251,7 @@ export async function loadVerificationKey({ signingFile, signingKey, envVar = 'F
 		try {
 			keyData = JSON.parse(keyContent);
 		} catch {
-			throw new SigningKeyError('Key file must be valid JSON or a multibase base58btc encoded verification key (starting with "z3u2")');
+			throw new SigningKeyError('Key file must be valid JSON or a standalone key (PEM, multibase, or hex)');
 		}
 
 		const verificationKeys = keyData.verificationKeys || {};
@@ -280,13 +287,15 @@ export async function loadVerificationKey({ signingFile, signingKey, envVar = 'F
  * Load a rotation key for revoking another rotation key.
  * Auto-selects a key that isn't the one being revoked (for JSON files only).
  *
- * The key file can be either:
- * - A multibase base58btc encoded private key (starts with 'z3vL')
- * - A JSON file with a `rotationKeys` object mapping public keys to private keys
+ * The key file can contain one of:
+ * - A single PEM-encoded EC private key (-----BEGIN EC PRIVATE KEY-----)
+ * - A single multibase base58btc encoded private key (starts with 'z3vL')
+ * - A single 64-character hex string (32-byte private key)
+ * - A JSON-encoded string containing a `rotationKeys` object mapping public keys to private keys
  *
  * @param {{
  *   signingFile?: string,
- *   signingKey?: string, // ignored for multibase files
+ *   signingKey?: string, // ignored for standalone key files
  *   revokeKey: string, // the key being revoked (to avoid using it for signing)
  *   envVar?: string // defaults to 'FAIR_ROTATION_KEY'
  * }} opts
@@ -306,7 +315,7 @@ export async function loadRotationKeyForRevocation({ signingFile, signingKey, re
 		const multibaseKey = parseAsMultibaseRotationKey(keyContent);
 		if (multibaseKey) {
 			if (signingKey) {
-				throw new SigningKeyError('Cannot specify a signing key when using a multibase key file');
+				throw new SigningKeyError('Cannot specify a signing key when using a standalone key file');
 			}
 			return { privateKeyHex: multibaseKey, keyData: null };
 		}
@@ -316,7 +325,7 @@ export async function loadRotationKeyForRevocation({ signingFile, signingKey, re
 		try {
 			keyData = JSON.parse(keyContent);
 		} catch {
-			throw new SigningKeyError('Key file must be valid JSON or a multibase base58btc encoded rotation key (starting with "z3vL")');
+			throw new SigningKeyError('Key file must be valid JSON or a standalone key (PEM, multibase, or hex)');
 		}
 
 		const rotationKeys = keyData.rotationKeys || {};
