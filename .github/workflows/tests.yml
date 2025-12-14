@@ -16,8 +16,7 @@ concurrency:
 
 jobs:
   test:
-    name: Test on Node.js ${{ matrix.node-version }}
-    runs-on: ubuntu-latest
+    name: ${{ matrix.label }}
     strategy:
       matrix:
         node-version:
@@ -25,24 +24,11 @@ jobs:
           - 20
           - 22
           - 24 # Latest LTS
+        label:
+          - Test
       fail-fast: false
     permissions:
       contents: read # Needed to clone the repo.
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6.0.1
-        with:
-          persist-credentials: false
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6.1.0
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tests
-        run: npm test
+    uses: ./.github/workflows/reusable-tests.yml
+    with:
+      node-version: ${{ matrix.node-version }}
