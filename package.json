@@ -18,7 +18,7 @@
 		"index.js"
 	],
 	"scripts": {
-		"test": "node --test test/",
+		"test": "node --test",
 		"fair-tools": "node src/cli/fair-tools.js"
 	},
 	"keywords": [
