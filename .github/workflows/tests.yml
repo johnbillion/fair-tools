@@ -23,6 +23,7 @@ jobs:
         node-version:
           - 18 # Lowest supported
           - 24 # Latest LTS
+      fail-fast: false
     permissions:
       contents: read # Needed to clone the repo.
 
