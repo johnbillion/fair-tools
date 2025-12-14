@@ -45,7 +45,7 @@ ${rotationKeyHelp()}
 
 Optional:
   -o, --output-file <file>    Write new key to this file instead of --signing-file
-                              If file exists, appends to rotationKeys. Otherwise writes multibase.
+                              If file exists, appends to rotationKeys. Otherwise writes PEM.
   -h, --help                  Show this help message
 
 The new rotation key will be appended to --signing-file unless --output-file is specified.`);

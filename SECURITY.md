@@ -13,18 +13,16 @@ Verification keys are implemented with EdDSA using Ed25519. The FAIR protocol sp
 Ed25519 was chosen for interoperability with PHP:
 
 1. FAIR originated as a protocol to be used within the WordPress ecosystem, which uses PHP. The Sodium extension and the sodium_compat library -- both widely used within the WordPress and PHP ecosystems -- [provide Ed25519 as the only algorithm for public key cryptography](https://github.com/paragonie/sodium_compat/issues/46).
-2. The FAIR plugin for WordPress uses Ed25519 for verifying signatures for the same reason, and interoperability with the FAIR plugin and with WordPress is a key requirement of this package.
+2. The FAIR plugin for WordPress uses Ed25519 for verifying signatures for the same reason, and interoperability with existing FAIR tooling for WordPress is a key requirement of this package.
 
 ### Private key storage
 
-Private keys are stored as multibase base58btc strings:
+Private keys are stored in PEM format, which enables detection by secret scanning services and tools:
 
-| Key Type     | Algorithm | Multicodec | Prefix |
-|--------------|-----------|------------|--------|
-| Rotation     | secp256k1 | `0x1301`   | `z3vL` |
-| Verification | ed25519   | `0x1300`   | `z3u2` |
-
-The deterministic prefixes _could_ enable pattern-based secret scanning via custom patterns, although this format is not currently supported by GitHub Secret Scanning by default. This private key storage format is not widespread despite making use of the W3C multibase format. This storage format may be revised in a future version, for example to use PEM headers while retaining support for multibase base58btc for interoperability with existing tools such as the FAIR Beacon plugin for WordPress.
+| Key Type     | Algorithm | PEM Format | Header                           |
+|--------------|-----------|------------|----------------------------------|
+| Rotation     | secp256k1 | SEC1       | `-----BEGIN EC PRIVATE KEY-----` |
+| Verification | ed25519   | PKCS#8     | `-----BEGIN PRIVATE KEY-----`    |
 
 Key files are written with mode `0600` (owner read/write only).
 

@@ -45,7 +45,7 @@ ${rotationKeyHelp()}
 
 Optional:
   -o, --output-file <file>    Write new key to this file instead of --signing-file
-                              If file exists, appends to verificationKeys. Otherwise writes multibase.
+                              If file exists, appends to verificationKeys. Otherwise writes PEM.
   -h, --help                  Show this help message
 
 The new verification key will be appended to --signing-file unless --output-file is specified.`);
