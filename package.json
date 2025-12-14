@@ -26,7 +26,7 @@
 	],
 	"license": "MIT",
 	"dependencies": {
-		"@atproto/crypto": "^0.4.4",
+		"@atproto/crypto": "^0.4.5",
 		"@did-plc/lib": "^0.0.4",
 		"@noble/curves": "^1.9.7",
 		"multiformats": "^9.9.0",
