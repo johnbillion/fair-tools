@@ -27,7 +27,7 @@ const { values } = parseArgs({
 if (values.help) {
 	console.log(`Usage: fair-tools did domain verify [options]
 
-Verify a domain's DNS record for a DID. Use this to check DNS propagation
+Verify the DID DNS record of a domain. Use this to check DNS propagation
 before adding a domain alias to a DID's alsoKnownAs field.
 
 Required options:

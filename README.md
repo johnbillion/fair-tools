@@ -13,6 +13,21 @@ This library focuses on providing FAIR tools for the WordPress ecosystem, but it
 
 ## Installation
 
+For the best user experience, install FAIR Tools globally:
+
+```bash
+npm install -g fair-tools
+```
+
+Usage:
+
+```
+fair-tools <command> [options]
+```
+
+<details>
+<summary>Alternatively, install and use FAIR Tools as a dev dependency of a package</summary>
+
 ```bash
 npm install --save-dev fair-tools
 ```
@@ -27,30 +42,44 @@ Then add `fair-tools` to your `package.json` scripts:
 }
 ```
 
-## CLI reference
-
-Run `npm run fair-tools` to see all available commands:
+Usage:
 
 ```
-Usage: fair-tools <command> [options]
+npm run fair-tools -- <command> [options]
+```
+</details>
+
+## CLI reference
 
 Commands:
-  did create                   Create a new DID
-  did service add              Add a service URL to a DID
-  did service replace          Replace a service URL in a DID
-  did service remove           Remove a service URL from a DID
-  did verification-key add     Add a verification key
-  did verification-key revoke  Revoke a verification key
-  did rotation-key add         Add a rotation key
-  did rotation-key revoke      Revoke a rotation key
-  did aka add                  Add a URL to the alsoKnownAs field
-  did aka replace              Replace a URL in the alsoKnownAs field
-  did aka remove               Remove a URL from the alsoKnownAs field
-  did domain verify            Verify a domain's DNS record for a DID
-  did domain verify-alias      Verify alsoKnownAs domain aliases for a DID
-  metadata build               Build a FAIR metadata document
 
-Run 'fair-tools <command> --help' for more information on a command.
+```shell
+fair-tools did create                   Create a new DID
+fair-tools did service add              Add a service URL to a DID
+fair-tools did service replace          Replace a service URL in a DID
+fair-tools did service remove           Remove a service URL from a DID
+fair-tools did verification-key add     Add a verification key
+fair-tools did verification-key revoke  Revoke a verification key
+fair-tools did rotation-key add         Add a rotation key
+fair-tools did rotation-key revoke      Revoke a rotation key
+fair-tools did aka add                  Add a URL to the alsoKnownAs field
+fair-tools did aka replace              Replace a URL in the alsoKnownAs field
+fair-tools did aka remove               Remove a URL from the alsoKnownAs field
+fair-tools did domain verify            Verify the DID DNS record of a domain
+fair-tools did domain verify-alias      Verify alsoKnownAs domain aliases for a DID
+fair-tools metadata build               Build a FAIR metadata document
+```
+
+To see all available commands:
+
+```shell
+fair-tools
+```
+
+For more information on a command:
+
+```
+fair-tools <command> --help
 ```
 
 ## Basic usage
@@ -69,7 +98,7 @@ The initial setup of the DID only happens once. Subsequent updates to your plugi
 Creates a new DID and publishes it.
 
 ```bash
-npm run fair-tools -- did create --directory ./dids
+fair-tools did create --directory ./dids
 ```
 
 This generates rotation and verification keypairs, creates a DID, publishes it to plc.directory, and writes the keys to `<directory>/<did>.json` with secure permissions (0600).
@@ -106,7 +135,7 @@ Most subsequent commands after creating a DID require a signing key. There are t
 Builds signed FAIR metadata for a release of a plugin for WordPress.
 
 ```bash
-npm run fair-tools -- metadata build \
+fair-tools metadata build \
   --did did:plc:xxx \
   --plugin-file ./my-plugin/my-plugin.php \
   --zip-file ./my-plugin.zip \
@@ -120,7 +149,7 @@ npm run fair-tools -- metadata build \
 Adds your FAIR service URL to a DID.
 
 ```bash
-npm run fair-tools -- did service add \
+fair-tools did service add \
   --did did:plc:xxx \
   --url https://example.com/did:plc:xxx/metadata.json
 ```
@@ -130,7 +159,7 @@ npm run fair-tools -- did service add \
 Replaces the FAIR service URL for a DID. Requires specifying the old URL to prevent accidental overwrites.
 
 ```bash
-npm run fair-tools -- did service replace \
+fair-tools did service replace \
   --did did:plc:xxx \
   --old-url https://old.example.com/metadata.json \
   --new-url https://new.example.com/metadata.json
@@ -141,7 +170,7 @@ npm run fair-tools -- did service replace \
 Removes the FAIR service URL from a DID. Requires specifying the URL to prevent accidental removals.
 
 ```bash
-npm run fair-tools -- did service remove \
+fair-tools did service remove \
   --did did:plc:xxx \
   --url https://example.com/metadata.json
 ```
@@ -155,7 +184,7 @@ Over time you may need to manage the keys for your DID.
 Adds a URL to the alsoKnownAs field of a DID. For FAIR domain aliases, use a `fair://` URL.
 
 ```bash
-npm run fair-tools -- did aka add \
+fair-tools did aka add \
   --did did:plc:xxx \
   --url fair://example.com
 ```
@@ -167,7 +196,7 @@ Before adding a `fair://` alias, ensure your domain has a TXT record at `_fairpm
 Replaces a URL in the alsoKnownAs field of a DID. Requires specifying the old URL to prevent accidental overwrites.
 
 ```bash
-npm run fair-tools -- did aka replace \
+fair-tools did aka replace \
   --did did:plc:xxx \
   --old-url fair://old.example.com \
   --new-url fair://new.example.com
@@ -178,7 +207,7 @@ npm run fair-tools -- did aka replace \
 Removes a URL from the alsoKnownAs field of a DID.
 
 ```bash
-npm run fair-tools -- did aka remove \
+fair-tools did aka remove \
   --did did:plc:xxx \
   --url fair://example.com
 ```
@@ -188,7 +217,7 @@ npm run fair-tools -- did aka remove \
 Verifies that a domain's DNS TXT record is correctly configured for a DID. Use this to check DNS propagation before adding a domain alias to your DID.
 
 ```bash
-npm run fair-tools -- did domain verify \
+fair-tools did domain verify \
   --domain example.com \
   --did did:plc:xxx
 ```
@@ -200,7 +229,7 @@ The domain requires a TXT record at `_fairpm.<domain>` with the value `did=<your
 Verifies the `fair://` domain alias in a DID's alsoKnownAs field by fetching the DID document, extracting the alias, and checking the corresponding DNS TXT record.
 
 ```bash
-npm run fair-tools -- did domain verify-alias \
+fair-tools did domain verify-alias \
   --did did:plc:xxx
 ```
 
@@ -209,7 +238,7 @@ npm run fair-tools -- did domain verify-alias \
 Generates a new verification key, adds it to a DID, and saves it to the key file.
 
 ```bash
-npm run fair-tools -- did verification-key add \
+fair-tools did verification-key add \
   --did did:plc:xxx
 ```
 
@@ -220,7 +249,7 @@ Use `--output-file` to save the new key to a different file instead of the signi
 Generates a new rotation key, adds it to a DID, and saves it to the key file.
 
 ```bash
-npm run fair-tools -- did rotation-key add \
+fair-tools did rotation-key add \
   --did did:plc:xxx
 ```
 
@@ -231,7 +260,7 @@ Use `--output-file` to save the new key to a different file instead of the signi
 Revokes a verification key from a DID.
 
 ```bash
-npm run fair-tools -- did verification-key revoke \
+fair-tools did verification-key revoke \
   --did did:plc:xxx \
   --revoke did:key:z6Mk...
 ```
@@ -243,7 +272,7 @@ Use `--cleanup` to delete the revoked key from the key file after success.
 Revokes a rotation key from a DID.
 
 ```bash
-npm run fair-tools -- did rotation-key revoke \
+fair-tools did rotation-key revoke \
   --did did:plc:xxx \
   --revoke did:key:zQ3sh...
 ```
@@ -253,6 +282,11 @@ You cannot revoke the key used to sign the operation, and at least one rotation 
 When using `--signing-file` without `--signing-key`, defaults to signing with the first available rotation key that isn't being revoked.
 
 Use `--cleanup` to delete the revoked key from the key file after success.
+
+## Alternatives
+
+- [FAIR Beacon](https://github.com/fairpm/fair-beacon) - Plugin for WordPress for a self-hostable FAIR repo
+- [FAIR DID Manager](https://github.com/fairpm/did-manager/tree/initial-implementation) - A PHP library for DID management and WordPress plugin/theme metadata generation
 
 ## License
 
