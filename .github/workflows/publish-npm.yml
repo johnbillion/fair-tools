@@ -19,11 +19,11 @@ jobs:
       url: https://www.npmjs.com/package/fair-tools
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.1
         with:
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6.1.0
         with:
           node-version-file: .nvmrc
           registry-url: https://registry.npmjs.org
