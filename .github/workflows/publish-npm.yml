@@ -5,13 +5,14 @@ on:
     types:
       - published
 
-permissions:
-  contents: read
-  id-token: write
+permissions: {}
 
 jobs:
   publish-npm:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read  # To read the repository
+      id-token: write # OIDC token for trusted publishing
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
