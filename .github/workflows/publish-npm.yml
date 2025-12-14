@@ -1,0 +1,37 @@
+name: Publish
+
+on:
+  release:
+    types:
+      - published
+
+permissions: {}
+
+jobs:
+  publish-npm:
+    name: Publish fair-tools
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read  # To read the repository
+      id-token: write # OIDC token for trusted publishing
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/fair-tools
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - name: Upgrade npm for OIDC support
+        run: npm install -g npm@latest
+
+      - run: npm ci
+      - run: npm test
+      - run: npm publish --access public
