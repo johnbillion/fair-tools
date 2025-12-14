@@ -6,6 +6,9 @@
 	"engines": {
 		"node": ">=18"
 	},
+	"repository": {
+		"url": "https://github.com/johnbillion/fair-tools"
+	},
 	"main": "index.js",
 	"bin": {
 		"fair-tools": "./src/cli/fair-tools.js"
