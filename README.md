@@ -7,10 +7,6 @@ This library focuses on providing FAIR tools for the WordPress ecosystem, but it
 > [!CAUTION]  
 > This package is not production ready and is under heavy development. Do not use this unless you are comfortable testing the FAIR protocol and handling breaking changes, including breaking changes to storage of private keys.  
 
-> [!IMPORTANT]  
-> This is not an official FAIR tool.  
-> Its license facilitates it being transferred to The FAIR Web Foundation at a later date should they wish.  
-
 ## Installation
 
 For the best user experience, install FAIR Tools globally:
@@ -282,6 +278,16 @@ You cannot revoke the key used to sign the operation, and at least one rotation 
 When using `--signing-file` without `--signing-key`, defaults to signing with the first available rotation key that isn't being revoked.
 
 Use `--cleanup` to delete the revoked key from the key file after success.
+
+## FAQs
+
+### I installed fair-tools globally but it's not always available, why not?
+
+If you're using `nvm` or `fnm` to manage Node.js versions you'll need to install it globally for each version. This is how those tools and Node.js versions work, it's not specific to fair-tools.
+
+### Is this an official FAIR tool?
+
+No. Its license facilitates it being transferred to The FAIR Web Foundation at a later date should they wish.
 
 ## Alternatives
 
