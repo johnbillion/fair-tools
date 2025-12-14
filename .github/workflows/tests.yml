@@ -22,6 +22,8 @@ jobs:
       matrix:
         node-version:
           - 18 # Lowest supported
+          - 20
+          - 22
           - 24 # Latest LTS
       fail-fast: false
     permissions:
