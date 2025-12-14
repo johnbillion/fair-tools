@@ -16,8 +16,13 @@ concurrency:
 
 jobs:
   test:
-    name: Tests
+    name: Test on Node.js ${{ matrix.node-version }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version:
+          - 18 # Lowest supported
+          - 24 # Latest LTS
     permissions:
       contents: read # Needed to clone the repo.
 
@@ -30,7 +35,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6.1.0
         with:
-          node-version-file: .nvmrc
+          node-version: ${{ matrix.node-version }}
           cache: npm
 
       - name: Install dependencies
