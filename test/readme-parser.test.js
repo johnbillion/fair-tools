@@ -535,5 +535,51 @@ Initial release.
 				},
 			});
 		});
+
+		it('handles trailing whitespace after plugin name', () => {
+			// Note: the "===  " has intentional trailing spaces
+			const content =
+				'=== Test Plugin ===  \n\nShort description.\n\n== Description ==\n\nThe description.\n';
+			const data = parseReadmeFile(content);
+			assert.deepStrictEqual(data, {
+				name: 'Test Plugin',
+				license: undefined,
+				licenseUri: undefined,
+				keywords: [],
+				shortDescription: 'Short description.',
+				contributors: undefined,
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {
+					description: '<p>The description.</p>\n',
+				},
+			});
+		});
+
+		it('handles trailing whitespace after markdown heading', () => {
+			// Note: the "# Test Plugin  " has intentional trailing spaces
+			const content =
+				'# Test Plugin  \n\nShort description.\n\n== Description ==\n\nThe description.\n';
+			const data = parseReadmeFile(content);
+			assert.deepStrictEqual(data, {
+				name: 'Test Plugin',
+				license: undefined,
+				licenseUri: undefined,
+				keywords: [],
+				shortDescription: 'Short description.',
+				contributors: undefined,
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {
+					description: '<p>The description.</p>\n',
+				},
+			});
+		});
 	});
 });

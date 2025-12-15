@@ -187,8 +187,8 @@ export function parseReadmeFile(content) {
 	const fields = parseHeaderFields(headerBlock);
 
 	// Extract plugin name from === Plugin Name === or # Plugin Name
-	const wpTitleMatch = headerBlock.match(/^===\s*(.+?)\s*===$/m);
-	const mdTitleMatch = headerBlock.match(/^#\s+(.+)$/m);
+	const wpTitleMatch = headerBlock.match(/^===\s*(.+?)\s*===\s*$/m);
+	const mdTitleMatch = headerBlock.match(/^#\s+(.+?)\s*$/m);
 	const titleMatch = wpTitleMatch || mdTitleMatch;
 
 	// Build result with normalized field names
