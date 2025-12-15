@@ -121,34 +121,27 @@ describe('parseReadmeFile', () => {
 	});
 
 	describe('edge cases', () => {
-		it('returns empty keywords array when no tags', () => {
+		it('handles basic readme with no tags', () => {
 			const content = `=== Test Plugin ===
 License: MIT
 
 Short description here.
 `;
 			const data = parseReadmeFile(content);
-			assert.deepStrictEqual(data.keywords, []);
-		});
-
-		it('returns undefined contributors when none present', () => {
-			const content = `=== Test Plugin ===
-License: MIT
-
-Short description here.
-`;
-			const data = parseReadmeFile(content);
-			assert.strictEqual(data.contributors, undefined);
-		});
-
-		it('returns empty sections when no section headers', () => {
-			const content = `=== Test Plugin ===
-License: MIT
-
-Short description here.
-`;
-			const data = parseReadmeFile(content);
-			assert.deepStrictEqual(data.sections, {});
+			assert.deepStrictEqual(data, {
+				name: 'Test Plugin',
+				license: 'MIT',
+				licenseUri: undefined,
+				keywords: [],
+				shortDescription: 'Short description here.',
+				contributors: undefined,
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {},
+			});
 		});
 
 		it('handles content with no title', () => {
@@ -158,29 +151,44 @@ Tags: test
 Short description here.
 `;
 			const data = parseReadmeFile(content);
-			assert.strictEqual(data.name, undefined);
-			assert.strictEqual(data.license, 'MIT');
-			assert.deepStrictEqual(data.keywords, ['test']);
+			assert.deepStrictEqual(data, {
+				name: undefined,
+				license: 'MIT',
+				licenseUri: undefined,
+				keywords: ['test'],
+				shortDescription: 'Short description here.',
+				contributors: undefined,
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {},
+			});
 		});
 
-		it('trims whitespace from tags', () => {
+		it('trims whitespace from tags and contributors', () => {
 			const content = `=== Test ===
 Tags:   spaced ,  tags  ,  here
-
-Description.
-`;
-			const data = parseReadmeFile(content);
-			assert.deepStrictEqual(data.keywords, ['spaced', 'tags', 'here']);
-		});
-
-		it('trims whitespace from contributors', () => {
-			const content = `=== Test ===
 Contributors:   john ,  jane  ,  bob
 
 Description.
 `;
 			const data = parseReadmeFile(content);
-			assert.deepStrictEqual(data.contributors, ['john', 'jane', 'bob']);
+			assert.deepStrictEqual(data, {
+				name: 'Test',
+				license: undefined,
+				licenseUri: undefined,
+				keywords: ['spaced', 'tags', 'here'],
+				shortDescription: 'Description.',
+				contributors: ['john', 'jane', 'bob'],
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {},
+			});
 		});
 
 		it('stops short description at section heading', () => {
@@ -192,7 +200,22 @@ Tags: tag1
 This should not be the short description.
 `;
 			const data = parseReadmeFile(content);
-			assert.strictEqual(data.shortDescription, undefined);
+			assert.deepStrictEqual(data, {
+				name: 'Test Plugin',
+				license: undefined,
+				licenseUri: undefined,
+				keywords: ['tag1'],
+				shortDescription: undefined,
+				contributors: undefined,
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {
+					description: '<p>This should not be the short description.</p>\n',
+				},
+			});
 		});
 
 		it('handles mixed empty tags gracefully', () => {
@@ -202,7 +225,20 @@ Tags: valid, , , another
 Description.
 `;
 			const data = parseReadmeFile(content);
-			assert.deepStrictEqual(data.keywords, ['valid', 'another']);
+			assert.deepStrictEqual(data, {
+				name: 'Test',
+				license: undefined,
+				licenseUri: undefined,
+				keywords: ['valid', 'another'],
+				shortDescription: 'Description.',
+				contributors: undefined,
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {},
+			});
 		});
 
 		it('converts WordPress-flavour subheadings to h4 in description', () => {
@@ -223,10 +259,23 @@ Details about feature one.
 Details about feature two.
 `;
 			const data = parseReadmeFile(content);
-			assert.strictEqual(
-				data.sections.description,
-				'<p>Some intro text.</p>\n<h4>Feature One</h4>\n<p>Details about feature one.</p>\n<h4>Feature Two</h4>\n<p>Details about feature two.</p>\n',
-			);
+			assert.deepStrictEqual(data, {
+				name: 'Test Plugin',
+				license: undefined,
+				licenseUri: undefined,
+				keywords: [],
+				shortDescription: 'Short description.',
+				contributors: undefined,
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {
+					description:
+						'<p>Some intro text.</p>\n<h4>Feature One</h4>\n<p>Details about feature one.</p>\n<h4>Feature Two</h4>\n<p>Details about feature two.</p>\n',
+				},
+			});
 		});
 
 		it('converts installation section markdown to HTML', () => {
@@ -247,10 +296,23 @@ Short description.
 2. Upload to plugins folder
 `;
 			const data = parseReadmeFile(content);
-			assert.strictEqual(
-				data.sections.installation,
-				'<h4>Automatic Installation</h4>\n<ol>\n<li>Go to Plugins</li>\n<li>Click Add New</li>\n</ol>\n<h4>Manual Installation</h4>\n<ol>\n<li>Download the zip</li>\n<li>Upload to plugins folder</li>\n</ol>\n',
-			);
+			assert.deepStrictEqual(data, {
+				name: 'Test Plugin',
+				license: undefined,
+				licenseUri: undefined,
+				keywords: [],
+				shortDescription: 'Short description.',
+				contributors: undefined,
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {
+					installation:
+						'<h4>Automatic Installation</h4>\n<ol>\n<li>Go to Plugins</li>\n<li>Click Add New</li>\n</ol>\n<h4>Manual Installation</h4>\n<ol>\n<li>Download the zip</li>\n<li>Upload to plugins folder</li>\n</ol>\n',
+				},
+			});
 		});
 
 		it('converts changelog headings without trailing equals sign', () => {
@@ -268,10 +330,23 @@ Short description.
 * Initial release.
 `;
 			const data = parseReadmeFile(content);
-			assert.strictEqual(
-				data.sections.changelog,
-				'<h4>1.2.0 - 2024/12/01</h4>\n<ul>\n<li>Added new feature.</li>\n<li>Fixed bug.</li>\n</ul>\n<h4>1.1.0</h4>\n<ul>\n<li>Initial release.</li>\n</ul>\n',
-			);
+			assert.deepStrictEqual(data, {
+				name: 'Test Plugin',
+				license: undefined,
+				licenseUri: undefined,
+				keywords: [],
+				shortDescription: 'Short description.',
+				contributors: undefined,
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {
+					changelog:
+						'<h4>1.2.0 - 2024/12/01</h4>\n<ul>\n<li>Added new feature.</li>\n<li>Fixed bug.</li>\n</ul>\n<h4>1.1.0</h4>\n<ul>\n<li>Initial release.</li>\n</ul>\n',
+				},
+			});
 		});
 
 		it('normalizes "frequently asked questions" to "faq"', () => {
@@ -286,19 +361,25 @@ Short description.
 Just install and activate.
 `;
 			const data = parseReadmeFile(content);
-			assert.ok(data.sections.faq, 'Should have faq section');
-			assert.strictEqual(
-				data.sections['frequently asked questions'],
-				undefined,
-				'Should not have "frequently asked questions" key',
-			);
-			assert.strictEqual(
-				data.sections.faq,
-				'<h4>How do I use this?</h4>\n<p>Just install and activate.</p>\n',
-			);
+			assert.deepStrictEqual(data, {
+				name: 'Test Plugin',
+				license: undefined,
+				licenseUri: undefined,
+				keywords: [],
+				shortDescription: 'Short description.',
+				contributors: undefined,
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {
+					faq: '<h4>How do I use this?</h4>\n<p>Just install and activate.</p>\n',
+				},
+			});
 		});
 
-		it('orders sections correctly', () => {
+		it('orders sections per FAIR spec', () => {
 			const content = `=== Test Plugin ===
 
 Short description.
@@ -324,13 +405,25 @@ Initial.
 Install it.
 `;
 			const data = parseReadmeFile(content);
-			const sectionKeys = Object.keys(data.sections);
-			assert.deepStrictEqual(sectionKeys, [
-				'description',
-				'installation',
-				'changelog',
-				'faq',
-			]);
+			assert.deepStrictEqual(data, {
+				name: 'Test Plugin',
+				license: undefined,
+				licenseUri: undefined,
+				keywords: [],
+				shortDescription: 'Short description.',
+				contributors: undefined,
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {
+					description: '<p>The description.</p>\n',
+					installation: '<p>Install it.</p>\n',
+					changelog: '<h4>1.0</h4>\n<p>Initial.</p>\n',
+					faq: '<h4>Question?</h4>\n<p>Answer.</p>\n',
+				},
+			});
 		});
 
 		it('normalizes section names to camelCase', () => {
@@ -338,41 +431,108 @@ Install it.
 
 Short description.
 
-== Upgrade Notice ==
+== Other Notes ==
 
-= 1.0 =
-Initial release.
+Some extra notes.
 
-== WP CLI Commands ==
+== Security ==
 
-Run \`wp help\` for info.
+Report vulnerabilities via the contact form.
 `;
 			const data = parseReadmeFile(content);
-			assert.deepStrictEqual(data.sections, {
-				upgradeNotice: '<h4>1.0</h4>\n<p>Initial release.</p>\n',
-				wpCliCommands: '<p>Run <code>wp help</code> for info.</p>\n',
+			assert.deepStrictEqual(data, {
+				name: 'Test Plugin',
+				license: undefined,
+				licenseUri: undefined,
+				keywords: [],
+				shortDescription: 'Short description.',
+				contributors: undefined,
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {
+					security: '<p>Report vulnerabilities via the contact form.</p>\n',
+					otherNotes: '<p>Some extra notes.</p>\n',
+				},
 			});
 		});
 
-		it('parses all sections as markdown to HTML', () => {
+		it('appends unsupported sections to description', () => {
+			const content = `=== Test Plugin ===
+
+Short description.
+
+== Description ==
+
+The description.
+
+== Filters ==
+
+Some filter info.
+
+== Custom Section ==
+
+Some **bold** text.
+`;
+			const data = parseReadmeFile(content);
+			assert.deepStrictEqual(data, {
+				name: 'Test Plugin',
+				license: undefined,
+				licenseUri: undefined,
+				keywords: [],
+				shortDescription: 'Short description.',
+				contributors: undefined,
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {
+					description:
+						'<p>The description.</p>\n' +
+						'<h3>Filters</h3>\n' +
+						'<p>Some filter info.</p>\n' +
+						'<h3>Custom Section</h3>\n' +
+						'<p>Some <strong>bold</strong> text.</p>\n',
+				},
+			});
+		});
+
+		it('supports upgradeNotice section', () => {
 			const content = `=== Test Plugin ===
 
 Short description.
 
 == Upgrade Notice ==
 
+= 2.0 =
+Breaking changes, please backup first.
+
 = 1.0 =
 Initial release.
-
-== Custom Section ==
-
-Some **bold** text and a [link](https://example.com).
 `;
 			const data = parseReadmeFile(content);
-			assert.deepStrictEqual(data.sections, {
-				upgradeNotice: '<h4>1.0</h4>\n<p>Initial release.</p>\n',
-				customSection:
-					'<p>Some <strong>bold</strong> text and a <a href="https://example.com">link</a>.</p>\n',
+			assert.deepStrictEqual(data, {
+				name: 'Test Plugin',
+				license: undefined,
+				licenseUri: undefined,
+				keywords: [],
+				shortDescription: 'Short description.',
+				contributors: undefined,
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {
+					upgradeNotice:
+						'<h4>2.0</h4>\n' +
+						'<p>Breaking changes, please backup first.</p>\n' +
+						'<h4>1.0</h4>\n' +
+						'<p>Initial release.</p>\n',
+				},
 			});
 		});
 	});
