@@ -1,4 +1,4 @@
-import { Secp256k1Keypair } from '@atproto/crypto';
+import { Secp256k1Keypair, verifySignature } from '@atproto/crypto';
 import { ed25519 } from '@noble/curves/ed25519';
 import { Ed25519Keypair } from './Ed25519Keypair.js';
 
@@ -7,7 +7,11 @@ import { Ed25519Keypair } from './Ed25519Keypair.js';
  *
  * Used for signing and verifying messages in the FAIR protocol.
  *
- * @returns {Promise<{ publicKey: string, privateKey: Uint8Array, keypair: Ed25519Keypair }>}
+ * @returns {Promise<{
+ *   publicKey: string,
+ *   privateKey: Uint8Array,
+ *   keypair: Ed25519Keypair
+ * }>}
  */
 export async function generateVerificationKeyPair() {
 	const keypair = await Ed25519Keypair.create({ exportable: true });
@@ -26,7 +30,11 @@ export async function generateVerificationKeyPair() {
  *
  * Used for key rotation operations in the FAIR protocol.
  *
- * @returns {Promise<{ publicKey: string, privateKey: Uint8Array, keypair: Secp256k1Keypair }>}
+ * @returns {Promise<{
+ *   publicKey: string,
+ *   privateKey: Uint8Array,
+ *   keypair: Secp256k1Keypair
+ * }>}
  */
 export async function generateRotationKeyPair() {
 	const keypair = await Secp256k1Keypair.create({ exportable: true });
@@ -44,7 +52,11 @@ export async function generateRotationKeyPair() {
  * Imports a verification key pair from a private key.
  *
  * @param {Uint8Array|string} privateKey - The private key (raw bytes or hex string)
- * @returns {Promise<{ publicKey: string, privateKey: Uint8Array, keypair: Ed25519Keypair }>}
+ * @returns {Promise<{
+ *   publicKey: string,
+ *   privateKey: Uint8Array,
+ *   keypair: Ed25519Keypair
+ * }>}
  */
 export async function importVerificationKeyPair(privateKey) {
 	const keypair = await Ed25519Keypair.import(privateKey, { exportable: true });
@@ -62,7 +74,11 @@ export async function importVerificationKeyPair(privateKey) {
  * Imports a rotation key pair from a private key.
  *
  * @param {Uint8Array|string} privateKey - The private key (raw bytes or hex string)
- * @returns {Promise<{ publicKey: string, privateKey: Uint8Array, keypair: Secp256k1Keypair }>}
+ * @returns {Promise<{
+ *   publicKey: string,
+ *   privateKey: Uint8Array,
+ *   keypair: Secp256k1Keypair
+ * }>}
  */
 export async function importRotationKeyPair(privateKey) {
 	const keypair = await Secp256k1Keypair.import(privateKey, {
@@ -130,7 +146,6 @@ export async function verifyWithVerificationKey(message, signature, keypair) {
  * @returns {Promise<boolean>} Whether the signature is valid
  */
 export async function verifyWithRotationKey(message, signature, publicKey) {
-	const { verifySignature } = await import('@atproto/crypto');
 	const messageBytes =
 		typeof message === 'string' ? new TextEncoder().encode(message) : message;
 
