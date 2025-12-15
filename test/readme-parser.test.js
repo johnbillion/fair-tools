@@ -774,5 +774,41 @@ Line three
 				},
 			});
 		});
+
+		it('preserves original casing in unsupported section titles', () => {
+			// Issue: "WP CLI Commands" was becoming "Wp Cli Commands" when appended to description
+			const content = `=== Test Plugin ===
+
+Short description.
+
+== Description ==
+
+The description.
+
+== WP CLI Commands ==
+
+Use wp plugin list.
+`;
+			const data = parseReadmeFile(content);
+			assert.deepStrictEqual(data, {
+				name: 'Test Plugin',
+				license: undefined,
+				licenseUri: undefined,
+				keywords: [],
+				shortDescription: 'Short description.',
+				contributors: undefined,
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {
+					description:
+						'<p>The description.</p>\n' +
+						'<h3>WP CLI Commands</h3>\n' +
+						'<p>Use wp plugin list.</p>\n',
+				},
+			});
+		});
 	});
 });

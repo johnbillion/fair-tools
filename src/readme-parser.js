@@ -34,7 +34,7 @@ function normalizeSectionName(name) {
  * Supports both WordPress-flavour (== Section ==) and Markdown-flavour (## Section).
  *
  * @param {string} content - readme.txt file content
- * @returns {{ headerBlock: string, sections: Map<string, string> }}
+ * @returns {{ headerBlock: string, sections: Map<string, { content: string, originalTitle: string }> }}
  */
 function tokenizeReadme(content) {
 	const sections = new Map();
@@ -57,12 +57,16 @@ function tokenizeReadme(content) {
 	// Everything before the first section is the header block
 	const headerBlock = content.slice(0, matches[0].index).trim();
 
-	// Extract each section's content
+	// Extract each section's content, preserving original title for unsupported sections
 	for (let i = 0; i < matches.length; i++) {
-		const name = normalizeSectionName(matches[i][1].toLowerCase());
+		const originalTitle = matches[i][1].trim();
+		const name = normalizeSectionName(originalTitle.toLowerCase());
 		const start = matches[i].index + matches[i][0].length;
 		const end = matches[i + 1]?.index ?? content.length;
-		sections.set(name, content.slice(start, end).trim());
+		sections.set(name, {
+			content: content.slice(start, end).trim(),
+			originalTitle,
+		});
 	}
 
 	return { headerBlock, sections };
@@ -184,13 +188,20 @@ export function parseReadmeFile(content) {
 	// Normalize line endings to Unix-style
 	content = content.replace(/\r\n/g, '\n');
 
-	const { headerBlock, sections } = tokenizeReadme(content);
+	const { headerBlock, sections: rawSections } = tokenizeReadme(content);
 	const fields = parseHeaderFields(headerBlock);
 
 	// Extract plugin name from === Plugin Name === or # Plugin Name
 	const wpTitleMatch = headerBlock.match(/^===\s*(.+?)\s*===\s*$/m);
 	const mdTitleMatch = headerBlock.match(/^#\s+(.+?)\s*$/m);
 	const titleMatch = wpTitleMatch || mdTitleMatch;
+
+	// Build sections object with just content (originalTitle used later for unsupported sections)
+	/** @type {Record<string, string>} */
+	const sectionsContent = {};
+	for (const [key, { content }] of rawSections) {
+		sectionsContent[key] = content;
+	}
 
 	// Build result with normalized field names
 	const result = {
@@ -215,12 +226,14 @@ export function parseReadmeFile(content) {
 		requiresPhp: fields.requires_php,
 		stableTag: fields.stable_tag,
 		donateLink: fields.donate_link,
-		sections: Object.fromEntries(sections),
+		sections: sectionsContent,
 	};
 
 	// Parse screenshots section into structured data
-	if (sections.has('screenshots')) {
-		result.screenshots = parseScreenshotsSection(sections.get('screenshots'));
+	if (rawSections.has('screenshots')) {
+		result.screenshots = parseScreenshotsSection(
+			rawSections.get('screenshots').content,
+		);
 	}
 
 	// Supported sections per FAIR spec (plus upgradeNotice for WordPress compatibility)
@@ -236,17 +249,12 @@ export function parseReadmeFile(content) {
 	];
 
 	// Append unsupported sections to description (WordPress.org behavior)
-	// Process in original order from the readme
-	for (const [key, value] of sections) {
+	// Process in original order from the readme, using original title to preserve casing
+	for (const [key, { content, originalTitle }] of rawSections) {
 		if (!supportedSections.includes(key)) {
-			// Convert camelCase back to Title Case for the heading
-			const title = key
-				.replace(/([A-Z])/g, ' $1')
-				.replace(/^./, (c) => c.toUpperCase())
-				.trim();
 			const descriptionContent = result.sections.description || '';
 			result.sections.description =
-				descriptionContent + `\n\n### ${title}\n\n${value}`;
+				descriptionContent + `\n\n### ${originalTitle}\n\n${content}`;
 			delete result.sections[key];
 		}
 	}
