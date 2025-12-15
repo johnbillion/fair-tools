@@ -332,7 +332,10 @@ function parseAsVerificationKey(content) {
  *   signingKey?: string, // ignored for standalone key files
  *   envVar?: string // defaults to 'FAIR_ROTATION_KEY'
  * }} opts
- * @returns {Promise<{privateKeyHex: string, keyData: object|null}>}
+ * @returns {Promise<{
+ *   privateKeyHex: string,
+ *   keyData: object | null
+ * }>}
  * @throws {SigningKeyError} If key cannot be loaded
  */
 export async function loadRotationKey({
@@ -429,7 +432,10 @@ export async function loadRotationKey({
  *   signingKey?: string, // ignored for standalone key files
  *   envVar?: string // defaults to 'FAIR_VERIFICATION_KEY'
  * }} opts
- * @returns {Promise<{privateKeyHex: string, keyData: object|null}>}
+ * @returns {Promise<{
+ *   privateKeyHex: string,
+ *   keyData: object | null
+ * }>}
  * @throws {SigningKeyError} If key cannot be loaded
  */
 export async function loadVerificationKey({
@@ -528,7 +534,10 @@ export async function loadVerificationKey({
  *   revokeKey: string, // the key being revoked (to avoid using it for signing)
  *   envVar?: string // defaults to 'FAIR_ROTATION_KEY'
  * }} opts
- * @returns {Promise<{privateKeyHex: string, keyData: object|null}>}
+ * @returns {Promise<{
+ *   privateKeyHex: string,
+ *   keyData: object | null
+ * }>}
  * @throws {SigningKeyError} If key cannot be loaded
  */
 export async function loadRotationKeyForRevocation({

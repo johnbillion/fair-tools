@@ -12,6 +12,10 @@ import * as uint8arrays from 'uint8arrays';
 import { verifyWithVerificationKey } from './keys.js';
 
 /**
+ * @typedef {import('./Ed25519Keypair.js').Ed25519Keypair} Ed25519Keypair
+ */
+
+/**
  * JSON-LD context for metadata documents.
  *
  * @type {string}
@@ -47,7 +51,7 @@ export async function calculateChecksum(data) {
  * expected by WordPress's verify_file_signature() function.
  *
  * @param {Buffer|Uint8Array} data - Raw artifact data (e.g., zip file contents)
- * @param {object} keypair - The verification keypair to sign with
+ * @param {Ed25519Keypair} keypair - The verification keypair to sign with
  * @returns {Promise<string>} Base64url-encoded signature
  */
 export async function signArtifact(data, keypair) {
@@ -63,7 +67,7 @@ export async function signArtifact(data, keypair) {
  *
  * @param {Buffer|Uint8Array} data - Raw artifact data
  * @param {string} signature - Base64url-encoded signature
- * @param {object} keypair - The verification keypair (public key) to verify with
+ * @param {Ed25519Keypair} keypair - The verification keypair (public key) to verify with
  * @returns {Promise<boolean>} True if signature is valid
  */
 export async function verifyArtifact(data, signature, keypair) {
@@ -171,7 +175,10 @@ export function parseReadmeFile(content) {
  * Parses composer.json content and extracts relevant fields.
  *
  * @param {string} content - Content of composer.json file
- * @returns {object} Parsed data with license and securityContact fields
+ * @returns {{
+ *   license?: string,
+ *   securityContact?: string
+ * }} Parsed data
  */
 export function parseComposerJson(content) {
 	const data = {};
@@ -195,7 +202,9 @@ export function parseComposerJson(content) {
  * Parses package.json content and extracts relevant fields.
  *
  * @param {string} content - Content of package.json file
- * @returns {object} Parsed data with license field
+ * @returns {{
+ *   license?: string
+ * }} Parsed data
  */
 export function parsePackageJson(content) {
 	const data = {};
@@ -324,10 +333,15 @@ export function createArtifact(options) {
  * @param {{
  *   url: string,
  *   data: Buffer|Uint8Array,
- *   keypair: object, // verification keypair for signing
+ *   keypair: Ed25519Keypair, // verification keypair for signing
  *   contentType?: string // MIME type
  * }} options
- * @returns {Promise<object>} Artifact with url, checksum, signature, and content-type
+ * @returns {Promise<{
+ *   url: string,
+ *   checksum: string,
+ *   'content-type'?: string,
+ *   signature?: string
+ * }>} Artifact with url, checksum, signature, and content-type
  */
 export async function createSignedArtifact(options) {
 	const { url, data, keypair, contentType } = options;
@@ -342,7 +356,7 @@ export async function createSignedArtifact(options) {
  * Formats a security contact value into the schema format.
  *
  * @param {string} value - Email address or URL
- * @returns {object} Object with either {email} or {url} property
+ * @returns {{ email: string } | { url: string }}
  */
 function formatSecurityContact(value) {
 	// Check if it's a URL (has scheme) or plain email address
@@ -359,7 +373,7 @@ function formatSecurityContact(value) {
  * Use buildMetadata() for a file-based wrapper that handles parsing and priority resolution.
  *
  * @param {{
- *   keypair: object,
+ *   keypair: Ed25519Keypair,
  *   did: string, // did:plc:...
  *   name: string,
  *   slug: string,
@@ -466,7 +480,7 @@ export async function buildMetadataFromContent(options) {
  *
  * @param {{
  *   did: string, // did:plc:...
- *   keypair: object, // verification keypair for signing artifacts
+ *   keypair: Ed25519Keypair, // verification keypair for signing artifacts
  *   pluginFile: string, // path to main plugin PHP file
  *   zipFile: string,
  *   downloadUrl: string,

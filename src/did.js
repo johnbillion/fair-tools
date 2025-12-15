@@ -2,6 +2,8 @@ import { addSignature, Client, didForCreateOp } from '@did-plc/lib';
 
 /**
  * @typedef {import('@atproto/crypto').Secp256k1Keypair} Secp256k1Keypair
+ * @typedef {import('@did-plc/lib').UnsignedOperation} UnsignedOperation
+ * @typedef {import('@did-plc/lib').Operation} Operation
  */
 
 /**
@@ -38,7 +40,7 @@ export const FAIR_SERVICE_ID = 'fairpm_repo';
  *   verificationKey: string, // did:key:z6Mk...
  *   rotationKeys: string[] // did:key:zQ3sh...
  * }} opts
- * @returns {object} The unsigned genesis operation
+ * @returns {UnsignedOperation} The unsigned genesis operation
  */
 function createGenesisOperation({ verificationKey, rotationKeys }) {
 	return {
@@ -65,7 +67,10 @@ function createGenesisOperation({ verificationKey, rotationKeys }) {
  *   rotationKey: string, // did:key:zQ3sh...
  *   keypair: Secp256k1Keypair
  * }} opts
- * @returns {Promise<{op: object, did: string}>}
+ * @returns {Promise<{
+ *   op: Operation,
+ *   did: string
+ * }>}
  */
 export async function generateDID({ verificationKey, rotationKey, keypair }) {
 	const unsigned = createGenesisOperation({
@@ -91,7 +96,7 @@ function createPlcClient(url = PLC_DIRECTORY_URL) {
  * Submits a genesis operation to the PLC directory.
  *
  * @param {{
- *   op: object,
+ *   op: Operation,
  *   did: string, // did:plc:...
  *   plcUrl?: string // defaults to https://plc.directory
  * }} opts
@@ -134,9 +139,9 @@ export async function createDID({
 /**
  * Creates an updated operation with the FAIR service URL set.
  *
- * @param {object} lastOp - The previous operation
+ * @param {UnsignedOperation} lastOp - The previous operation
  * @param {string} serviceUrl - The FAIR service endpoint URL
- * @returns {object} The updated operation
+ * @returns {UnsignedOperation} The updated operation
  */
 export function updateServiceUrlInOp(lastOp, serviceUrl) {
 	return {
@@ -197,9 +202,9 @@ export function generateVerificationKeyId(verificationMethods) {
 /**
  * Creates an updated operation with a new verification key added.
  *
- * @param {object} lastOp - The previous operation
+ * @param {UnsignedOperation} lastOp - The previous operation
  * @param {string} verificationKey - The new verification key (did:key format)
- * @returns {object} The updated operation
+ * @returns {UnsignedOperation} The updated operation
  */
 export function addVerificationKeyToOp(lastOp, verificationKey) {
 	const keyId = generateVerificationKeyId(lastOp.verificationMethods);
@@ -240,9 +245,9 @@ export async function addVerificationKey({
 /**
  * Creates an updated operation with a new rotation key added.
  *
- * @param {object} lastOp - The previous operation
+ * @param {UnsignedOperation} lastOp - The previous operation
  * @param {string} rotationKey - The new rotation key (did:key format)
- * @returns {object} The updated operation
+ * @returns {UnsignedOperation} The updated operation
  * @throws {Error} If the rotation key already exists
  */
 export function addRotationKeyToOp(lastOp, rotationKey) {
@@ -283,9 +288,9 @@ export async function addRotationKey({
 /**
  * Creates an updated operation with a verification key removed.
  *
- * @param {object} lastOp - The previous operation
+ * @param {UnsignedOperation} lastOp - The previous operation
  * @param {string} publicKey - The verification key to revoke (did:key format)
- * @returns {object} The updated operation
+ * @returns {UnsignedOperation} The updated operation
  * @throws {Error} If the verification key is not found
  */
 export function revokeVerificationKeyFromOp(lastOp, publicKey) {
@@ -330,9 +335,9 @@ export async function revokeVerificationKey({
 /**
  * Creates an updated operation with a rotation key removed.
  *
- * @param {object} lastOp - The previous operation
+ * @param {UnsignedOperation} lastOp - The previous operation
  * @param {string} rotationKey - The rotation key to revoke (did:key format)
- * @returns {object} The updated operation
+ * @returns {UnsignedOperation} The updated operation
  * @throws {Error} If the rotation key is not found or is the last one
  */
 export function revokeRotationKeyFromOp(lastOp, rotationKey) {
@@ -384,9 +389,9 @@ export async function revokeRotationKey({
 /**
  * Creates an updated operation with a new alsoKnownAs URL added.
  *
- * @param {object} lastOp - The previous operation
+ * @param {UnsignedOperation} lastOp - The previous operation
  * @param {string} url - The URL to add to alsoKnownAs
- * @returns {object} The updated operation
+ * @returns {UnsignedOperation} The updated operation
  * @throws {Error} If the URL already exists in alsoKnownAs
  */
 export function addAlsoKnownAsToOp(lastOp, url) {
@@ -431,10 +436,10 @@ export async function addAlsoKnownAs({
  * This specifically verifies the old URL exists before updating,
  * to prevent accidental overwrites.
  *
- * @param {object} lastOp - The previous operation
+ * @param {UnsignedOperation} lastOp - The previous operation
  * @param {string} oldUrl - The current alsoKnownAs URL to replace
  * @param {string} newUrl - The new URL
- * @returns {object} The updated operation
+ * @returns {UnsignedOperation} The updated operation
  * @throws {Error} If the old URL doesn't exist or new URL already exists
  */
 export function replaceAlsoKnownAsInOp(lastOp, oldUrl, newUrl) {
@@ -488,10 +493,10 @@ export async function replaceAlsoKnownAs({
  * This specifically verifies the old URL matches before updating,
  * to prevent accidental overwrites.
  *
- * @param {object} lastOp - The previous operation
+ * @param {UnsignedOperation} lastOp - The previous operation
  * @param {string} oldUrl - The current service endpoint URL to replace
  * @param {string} newUrl - The new service endpoint URL
- * @returns {object} The updated operation
+ * @returns {UnsignedOperation} The updated operation
  * @throws {Error} If the FAIR service doesn't exist or oldUrl doesn't match
  */
 export function replaceServiceUrlInOp(lastOp, oldUrl, newUrl) {
@@ -551,9 +556,9 @@ export async function replaceServiceUrl({
  * This specifically verifies the URL matches before removing,
  * to prevent accidental removals.
  *
- * @param {object} lastOp - The previous operation
+ * @param {UnsignedOperation} lastOp - The previous operation
  * @param {string} url - The service endpoint URL to verify before removal
- * @returns {object} The updated operation
+ * @returns {UnsignedOperation} The updated operation
  * @throws {Error} If the FAIR service doesn't exist or URL doesn't match
  */
 export function removeServiceUrlFromOp(lastOp, url) {
@@ -605,9 +610,9 @@ export async function removeServiceUrl({
  * This specifically verifies the URL exists before removing,
  * to prevent errors.
  *
- * @param {object} lastOp - The previous operation
+ * @param {UnsignedOperation} lastOp - The previous operation
  * @param {string} url - The URL to remove from alsoKnownAs
- * @returns {object} The updated operation
+ * @returns {UnsignedOperation} The updated operation
  * @throws {Error} If the URL doesn't exist in alsoKnownAs
  */
 export function removeAlsoKnownAsFromOp(lastOp, url) {

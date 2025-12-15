@@ -156,7 +156,9 @@ export async function writeKeyFile(path, content) {
  *     privateKey: Uint8Array
  *   }
  * }} opts
- * @returns {Promise<{appended: boolean}>} Whether the key was appended to existing file
+ * @returns {Promise<{
+ *   appended: boolean
+ * }>} Whether the key was appended to existing file
  * @throws {SaveKeyError} If reading or writing fails, or if key already exists
  */
 export async function saveRotationKeyToFile({ outputFile, key }) {
@@ -222,7 +224,9 @@ export async function saveRotationKeyToFile({ outputFile, key }) {
  *     privateKey: Uint8Array
  *   }
  * }} opts
- * @returns {Promise<{appended: boolean}>} Whether the key was appended to existing file
+ * @returns {Promise<{
+ *   appended: boolean
+ * }>} Whether the key was appended to existing file
  * @throws {SaveKeyError} If reading or writing fails, or if key already exists
  */
 export async function saveVerificationKeyToFile({ outputFile, key }) {
