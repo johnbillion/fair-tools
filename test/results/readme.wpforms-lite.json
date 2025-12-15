@@ -16,7 +16,7 @@
 		"slaFFik"
 	],
 	"requires": "5.5",
-	"tested": "6.8",
+	"testedUpTo": "6.8",
 	"requiresPhp": "7.2",
 	"stableTag": "1.9.8.7",
 	"sections": {

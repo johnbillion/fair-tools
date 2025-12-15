@@ -13,7 +13,7 @@
 		"elemntor"
 	],
 	"requires": "6.6",
-	"tested": "6.8",
+	"testedUpTo": "6.8",
 	"requiresPhp": "7.4",
 	"stableTag": "3.33.4",
 	"sections": {

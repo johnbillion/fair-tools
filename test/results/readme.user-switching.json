@@ -12,7 +12,7 @@
 	"contributors": [
 		"johnbillion"
 	],
-	"tested": "6.9",
+	"testedUpTo": "6.9",
 	"stableTag": "1.11.1",
 	"donateLink": "https://github.com/sponsors/johnbillion",
 	"sections": {

@@ -64,7 +64,7 @@
 		"neosinner"
 	],
 	"requires": "6.8",
-	"tested": "6.9",
+	"testedUpTo": "6.9",
 	"requiresPhp": "7.4",
 	"stableTag": "10.3.6",
 	"sections": {

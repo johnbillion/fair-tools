@@ -11,7 +11,7 @@
 		"wordpressdotorg"
 	],
 	"requires": "5.2",
-	"tested": "6.8",
+	"testedUpTo": "6.8",
 	"requiresPhp": "7.2",
 	"stableTag": "0.9.5",
 	"donateLink": "https://wordpressfoundation.org/donate/",

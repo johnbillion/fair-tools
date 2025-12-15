@@ -13,7 +13,7 @@
 		"johnbillion",
 		"scompt"
 	],
-	"tested": "6.9",
+	"testedUpTo": "6.9",
 	"stableTag": "1.19.3",
 	"donateLink": "https://github.com/sponsors/johnbillion",
 	"sections": {

@@ -15,7 +15,7 @@
 		"joostdevalk",
 		"tdevalk"
 	],
-	"tested": "6.9",
+	"testedUpTo": "6.9",
 	"requiresPhp": "7.4",
 	"stableTag": "26.6",
 	"donateLink": "https://yoa.st/1up",

@@ -142,7 +142,7 @@
 		"zinigor"
 	],
 	"requires": "6.7",
-	"tested": "6.9",
+	"testedUpTo": "6.9",
 	"requiresPhp": "7.2",
 	"stableTag": "15.3.1",
 	"sections": {

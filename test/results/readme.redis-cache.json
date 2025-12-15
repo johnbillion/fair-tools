@@ -14,7 +14,7 @@
 		"tillkruess"
 	],
 	"requires": "4.6",
-	"tested": "6.8",
+	"testedUpTo": "6.8",
 	"requiresPhp": "7.2",
 	"stableTag": "2.7.0",
 	"donateLink": "https://github.com/sponsors/tillkruss",

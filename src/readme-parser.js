@@ -184,7 +184,7 @@ function parseScreenshotsSection(content) {
  *   shortDescription: string | undefined,
  *   contributors: string[] | undefined,
  *   requires: string | undefined,
- *   tested: string | undefined,
+ *   testedUpTo: string | undefined,
  *   requiresPhp: string | undefined,
  *   stableTag: string | undefined,
  *   donateLink: string | undefined,
@@ -224,7 +224,7 @@ export function parseReadmeFile(content) {
 					.filter(Boolean)
 			: undefined,
 		requires: fields.requires_at_least,
-		tested: fields.tested_up_to,
+		testedUpTo: fields.tested_up_to,
 		requiresPhp: fields.requires_php,
 		stableTag: fields.stable_tag,
 		donateLink: fields.donate_link,

@@ -19,7 +19,7 @@
 		"LiteSpeedTech"
 	],
 	"requires": "5.3",
-	"tested": "6.8",
+	"testedUpTo": "6.8",
 	"requiresPhp": "7.2",
 	"stableTag": "7.6.2",
 	"sections": {

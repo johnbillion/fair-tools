@@ -16,7 +16,7 @@
 		"markjaquith"
 	],
 	"requires": "4.4",
-	"tested": "6.7",
+	"testedUpTo": "6.7",
 	"stableTag": "0.2.8",
 	"donateLink": "https://andrewnorcross.com/donate",
 	"sections": {
