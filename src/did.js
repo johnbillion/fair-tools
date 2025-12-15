@@ -185,7 +185,7 @@ export async function updateDID({
 /**
  * Generates a unique key ID for a verification method.
  *
- * @param {object} verificationMethods - Existing verification methods
+ * @param {Record<string, string>} verificationMethods - Existing verification methods
  * @returns {string} A unique key ID
  */
 export function generateVerificationKeyId(verificationMethods) {

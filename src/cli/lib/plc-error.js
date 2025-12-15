@@ -1,4 +1,12 @@
 /**
+ * @typedef {{
+ *   message: string,
+ *   status?: number,
+ *   data?: string | { message?: string, error?: string }
+ * }} PlcClientError
+ */
+
+/**
  * Formats a PLC client error for display to the user.
  *
  * The @did-plc/lib library throws PlcClientError which has:
@@ -6,9 +14,10 @@
  * - data: Response body from PLC server (often contains error details)
  * - message: Generic axios error message
  *
- * @param {Error} err - The error to format
- * @param {object} [options] - Options
- * @param {boolean} [options.includeData=true] - Whether to include the response data
+ * @param {PlcClientError} err - The error to format
+ * @param {{
+ *   includeData?: boolean
+ * }} [options] - Options
  * @returns {string} A formatted error message
  */
 export function formatPlcError(err, { includeData = true } = {}) {
@@ -30,8 +39,10 @@ export function formatPlcError(err, { includeData = true } = {}) {
  * Logs a PLC error with diagnostic hints to stderr.
  *
  * @param {string} prefix - The error prefix (e.g., "Error adding rotation key")
- * @param {Error} err - The error to log
- * @param {object} [context] - Context for diagnosis (e.g., { signerPublicKey })
+ * @param {PlcClientError} err - The error to log
+ * @param {{
+ *   signerPublicKey?: string
+ * }} [context] - Context for diagnosis
  */
 export function logPlcError(prefix, err, context = {}) {
 	const hints = diagnosePlcError(err, context);
@@ -67,9 +78,10 @@ function extractOperationFromError(data) {
  * Analyzes the error response to identify common issues and provide
  * helpful suggestions to the user.
  *
- * @param {Error} err - The error to diagnose
- * @param {object} [context] - Additional context for diagnosis
- * @param {string} [context.signerPublicKey] - The public key used to sign the operation
+ * @param {PlcClientError} err - The error to diagnose
+ * @param {{
+ *   signerPublicKey?: string
+ * }} [context] - Additional context for diagnosis
  * @returns {string[]} Array of diagnostic hints (may be empty)
  */
 export function diagnosePlcError(err, context = {}) {
