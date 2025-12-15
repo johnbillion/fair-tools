@@ -581,5 +581,167 @@ Initial release.
 				},
 			});
 		});
+
+		it('handles trailing whitespace after section headers', () => {
+			// Note: "== Installation ==  " has intentional trailing spaces
+			const content =
+				'=== Test Plugin ===\n\nShort description.\n\n== Description ==\n\nThe description.\n\n== Installation ==  \n\nInstall it.\n';
+			const data = parseReadmeFile(content);
+			assert.deepStrictEqual(data, {
+				name: 'Test Plugin',
+				license: undefined,
+				licenseUri: undefined,
+				keywords: [],
+				shortDescription: 'Short description.',
+				contributors: undefined,
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {
+					description: '<p>The description.</p>\n',
+					installation: '<p>Install it.</p>\n',
+				},
+			});
+		});
+
+		it('converts triple-equals subheadings within content to h4', () => {
+			// === markers within section content should become h4
+			// (Note: == markers are section delimiters, not content subheadings)
+			const content =
+				'=== Test Plugin ===\n\nShort description.\n\n== Description ==\n\nIntro.\n\n=== Sub Section ===\n\nContent here.\n';
+			const data = parseReadmeFile(content);
+			assert.deepStrictEqual(data, {
+				name: 'Test Plugin',
+				license: undefined,
+				licenseUri: undefined,
+				keywords: [],
+				shortDescription: 'Short description.',
+				contributors: undefined,
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {
+					description:
+						'<p>Intro.</p>\n<h4>Sub Section</h4>\n<p>Content here.</p>\n',
+				},
+			});
+		});
+
+		it('handles mixed subheading levels within content', () => {
+			const content =
+				'=== Test Plugin ===\n\nShort description.\n\n== Description ==\n\n=== Main Feature ===\n\nIntro.\n\n= Sub Feature =\n\nContent.\n';
+			const data = parseReadmeFile(content);
+			assert.deepStrictEqual(data, {
+				name: 'Test Plugin',
+				license: undefined,
+				licenseUri: undefined,
+				keywords: [],
+				shortDescription: 'Short description.',
+				contributors: undefined,
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {
+					description:
+						'<h4>Main Feature</h4>\n<p>Intro.</p>\n<h4>Sub Feature</h4>\n<p>Content.</p>\n',
+				},
+			});
+		});
+
+		it('handles mismatched equals signs in subheadings', () => {
+			// Some readmes have = Heading == or === Heading = patterns
+			const content =
+				'=== Test Plugin ===\n\nShort description.\n\n== Description ==\n\n=== Mismatched =\n\nContent.\n';
+			const data = parseReadmeFile(content);
+			assert.deepStrictEqual(data, {
+				name: 'Test Plugin',
+				license: undefined,
+				licenseUri: undefined,
+				keywords: [],
+				shortDescription: 'Short description.',
+				contributors: undefined,
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {
+					description: '<h4>Mismatched</h4>\n<p>Content.</p>\n',
+				},
+			});
+		});
+
+		it('strips triple-equals markers from subheadings within content', () => {
+			// Issue found in really-simple-ssl: === markers used as subheadings inside description
+			const content = `=== Test Plugin ===
+
+Short description.
+
+== Description ==
+
+Intro text.
+
+=== Security Features ===
+
+Feature list here.
+
+=== Improve Security ===
+
+More content.
+`;
+			const data = parseReadmeFile(content);
+			assert.deepStrictEqual(data, {
+				name: 'Test Plugin',
+				license: undefined,
+				licenseUri: undefined,
+				keywords: [],
+				shortDescription: 'Short description.',
+				contributors: undefined,
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {
+					description:
+						'<p>Intro text.</p>\n' +
+						'<h4>Security Features</h4>\n' +
+						'<p>Feature list here.</p>\n' +
+						'<h4>Improve Security</h4>\n' +
+						'<p>More content.</p>\n',
+				},
+			});
+		});
+
+		it('parses section headers with trailing whitespace', () => {
+			// Issue found in header-footer-elementor: section headers had trailing spaces
+			const content =
+				'=== Test Plugin ===\n\nShort description.\n\n== Description ==\n\nThe description.\n\n== Installation ==  \n\nStep 1.\n\n== FAQ ==  \n\nQ and A.\n';
+			const data = parseReadmeFile(content);
+			assert.deepStrictEqual(data, {
+				name: 'Test Plugin',
+				license: undefined,
+				licenseUri: undefined,
+				keywords: [],
+				shortDescription: 'Short description.',
+				contributors: undefined,
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {
+					description: '<p>The description.</p>\n',
+					installation: '<p>Step 1.</p>\n',
+					faq: '<p>Q and A.</p>\n',
+				},
+			});
+		});
 	});
 });

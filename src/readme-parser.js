@@ -40,7 +40,8 @@ function tokenizeReadme(content) {
 	const sections = new Map();
 
 	// Try WordPress-flavour first: == Section == (but not === Title ===)
-	let sectionRegex = /^==(?!=)\s*(.+?)\s*==(?!=)$/gm;
+	// Allow trailing whitespace after closing ==
+	let sectionRegex = /^==(?!=)\s*(.+?)\s*==(?!=)\s*$/gm;
 	let matches = [...content.matchAll(sectionRegex)];
 
 	// If no WordPress-flavour sections, try Markdown-flavour: ## Section
@@ -258,9 +259,10 @@ export function parseReadmeFile(content) {
 	// Convert markdown sections to HTML
 	for (const section of Object.keys(result.sections)) {
 		// Convert WordPress-flavour subheadings to markdown before parsing
-		// = Heading = -> #### Heading (with optional trailing =)
+		// Handles 1-3 equals signs: = Heading =, == Heading ==, === Heading ===
+		// All become #### Heading (h4) as they're subheadings within sections
 		const markdown = result.sections[section].replace(
-			/^=\s*(.+?)\s*=?$/gm,
+			/^={1,3}\s*(.+?)\s*={0,3}\s*$/gm,
 			'#### $1',
 		);
 		result.sections[section] = marked.parse(markdown, {
