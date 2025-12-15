@@ -11,20 +11,28 @@
 	"faq": [
 		{
 			"question": "I am unable to access my site after enabling troubleshooting",
-			"answer": "If you should find your self stuck in Troubleshooting Mode for any reason, you can easily disable it by clearing your cookies.\r\n\r\nAre you unfamiliar with how to clear your cookies? No worries, you may also close all your browser windows, or perform a computer restart and it will clear this specific cookie automatically."
+			"answer": "If you should find your self stuck in Troubleshooting Mode for any reason, you can easily disable it by clearing your cookies.\n\nAre you unfamiliar with how to clear your cookies? No worries, you may also close all your browser windows, or perform a computer restart and it will clear this specific cookie automatically."
 		},
 		{
 			"question": "The PHP compatibility says this plugin only work with PHP version X?",
-			"answer": "The plugin is made to be a support tool for as many users as possible, this means it needs code that is written for older sites as well.\r\n\r\nTools that check for PHP compatibility do not know how to separate this code from the real code, so it will give a false positive response.\r\n\r\nAt this time, the plugin has been tested with every version of PHP from 5.2 through 7.3, and works with all of these."
+			"answer": "The plugin is made to be a support tool for as many users as possible, this means it needs code that is written for older sites as well.\n\nTools that check for PHP compatibility do not know how to separate this code from the real code, so it will give a false positive response.\n\nAt this time, the plugin has been tested with every version of PHP from 5.2 through 7.3, and works with all of these."
 		},
 		{
 			"question": "Where can I report security bugs?",
-			"answer": "The Site Health team and WordPress community take security bugs seriously. We appreciate your efforts to responsibly disclose your findings, and will make every effort to acknowledge your contributions.\r\n\r\nTo report a security issue, please visit the [WordPress HackerOne](https://hackerone.com/wordpress) program."
+			"answer": "The Site Health team and WordPress community take security bugs seriously. We appreciate your efforts to responsibly disclose your findings, and will make every effort to acknowledge your contributions.\n\nTo report a security issue, please visit the [WordPress HackerOne](https://hackerone.com/wordpress) program."
 		}
 	],
 	"screenshots": [
 		{
-			"number": 4,
+			"description": "The health check screen after the automated tests have gone over the system."
+		},
+		{
+			"description": "The debug information, with the copy and paste field expanded."
+		},
+		{
+			"description": "A selection of tools that can be ran on your site."
+		},
+		{
 			"description": "Troubleshooting mode enabled, showing your website Dashboard"
 		}
 	]

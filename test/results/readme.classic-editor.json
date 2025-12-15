@@ -28,7 +28,24 @@
 	],
 	"screenshots": [
 		{
-			"number": 7,
+			"description": "Admin settings on the Settings -> Writing screen."
+		},
+		{
+			"description": "User settings on the Profile screen. Visible when the users are allowed to switch editors."
+		},
+		{
+			"description": "\"Action links\" to choose alternative editor. Visible when the users are allowed to switch editors."
+		},
+		{
+			"description": "Link to switch to the block editor while editing a post in the classic editor. Visible when the users are allowed to switch editors."
+		},
+		{
+			"description": "Link to switch to the classic editor while editing a post in the block editor. Visible when the users are allowed to switch editors."
+		},
+		{
+			"description": "Network settings to select the default editor for the network and allow site admins to change it."
+		},
+		{
 			"description": "The \"Switch to classic editor\" link."
 		}
 	]

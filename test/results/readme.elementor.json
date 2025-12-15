@@ -26,27 +26,21 @@
 	"faq": [],
 	"screenshots": [
 		{
-			"number": 1,
 			"description": "**Visual Drag and Drop Editor** - Design your website layouts and place any element anywhere on the page for pixel-perfect designs."
 		},
 		{
-			"number": 2,
 			"description": "**Full Design System** - Enjoy a professional workflow and ensure consistency across your site. Define your settings, use them globally, and instantly adjust them any time."
 		},
 		{
-			"number": 3,
 			"description": "**Responsive Design** Fully edit your website and customize the behavior on desktop, tablet, & mobile to optimize the visitor experience on every device."
 		},
 		{
-			"number": 4,
 			"description": "**Kits and Templates** - Jumpstart your web creation process or get inspired with professionally-designed templates or full website kits available for your immediate customization."
 		},
 		{
-			"number": 5,
 			"description": "**Nested Elements** Leverage Elementor's Nested widgets to place any widget inside the content area of another widget - like Tabs, and Accordion for complete design flexibility."
 		},
 		{
-			"number": 6,
 			"description": "**Motion Effects** - Add entrance animations and transitions to any element in your website to captivate visitors."
 		}
 	]

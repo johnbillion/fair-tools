@@ -104,11 +104,9 @@
 	],
 	"screenshots": [
 		{
-			"number": 1,
 			"description": "The *Switch To* link on the Users screen"
 		},
 		{
-			"number": 2,
 			"description": "The *Switch To* link on a user's profile"
 		}
 	]

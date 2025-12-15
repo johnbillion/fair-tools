@@ -66,35 +66,27 @@
 	],
 	"screenshots": [
 		{
-			"number": 1,
 			"description": "The modern interface makes Yoast SEO easy to work with."
 		},
 		{
-			"number": 2,
 			"description": "Easily manage how your posts and pages appear in SERPs."
 		},
 		{
-			"number": 3,
 			"description": "Yoast SEO Premium has extra crawl optimization options."
 		},
 		{
-			"number": 4,
 			"description": "Yoast SEO integrates with tools like Semrush and Wincher."
 		},
 		{
-			"number": 5,
 			"description": "The famous SEO and readability analyses in Yoast SEO."
 		},
 		{
-			"number": 6,
 			"description": "See what your post looks like in Google."
 		},
 		{
-			"number": 7,
 			"description": "The First-time configuration helps you get started quickly."
 		},
 		{
-			"number": 8,
 			"description": "The inclusive language analysis in Yoast SEO."
 		}
 	]

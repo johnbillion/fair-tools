@@ -121,15 +121,12 @@
 	],
 	"screenshots": [
 		{
-			"number": 1,
 			"description": "Cron events can be modified, deleted, and executed"
 		},
 		{
-			"number": 2,
 			"description": "New cron events can be added"
 		},
 		{
-			"number": 3,
 			"description": "New cron schedules can be added, giving plugin developers more options when scheduling events"
 		}
 	]

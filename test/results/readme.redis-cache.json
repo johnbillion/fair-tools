@@ -30,19 +30,15 @@
 	},
 	"screenshots": [
 		{
-			"number": 1,
 			"description": "Plugin settings, connected to a single Redis server."
 		},
 		{
-			"number": 2,
 			"description": "Plugin settings, displaying recent response time metrics."
 		},
 		{
-			"number": 3,
 			"description": "Plugin settings, showing diagnostic information."
 		},
 		{
-			"number": 4,
 			"description": "Dashboard widget, displaying recent response time metrics."
 		}
 	]

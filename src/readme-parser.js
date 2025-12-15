@@ -146,26 +146,23 @@ function parseFaqSection(content) {
 }
 
 /**
- * Parses Screenshots section into numbered list.
+ * Parses Screenshots section into array of objects.
  *
  * Screenshots use the format:
  * 1. Description of first screenshot
  * 2. Description of second screenshot
  *
  * @param {string} content - Screenshots section content
- * @returns {Array<{ number: number, description: string }>}
+ * @returns {Array<{ description: string }>}
  */
 function parseScreenshotsSection(content) {
 	const screenshots = [];
 	const lines = content.split('\n');
 
 	for (const line of lines) {
-		const match = line.match(/^\s*(\d+)\.\s*(.+)$/);
+		const match = line.match(/^\s*\d+\.\s*(.+)$/);
 		if (match) {
-			screenshots.push({
-				number: parseInt(match[1], 10),
-				description: match[2].trim(),
-			});
+			screenshots.push({ description: match[1].trim() });
 		}
 	}
 
@@ -193,10 +190,13 @@ function parseScreenshotsSection(content) {
  *   donateLink: string | undefined,
  *   sections: Record<string, string>,
  *   faq?: Array<{ question: string, answer: string }>,
- *   screenshots?: Array<{ number: number, description: string }>
+ *   screenshots?: Array<{ description: string }>
  * }}
  */
 export function parseReadmeFile(content) {
+	// Normalize line endings to Unix-style
+	content = content.replace(/\r\n/g, '\n');
+
 	const { headerBlock, sections } = tokenizeReadme(content);
 	const fields = parseHeaderFields(headerBlock);
 

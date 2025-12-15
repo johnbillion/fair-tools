@@ -90,47 +90,36 @@
 	],
 	"screenshots": [
 		{
-			"number": 1,
 			"description": "Plugin Benchmarks"
 		},
 		{
-			"number": 2,
 			"description": "Admin - Dashboard"
 		},
 		{
-			"number": 3,
 			"description": "Admin - Image Optimization"
 		},
 		{
-			"number": 4,
 			"description": "Admin - Crawler"
 		},
 		{
-			"number": 5,
 			"description": "Admin Settings - Cache"
 		},
 		{
-			"number": 6,
 			"description": "Admin Settings - Page Optimization"
 		},
 		{
-			"number": 7,
 			"description": "Admin Settings - CDN"
 		},
 		{
-			"number": 8,
 			"description": "Admin Settings - DB Optimizer"
 		},
 		{
-			"number": 9,
 			"description": "Admin Settings - Toolbox"
 		},
 		{
-			"number": 10,
 			"description": "Cache Miss Example"
 		},
 		{
-			"number": 11,
 			"description": "Cache Hit Example"
 		}
 	]

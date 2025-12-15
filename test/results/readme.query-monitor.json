@@ -64,31 +64,24 @@
 	],
 	"screenshots": [
 		{
-			"number": 1,
 			"description": "Admin Toolbar Menu"
 		},
 		{
-			"number": 2,
 			"description": "Aggregate Database Queries by Component"
 		},
 		{
-			"number": 3,
 			"description": "Capability Checks"
 		},
 		{
-			"number": 4,
 			"description": "Database Queries"
 		},
 		{
-			"number": 5,
 			"description": "Hooks and Actions"
 		},
 		{
-			"number": 6,
 			"description": "HTTP API Requests"
 		},
 		{
-			"number": 7,
 			"description": "Aggregate Database Queries by Calling Function"
 		}
 	]

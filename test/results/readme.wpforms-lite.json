@@ -67,43 +67,33 @@
 	],
 	"screenshots": [
 		{
-			"number": 1,
 			"description": "WPForms Drag & Drop Form Builder"
 		},
 		{
-			"number": 2,
 			"description": "Adding New Fields"
 		},
 		{
-			"number": 3,
 			"description": "Generate choices using AI"
 		},
 		{
-			"number": 4,
 			"description": "Form Templates"
 		},
 		{
-			"number": 5,
 			"description": "WPForms Block With Style Options"
 		},
 		{
-			"number": 6,
 			"description": "Payments Overview"
 		},
 		{
-			"number": 7,
 			"description": "Single Payment"
 		},
 		{
-			"number": 8,
 			"description": "Form Preview"
 		},
 		{
-			"number": 9,
 			"description": "Form Pages with Multiple Styles"
 		},
 		{
-			"number": 10,
 			"description": "Conversational Form"
 		}
 	]

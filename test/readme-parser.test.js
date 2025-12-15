@@ -35,7 +35,7 @@ describe('parseReadmeFile', () => {
 			const fixtureNames = Object.keys(allFixtures);
 
 			// Ensure we have fixtures loaded
-			assert.ok(fixtureNames.length >= 4, 'Should have at least 4 fixtures');
+			assert.ok(fixtureNames.length >= 17, 'Should have at least 17 fixtures');
 
 			// Ensure results directory exists
 			await mkdir(RESULTS_DIR, { recursive: true });
@@ -106,17 +106,13 @@ describe('parseReadmeFile', () => {
 					}
 				}
 
-				// If screenshots exists, it should be an array of objects with number/description
+				// If screenshots exists, it should be an array of objects with description
 				if (data.screenshots) {
 					assert.ok(
 						Array.isArray(data.screenshots),
 						`${name}: screenshots should be array`,
 					);
 					for (const item of data.screenshots) {
-						assert.ok(
-							typeof item.number === 'number',
-							`${name}: screenshot number should be number`,
-						);
 						assert.ok(
 							typeof item.description === 'string',
 							`${name}: screenshot description should be string`,

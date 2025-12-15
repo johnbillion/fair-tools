@@ -208,31 +208,24 @@
 	],
 	"screenshots": [
 		{
-			"number": 1,
 			"description": "Jetpack Security provides easy-to-use, comprehensive WordPress site security including backups, malware scanning, and spam protection."
 		},
 		{
-			"number": 2,
 			"description": "Save every change with real-time backups and get back online quickly with one-click restores."
 		},
 		{
-			"number": 3,
 			"description": "Automated malware scanning and one-click fixes keep your site one step ahead of security threats."
 		},
 		{
-			"number": 4,
 			"description": "Promote your newest posts, pages, and products across your social media channels."
 		},
 		{
-			"number": 5,
 			"description": "Incredibly powerful and customizable, help your visitors instantly find the right content – right when they need it."
 		},
 		{
-			"number": 6,
 			"description": "See what’s working with content performance metrics. Simple, yet powerful stats to grow your site."
 		},
 		{
-			"number": 7,
 			"description": "Stunning‑quality video with none of the hassle. Drag and drop videos through the WordPress editor and keep the focus on your content, not the ads."
 		}
 	]
