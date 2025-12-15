@@ -74,14 +74,11 @@ describe('parseReadmeFile', () => {
 					`${name}: sections should be object`,
 				);
 
-				// Most fixtures should have a name
-				// (some edge cases might not, but real plugins should)
-				if (data.name) {
-					assert.ok(
-						typeof data.name === 'string',
-						`${name}: name should be string`,
-					);
-				}
+				// Fixtures should have a name
+				assert.ok(
+					typeof data.name === 'string',
+					`${name}: name should be string`,
+				);
 
 				// If stableTag exists, it should be a string
 				if (data.stableTag) {
