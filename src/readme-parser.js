@@ -245,7 +245,13 @@ export function parseReadmeFile(content) {
 
 	// Convert description section from markdown to HTML
 	if (result.sections.description) {
-		result.sections.description = marked.parse(result.sections.description, {
+		// Convert WordPress-flavour subheadings to markdown before parsing
+		// = Heading = -> #### Heading (h4)
+		const markdown = result.sections.description.replace(
+			/^=\s*(.+?)\s*=$/gm,
+			'#### $1',
+		);
+		result.sections.description = marked.parse(markdown, {
 			async: false,
 		});
 	}

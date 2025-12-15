@@ -204,5 +204,29 @@ Description.
 			const data = parseReadmeFile(content);
 			assert.deepStrictEqual(data.keywords, ['valid', 'another']);
 		});
+
+		it('converts WordPress-flavour subheadings to h4 in description', () => {
+			const content = `=== Test Plugin ===
+
+Short description.
+
+== Description ==
+
+Some intro text.
+
+= Feature One =
+
+Details about feature one.
+
+= Feature Two =
+
+Details about feature two.
+`;
+			const data = parseReadmeFile(content);
+			assert.strictEqual(
+				data.sections.description,
+				'<p>Some intro text.</p>\n<h4>Feature One</h4>\n<p>Details about feature one.</p>\n<h4>Feature Two</h4>\n<p>Details about feature two.</p>\n',
+			);
+		});
 	});
 });
