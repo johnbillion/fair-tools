@@ -13,7 +13,7 @@ Verification keys are implemented with EdDSA using Ed25519. The FAIR protocol sp
 Ed25519 was chosen for interoperability with PHP:
 
 1. FAIR originated as a protocol to be used within the WordPress ecosystem, which uses PHP. The Sodium extension and the sodium_compat library -- both widely used within the WordPress and PHP ecosystems -- [provide Ed25519 as the only algorithm for public key cryptography](https://github.com/paragonie/sodium_compat/issues/46).
-2. The FAIR plugin for WordPress uses Ed25519 for verifying signatures for the same reason, and interoperability with existing FAIR tooling for WordPress is a key requirement of this package.
+2. [The FAIR Connect plugin for WordPress](https://github.com/fairpm/fair-plugin) uses Ed25519 to verify signatures for the same reason, and interoperability with existing FAIR tooling for WordPress is a key requirement of this package.
 
 ### Private key storage
 

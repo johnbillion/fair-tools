@@ -296,6 +296,7 @@ No. Its license facilitates it being transferred to The FAIR Web Foundation at a
 
 - [FAIR Beacon](https://github.com/fairpm/fair-beacon) - Plugin for WordPress for a self-hostable FAIR repo
 - [FAIR DID Manager](https://github.com/fairpm/did-manager/tree/initial-implementation) - A PHP library for DID management and WordPress plugin/theme metadata generation
+- [FAIR Forge](https://github.com/fairpm/fair-forge) - Build system and artifact management for WordPress plugins/themes
 
 ## License
 
