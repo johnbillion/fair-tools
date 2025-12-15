@@ -6,6 +6,7 @@ import { updateDID } from '../did.js';
 import { loadRotationKey, SigningKeyError } from '../signing.js';
 import { logPlcError } from './lib/plc-error.js';
 import { rotationKeyHelp } from './lib/help.js';
+import { validatePlcDid, DidValidationError } from '../did-validation.js';
 
 const { values } = parseArgs({
 	options: {
@@ -55,6 +56,17 @@ if (missing.length > 0) {
 	console.error(`Error: Missing required options: ${missing.map((o) => `--${o}`).join(', ')}`);
 	console.error('Run with --help for usage information.');
 	process.exit(1);
+}
+
+// Validate DID format
+try {
+	validatePlcDid(values.did);
+} catch (err) {
+	if (err instanceof DidValidationError) {
+		console.error(`Error: ${err.message}`);
+		process.exit(1);
+	}
+	throw err;
 }
 
 // Load signing key

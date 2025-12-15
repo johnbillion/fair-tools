@@ -7,6 +7,7 @@ import { revokeVerificationKey } from '../did.js';
 import { loadRotationKey, SigningKeyError } from '../signing.js';
 import { logPlcError } from './lib/plc-error.js';
 import { rotationKeyHelp } from './lib/help.js';
+import { validatePlcDid, DidValidationError } from '../did-validation.js';
 
 const { values } = parseArgs({
 	options: {
@@ -69,6 +70,17 @@ if (!values.revoke) {
 if (values.cleanup && !values['signing-file']) {
 	console.error('Error: --cleanup requires --signing-file');
 	process.exit(1);
+}
+
+// Validate DID format
+try {
+	validatePlcDid(values.did);
+} catch (err) {
+	if (err instanceof DidValidationError) {
+		console.error(`Error: ${err.message}`);
+		process.exit(1);
+	}
+	throw err;
 }
 
 // Load signing key

@@ -7,6 +7,7 @@ import {
 	getFairAlias,
 	verifyDomainDid,
 } from '../domain.js';
+import { validatePlcDid, DidValidationError } from '../did-validation.js';
 
 const { values } = parseArgs({
 	options: {
@@ -52,6 +53,17 @@ if (!values.did) {
 	console.error('Error: Missing required option: --did');
 	console.error('Run with --help for usage information.');
 	process.exit(1);
+}
+
+// Validate DID format
+try {
+	validatePlcDid(values.did);
+} catch (err) {
+	if (err instanceof DidValidationError) {
+		console.error(`Error: ${err.message}`);
+		process.exit(1);
+	}
+	throw err;
 }
 
 console.log(`Fetching DID document for ${values.did}...`);
