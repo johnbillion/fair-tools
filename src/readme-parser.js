@@ -222,6 +222,39 @@ export function parseReadmeFile(content) {
 		result.screenshots = parseScreenshotsSection(sections.get('screenshots'));
 	}
 
+	// Supported sections per FAIR spec (plus upgradeNotice for WordPress compatibility)
+	const supportedSections = [
+		'description',
+		'installation',
+		'changelog',
+		'faq',
+		'screenshots',
+		'security',
+		'otherNotes',
+		'upgradeNotice',
+	];
+
+	// Append unsupported sections to description (WordPress.org behavior)
+	// Process in original order from the readme
+	for (const [key, value] of sections) {
+		if (!supportedSections.includes(key)) {
+			// Convert camelCase back to Title Case for the heading
+			const title = key
+				.replace(/([A-Z])/g, ' $1')
+				.replace(/^./, (c) => c.toUpperCase())
+				.trim();
+			const descriptionContent = result.sections.description || '';
+			result.sections.description =
+				descriptionContent + `\n\n### ${title}\n\n${value}`;
+			delete result.sections[key];
+		}
+	}
+
+	// Trim leading whitespace from description if it was empty before
+	if (result.sections.description) {
+		result.sections.description = result.sections.description.trim();
+	}
+
 	// Convert markdown sections to HTML
 	for (const section of Object.keys(result.sections)) {
 		// Convert WordPress-flavour subheadings to markdown before parsing
@@ -235,24 +268,11 @@ export function parseReadmeFile(content) {
 		});
 	}
 
-	// Reorder sections: description, installation, changelog, faq, screenshots, then rest
+	// Reorder sections per FAIR spec order
 	/** @type {Record<string, string>} */
 	const orderedSections = {};
-	const sectionOrder = [
-		'description',
-		'installation',
-		'changelog',
-		'faq',
-		'screenshots',
-	];
-	for (const key of sectionOrder) {
+	for (const key of supportedSections) {
 		if (result.sections[key] !== undefined) {
-			orderedSections[key] = result.sections[key];
-		}
-	}
-	// Add any remaining sections
-	for (const key of Object.keys(result.sections)) {
-		if (!sectionOrder.includes(key)) {
 			orderedSections[key] = result.sections[key];
 		}
 	}
