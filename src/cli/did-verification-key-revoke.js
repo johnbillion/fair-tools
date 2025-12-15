@@ -4,7 +4,7 @@ import { writeFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { importRotationKeyPair } from '../keys.js';
 import { revokeVerificationKey } from '../did.js';
-import { loadRotationKey, SigningKeyError } from './lib/signing.js';
+import { loadRotationKey, SigningKeyError } from '../signing.js';
 import { logPlcError } from './lib/plc-error.js';
 import { rotationKeyHelp } from './lib/help.js';
 

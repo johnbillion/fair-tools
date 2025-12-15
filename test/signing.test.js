@@ -8,12 +8,12 @@ import {
 	loadVerificationKey,
 	loadRotationKeyForRevocation,
 	SigningKeyError,
-} from '../../src/cli/lib/signing.js';
+} from '../src/signing.js';
 import { base58btc } from 'multiformats/bases/base58';
 import {
 	encodeRotationKey,
 	encodeVerificationKey,
-} from '../../src/keyfile.js';
+} from '../src/keyfile.js';
 
 // Multicodec prefixes for test data generation
 const SECP256K1_PRIV_PREFIX = new Uint8Array([0x81, 0x26]);

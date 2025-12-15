@@ -3,7 +3,7 @@
 import { parseArgs } from 'node:util';
 import { importRotationKeyPair, generateVerificationKeyPair } from '../keys.js';
 import { addVerificationKey } from '../did.js';
-import { loadRotationKey, SigningKeyError } from './lib/signing.js';
+import { loadRotationKey, SigningKeyError } from '../signing.js';
 import { saveVerificationKeyToFile, SaveKeyError } from '../keyfile.js';
 import { logPlcError } from './lib/plc-error.js';
 import { rotationKeyHelp } from './lib/help.js';
