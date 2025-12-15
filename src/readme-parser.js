@@ -267,6 +267,7 @@ export function parseReadmeFile(content) {
 		);
 		result.sections[section] = marked.parse(markdown, {
 			async: false,
+			breaks: true, // WordPress readme uses single newlines for <br>
 		});
 	}
 

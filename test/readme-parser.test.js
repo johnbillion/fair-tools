@@ -743,5 +743,36 @@ More content.
 				},
 			});
 		});
+
+		it('converts single newlines to br tags', () => {
+			// WordPress readme uses single newlines for line breaks, unlike standard markdown
+			const content = `=== Test Plugin ===
+
+Short description.
+
+== Description ==
+
+Line one
+Line two
+Line three
+`;
+			const data = parseReadmeFile(content);
+			assert.deepStrictEqual(data, {
+				name: 'Test Plugin',
+				license: undefined,
+				licenseUri: undefined,
+				keywords: [],
+				shortDescription: 'Short description.',
+				contributors: undefined,
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {
+					description: '<p>Line one<br>Line two<br>Line three</p>\n',
+				},
+			});
+		});
 	});
 });
