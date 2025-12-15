@@ -85,13 +85,17 @@ export async function verifyDomainDid(domain, expectedDid) {
 	const didRecords = flatRecords.filter((r) => r.startsWith('did='));
 
 	if (didRecords.length === 0) {
-		throw new DnsRecordInvalidError(`No did= entry found in TXT record at ${recordHost}`);
+		throw new DnsRecordInvalidError(
+			`No did= entry found in TXT record at ${recordHost}`,
+		);
 	}
 
 	// Parse the first did= record
 	const match = didRecords[0].match(DID_RECORD_REGEX);
 	if (!match) {
-		throw new DnsRecordInvalidError(`Invalid did= format in TXT record: ${didRecords[0]}`);
+		throw new DnsRecordInvalidError(
+			`Invalid did= format in TXT record: ${didRecords[0]}`,
+		);
 	}
 
 	const foundDid = match[1];
@@ -110,7 +114,9 @@ export async function verifyDomainDid(domain, expectedDid) {
 export async function getFairAlias(did, plcUrl = PLC_DIRECTORY_URL) {
 	const client = new Client(plcUrl);
 	const doc = await client.getDocument(did);
-	const aliases = (doc.alsoKnownAs || []).filter((url) => url.startsWith('fair://'));
+	const aliases = (doc.alsoKnownAs || []).filter((url) =>
+		url.startsWith('fair://'),
+	);
 
 	if (aliases.length === 0) {
 		throw new NoAliasError();

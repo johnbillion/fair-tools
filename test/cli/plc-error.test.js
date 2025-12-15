@@ -1,6 +1,10 @@
-import { describe, it, mock } from 'node:test';
+import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { formatPlcError, diagnosePlcError, logPlcError } from '../../src/cli/lib/plc-error.js';
+import {
+	formatPlcError,
+	diagnosePlcError,
+	logPlcError,
+} from '../../src/cli/lib/plc-error.js';
 
 describe('formatPlcError', () => {
 	it('returns message for regular errors', () => {
@@ -14,7 +18,7 @@ describe('formatPlcError', () => {
 		err.data = 'Invalid signature on op';
 		assert.strictEqual(
 			formatPlcError(err),
-			'Request failed with status code 400 (400): Invalid signature on op'
+			'Request failed with status code 400 (400): Invalid signature on op',
 		);
 	});
 
@@ -24,7 +28,7 @@ describe('formatPlcError', () => {
 		err.data = { message: 'Key not found' };
 		assert.strictEqual(
 			formatPlcError(err),
-			'Request failed with status code 400 (400): Key not found'
+			'Request failed with status code 400 (400): Key not found',
 		);
 	});
 
@@ -34,7 +38,7 @@ describe('formatPlcError', () => {
 		err.data = { error: 'Internal server error' };
 		assert.strictEqual(
 			formatPlcError(err),
-			'Request failed with status code 500 (500): Internal server error'
+			'Request failed with status code 500 (500): Internal server error',
 		);
 	});
 
@@ -44,7 +48,7 @@ describe('formatPlcError', () => {
 		err.data = { code: 'INVALID_OP', details: 'bad' };
 		assert.strictEqual(
 			formatPlcError(err),
-			'Request failed with status code 400 (400): {"code":"INVALID_OP","details":"bad"}'
+			'Request failed with status code 400 (400): {"code":"INVALID_OP","details":"bad"}',
 		);
 	});
 
@@ -54,7 +58,7 @@ describe('formatPlcError', () => {
 		err.data = 'Some detailed error message';
 		assert.strictEqual(
 			formatPlcError(err, { includeData: false }),
-			'Request failed with status code 400 (400)'
+			'Request failed with status code 400 (400)',
 		);
 	});
 
@@ -63,7 +67,7 @@ describe('formatPlcError', () => {
 		err.status = 404;
 		assert.strictEqual(
 			formatPlcError(err),
-			'Request failed with status code 404 (404)'
+			'Request failed with status code 404 (404)',
 		);
 	});
 });
@@ -87,13 +91,20 @@ describe('diagnosePlcError', () => {
 		const err = new Error('Bad request');
 		err.status = 400;
 		const op = {
-			rotationKeys: ['did:key:zQ3shpnvgkfhKzXp7cokYi1y6QGnue371C4BFFwFJz6qj3RNH'],
+			rotationKeys: [
+				'did:key:zQ3shpnvgkfhKzXp7cokYi1y6QGnue371C4BFFwFJz6qj3RNH',
+			],
 		};
 		err.data = { message: `Invalid signature on op: ${JSON.stringify(op)}` };
 		const hints = diagnosePlcError(err, {
-			signerPublicKey: 'did:key:zQ3shgzHYGG4X5pQHMiJKbjgnF7foYR3LeLbon7zeF32yDZPQ',
+			signerPublicKey:
+				'did:key:zQ3shgzHYGG4X5pQHMiJKbjgnF7foYR3LeLbon7zeF32yDZPQ',
 		});
-		assert.ok(hints.some((h) => h.includes('is not in the DID\'s current rotation keys')));
+		assert.ok(
+			hints.some((h) =>
+				h.includes("is not in the DID's current rotation keys"),
+			),
+		);
 	});
 
 	it('returns empty array when no JSON can be extracted', () => {
@@ -108,7 +119,8 @@ describe('diagnosePlcError', () => {
 		err.status = 400;
 		err.data = 'Invalid signature on op: {not valid json}';
 		const hints = diagnosePlcError(err, {
-			signerPublicKey: 'did:key:zQ3shgzHYGG4X5pQHMiJKbjgnF7foYR3LeLbon7zeF32yDZPQ',
+			signerPublicKey:
+				'did:key:zQ3shgzHYGG4X5pQHMiJKbjgnF7foYR3LeLbon7zeF32yDZPQ',
 		});
 		assert.deepStrictEqual(hints, []);
 	});
@@ -118,14 +130,21 @@ describe('diagnosePlcError', () => {
 			const err = new Error('Bad request');
 			err.status = 400;
 			const op = {
-				rotationKeys: ['did:key:zQ3shpnvgkfhKzXp7cokYi1y6QGnue371C4BFFwFJz6qj3RNH'],
+				rotationKeys: [
+					'did:key:zQ3shpnvgkfhKzXp7cokYi1y6QGnue371C4BFFwFJz6qj3RNH',
+				],
 				verificationMethods: {},
 			};
 			err.data = `Invalid signature on op: ${JSON.stringify(op)}`;
 			const hints = diagnosePlcError(err, {
-				signerPublicKey: 'did:key:zQ3shgzHYGG4X5pQHMiJKbjgnF7foYR3LeLbon7zeF32yDZPQ',
+				signerPublicKey:
+					'did:key:zQ3shgzHYGG4X5pQHMiJKbjgnF7foYR3LeLbon7zeF32yDZPQ',
 			});
-			assert.ok(hints.some((h) => h.includes('is not in the DID\'s current rotation keys')));
+			assert.ok(
+				hints.some((h) =>
+					h.includes("is not in the DID's current rotation keys"),
+				),
+			);
 			assert.ok(hints.some((h) => h.includes('Use --signing-key')));
 		});
 
@@ -133,16 +152,22 @@ describe('diagnosePlcError', () => {
 			const err = new Error('Bad request');
 			err.status = 400;
 			const op = {
-				rotationKeys: ['did:key:zQ3shpnvgkfhKzXp7cokYi1y6QGnue371C4BFFwFJz6qj3RNH'],
+				rotationKeys: [
+					'did:key:zQ3shpnvgkfhKzXp7cokYi1y6QGnue371C4BFFwFJz6qj3RNH',
+				],
 			};
 			err.data = `some error: ${JSON.stringify(op)}`;
 			const hints = diagnosePlcError(err, {
-				signerPublicKey: 'did:key:zQ3shpnvgkfhKzXp7cokYi1y6QGnue371C4BFFwFJz6qj3RNH',
+				signerPublicKey:
+					'did:key:zQ3shpnvgkfhKzXp7cokYi1y6QGnue371C4BFFwFJz6qj3RNH',
 			});
-			assert.ok(!hints.some((h) => h.includes('is not in the DID\'s current rotation keys')));
+			assert.ok(
+				!hints.some((h) =>
+					h.includes("is not in the DID's current rotation keys"),
+				),
+			);
 		});
 	});
-
 });
 
 describe('logPlcError', () => {
@@ -166,7 +191,9 @@ describe('logPlcError', () => {
 		const err = new Error('Request failed with status code 400');
 		err.status = 400;
 		const op = {
-			rotationKeys: ['did:key:zQ3shpnvgkfhKzXp7cokYi1y6QGnue371C4BFFwFJz6qj3RNH'],
+			rotationKeys: [
+				'did:key:zQ3shpnvgkfhKzXp7cokYi1y6QGnue371C4BFFwFJz6qj3RNH',
+			],
 		};
 		err.data = `Invalid signature on op: ${JSON.stringify(op)}`;
 		const logs = [];
@@ -174,7 +201,8 @@ describe('logPlcError', () => {
 		console.error = (msg) => logs.push(msg);
 		try {
 			logPlcError('Error', err, {
-				signerPublicKey: 'did:key:zQ3shgzHYGG4X5pQHMiJKbjgnF7foYR3LeLbon7zeF32yDZPQ',
+				signerPublicKey:
+					'did:key:zQ3shgzHYGG4X5pQHMiJKbjgnF7foYR3LeLbon7zeF32yDZPQ',
 			});
 		} finally {
 			console.error = originalError;

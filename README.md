@@ -5,7 +5,7 @@ A library of Node.js tools for [FAIR](https://fair.pm/) that can be used by auth
 This library focuses on providing FAIR tools for the WordPress ecosystem, but its tools are also applicable to FAIR and DID PLC in general.
 
 > [!CAUTION]  
-> This package is not production ready and is under heavy development. Do not use this unless you are comfortable testing the FAIR protocol and handling breaking changes, including breaking changes to storage of private keys.  
+> This package is not production ready and is under heavy development. Do not use this unless you are comfortable testing the FAIR protocol and handling breaking changes, including breaking changes to storage of private keys.
 
 ## Installation
 
@@ -32,9 +32,9 @@ Then add `fair-tools` to your `package.json` scripts:
 
 ```json
 {
-  "scripts": {
-    "fair-tools": "fair-tools"
-  }
+	"scripts": {
+		"fair-tools": "fair-tools"
+	}
 }
 ```
 
@@ -43,6 +43,7 @@ Usage:
 ```
 npm run fair-tools -- <command> [options]
 ```
+
 </details>
 
 ## CLI reference

@@ -102,11 +102,14 @@ try {
 	throw err;
 }
 
-const { keypair: signer, publicKey: signerPublicKey } = await importRotationKeyPair(privateKeyHex);
+const { keypair: signer, publicKey: signerPublicKey } =
+	await importRotationKeyPair(privateKeyHex);
 
 // Check if env var key is being revoked
 if (signerPublicKey === values.revoke) {
-	console.error('Error: Cannot use the key being revoked to sign the operation');
+	console.error(
+		'Error: Cannot use the key being revoked to sign the operation',
+	);
 	process.exit(1);
 }
 
@@ -131,14 +134,20 @@ console.log('Rotation key revoked successfully.');
 if (values.cleanup && keyData && keyData.rotationKeys[values.revoke]) {
 	delete keyData.rotationKeys[values.revoke];
 	try {
-		await writeFile(values['signing-file'], JSON.stringify(keyData, null, 2) + '\n', { mode: 0o600 });
+		await writeFile(
+			values['signing-file'],
+			JSON.stringify(keyData, null, 2) + '\n',
+			{ mode: 0o600 },
+		);
 	} catch (err) {
 		console.error(`Error writing key file: ${err.message}`);
 		process.exit(1);
 	}
 	console.log(`Removed revoked key from ${values['signing-file']}`);
 } else if (keyData && keyData.rotationKeys[values.revoke]) {
-	console.log(`Note: The revoked key still exists in ${values['signing-file']}. Use --cleanup to delete it.`);
+	console.log(
+		`Note: The revoked key still exists in ${values['signing-file']}. Use --cleanup to delete it.`,
+	);
 }
 
 console.log(`View at: https://web.plc.directory/did/${values.did}`);

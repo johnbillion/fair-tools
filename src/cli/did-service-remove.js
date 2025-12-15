@@ -53,7 +53,9 @@ Optional:
 const required = ['did', 'url'];
 const missing = required.filter((opt) => !values[opt]);
 if (missing.length > 0) {
-	console.error(`Error: Missing required options: ${missing.map((o) => `--${o}`).join(', ')}`);
+	console.error(
+		`Error: Missing required options: ${missing.map((o) => `--${o}`).join(', ')}`,
+	);
 	console.error('Run with --help for usage information.');
 	process.exit(1);
 }
@@ -83,7 +85,8 @@ try {
 	}
 	throw err;
 }
-const { keypair, publicKey: signerPublicKey } = await importRotationKeyPair(privateKeyHex);
+const { keypair, publicKey: signerPublicKey } =
+	await importRotationKeyPair(privateKeyHex);
 
 console.log(`Updating DID ${values.did}...`);
 

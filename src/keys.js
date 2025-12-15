@@ -65,7 +65,9 @@ export async function importVerificationKeyPair(privateKey) {
  * @returns {Promise<{ publicKey: string, privateKey: Uint8Array, keypair: Secp256k1Keypair }>}
  */
 export async function importRotationKeyPair(privateKey) {
-	const keypair = await Secp256k1Keypair.import(privateKey, { exportable: true });
+	const keypair = await Secp256k1Keypair.import(privateKey, {
+		exportable: true,
+	});
 	const exportedKey = await keypair.export();
 	const publicKey = keypair.did();
 
@@ -84,9 +86,8 @@ export async function importRotationKeyPair(privateKey) {
  * @returns {Promise<Uint8Array>} 64-byte signature
  */
 export async function signWithVerificationKey(message, keypair) {
-	const messageBytes = typeof message === 'string'
-		? new TextEncoder().encode(message)
-		: message;
+	const messageBytes =
+		typeof message === 'string' ? new TextEncoder().encode(message) : message;
 
 	return keypair.sign(messageBytes);
 }
@@ -99,9 +100,8 @@ export async function signWithVerificationKey(message, keypair) {
  * @returns {Promise<Uint8Array>} The signature
  */
 export async function signWithRotationKey(message, keypair) {
-	const messageBytes = typeof message === 'string'
-		? new TextEncoder().encode(message)
-		: message;
+	const messageBytes =
+		typeof message === 'string' ? new TextEncoder().encode(message) : message;
 
 	return keypair.sign(messageBytes);
 }
@@ -115,9 +115,8 @@ export async function signWithRotationKey(message, keypair) {
  * @returns {Promise<boolean>} Whether the signature is valid
  */
 export async function verifyWithVerificationKey(message, signature, keypair) {
-	const messageBytes = typeof message === 'string'
-		? new TextEncoder().encode(message)
-		: message;
+	const messageBytes =
+		typeof message === 'string' ? new TextEncoder().encode(message) : message;
 
 	return ed25519.verify(signature, messageBytes, keypair.publicKeyBytes());
 }
@@ -132,9 +131,8 @@ export async function verifyWithVerificationKey(message, signature, keypair) {
  */
 export async function verifyWithRotationKey(message, signature, publicKey) {
 	const { verifySignature } = await import('@atproto/crypto');
-	const messageBytes = typeof message === 'string'
-		? new TextEncoder().encode(message)
-		: message;
+	const messageBytes =
+		typeof message === 'string' ? new TextEncoder().encode(message) : message;
 
 	return verifySignature(publicKey, messageBytes, signature);
 }

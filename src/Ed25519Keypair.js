@@ -37,11 +37,9 @@ export class Ed25519Keypair {
 	/**
 	 * Create a new Ed25519 keypair.
 	 *
-	 * @param {object} [opts] - Options
-	 * @param {boolean} [opts.exportable] - Whether the key can be exported (ignored, always true)
 	 * @returns {Promise<Ed25519Keypair>}
 	 */
-	static async create(opts = {}) {
+	static async create() {
 		const privateKey = ed25519.utils.randomSecretKey();
 		const publicKey = ed25519.getPublicKey(privateKey);
 		return new Ed25519Keypair(privateKey, publicKey);
@@ -51,14 +49,13 @@ export class Ed25519Keypair {
 	 * Import an Ed25519 keypair from a private key.
 	 *
 	 * @param {Uint8Array|string} privateKey - 32-byte private key or hex string
-	 * @param {object} [opts] - Options
-	 * @param {boolean} [opts.exportable] - Whether the key can be exported (ignored, always true)
 	 * @returns {Promise<Ed25519Keypair>}
 	 */
-	static async import(privateKey, opts = {}) {
-		const privBytes = typeof privateKey === 'string'
-			? uint8arrays.fromString(privateKey, 'hex')
-			: privateKey;
+	static async import(privateKey) {
+		const privBytes =
+			typeof privateKey === 'string'
+				? uint8arrays.fromString(privateKey, 'hex')
+				: privateKey;
 		const publicKey = ed25519.getPublicKey(privBytes);
 		return new Ed25519Keypair(privBytes, publicKey);
 	}
@@ -78,7 +75,9 @@ export class Ed25519Keypair {
 	 * @returns {string} Base58BTC-encoded public key with Ed25519 multicodec prefix
 	 */
 	publicKeyStr() {
-		const prefixed = new Uint8Array(ED25519_PUBLIC_PREFIX.length + this.#publicKey.length);
+		const prefixed = new Uint8Array(
+			ED25519_PUBLIC_PREFIX.length + this.#publicKey.length,
+		);
 		prefixed.set(ED25519_PUBLIC_PREFIX, 0);
 		prefixed.set(this.#publicKey, ED25519_PUBLIC_PREFIX.length);
 		return bytesToMultibase(prefixed, 'base58btc');

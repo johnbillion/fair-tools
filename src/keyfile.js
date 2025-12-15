@@ -38,10 +38,12 @@ export function encodeRotationKey(privateKey) {
 		format: 'jwk',
 	});
 
-	return keyObject.export({
-		type: 'sec1',
-		format: 'pem',
-	}).trim();
+	return keyObject
+		.export({
+			type: 'sec1',
+			format: 'pem',
+		})
+		.trim();
 }
 
 /**
@@ -62,10 +64,12 @@ export function encodeVerificationKey(privateKey) {
 		format: 'jwk',
 	});
 
-	return keyObject.export({
-		type: 'pkcs8',
-		format: 'pem',
-	}).trim();
+	return keyObject
+		.export({
+			type: 'pkcs8',
+			format: 'pem',
+		})
+		.trim();
 }
 
 /**
@@ -111,15 +115,21 @@ export function getKeyFilePath(directory, did) {
  * @returns {string} The JSON content to write
  */
 export function formatKeyFileContent({ did, rotationKey, verificationKey }) {
-	return JSON.stringify({
-		did,
-		rotationKeys: {
-			[rotationKey.publicKey]: encodeRotationKey(rotationKey.privateKey),
+	return JSON.stringify(
+		{
+			did,
+			rotationKeys: {
+				[rotationKey.publicKey]: encodeRotationKey(rotationKey.privateKey),
+			},
+			verificationKeys: {
+				[verificationKey.publicKey]: encodeVerificationKey(
+					verificationKey.privateKey,
+				),
+			},
 		},
-		verificationKeys: {
-			[verificationKey.publicKey]: encodeVerificationKey(verificationKey.privateKey),
-		},
-	}, null, 2);
+		null,
+		2,
+	);
 }
 
 /**
@@ -182,7 +192,9 @@ export async function saveRotationKeyToFile({ outputFile, key }) {
 				throw new SaveKeyError(`Key already exists in file: ${publicKey}`);
 			}
 			outputData.rotationKeys[publicKey] = encodedKey;
-			await writeFile(outputFile, JSON.stringify(outputData, null, 2) + '\n', { mode: KEY_FILE_MODE });
+			await writeFile(outputFile, JSON.stringify(outputData, null, 2) + '\n', {
+				mode: KEY_FILE_MODE,
+			});
 			return { appended: true };
 		} else {
 			// File doesn't exist - write PEM key with proper multiline format
@@ -246,7 +258,9 @@ export async function saveVerificationKeyToFile({ outputFile, key }) {
 				throw new SaveKeyError(`Key already exists in file: ${publicKey}`);
 			}
 			outputData.verificationKeys[publicKey] = encodedKey;
-			await writeFile(outputFile, JSON.stringify(outputData, null, 2) + '\n', { mode: KEY_FILE_MODE });
+			await writeFile(outputFile, JSON.stringify(outputData, null, 2) + '\n', {
+				mode: KEY_FILE_MODE,
+			});
 			return { appended: true };
 		} else {
 			// File doesn't exist - write PEM key with proper multiline format

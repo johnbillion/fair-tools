@@ -121,15 +121,18 @@ export function parseReadmeFile(content) {
 	const data = {};
 
 	// Parse license
-	const licenseMatch = content.match(/^License:\s*(.+)$/mi);
+	const licenseMatch = content.match(/^License:\s*(.+)$/im);
 	if (licenseMatch) {
 		data.license = licenseMatch[1].trim();
 	}
 
 	// Parse tags into keywords array
-	const tagsMatch = content.match(/^Tags:\s*(.+)$/mi);
+	const tagsMatch = content.match(/^Tags:\s*(.+)$/im);
 	data.keywords = tagsMatch
-		? tagsMatch[1].split(',').map((tag) => tag.trim()).filter(Boolean)
+		? tagsMatch[1]
+				.split(',')
+				.map((tag) => tag.trim())
+				.filter(Boolean)
 		: [];
 
 	// Extract short description (first non-empty line after header fields)
@@ -273,13 +276,7 @@ export function createMetadataDocument(options) {
  * @returns {object} Release document
  */
 export function createReleaseDocument(options) {
-	const {
-		version,
-		artifacts,
-		requires,
-		suggests,
-		provides,
-	} = options;
+	const { version, artifacts, requires, suggests, provides } = options;
 
 	const doc = {
 		version,
@@ -442,7 +439,9 @@ export async function buildMetadataFromContent(options) {
 	});
 
 	// Build security contacts array
-	const security = securityContact ? [formatSecurityContact(securityContact)] : [];
+	const security = securityContact
+		? [formatSecurityContact(securityContact)]
+		: [];
 
 	// Create metadata document with new release prepended to existing ones
 	return createMetadataDocument({
@@ -487,7 +486,10 @@ export async function buildMetadata(options) {
 
 	// Determine slug from directory or filename
 	const pluginDir = dirname(pluginFile);
-	const slug = basename(pluginDir) !== '.' ? basename(pluginDir) : basename(pluginFile, '.php');
+	const slug =
+		basename(pluginDir) !== '.'
+			? basename(pluginDir)
+			: basename(pluginFile, '.php');
 
 	// Parse all source files
 	const pluginContent = await readFile(pluginFile, 'utf-8');
@@ -498,12 +500,17 @@ export async function buildMetadata(options) {
 		throw new Error('Plugin file is missing required "Plugin ID:" header');
 	}
 	if (pluginData.pluginId !== did) {
-		throw new Error(`Plugin ID mismatch: plugin file has "${pluginData.pluginId}" but DID "${did}" was provided`);
+		throw new Error(
+			`Plugin ID mismatch: plugin file has "${pluginData.pluginId}" but DID "${did}" was provided`,
+		);
 	}
 
 	let readmeData = {};
 	try {
-		const readmeContent = await readFile(join(pluginDir, 'readme.txt'), 'utf-8');
+		const readmeContent = await readFile(
+			join(pluginDir, 'readme.txt'),
+			'utf-8',
+		);
 		readmeData = parseReadmeFile(readmeContent);
 	} catch {
 		// No readme.txt found
@@ -511,7 +518,10 @@ export async function buildMetadata(options) {
 
 	let composerData = {};
 	try {
-		const composerContent = await readFile(join(pluginDir, 'composer.json'), 'utf-8');
+		const composerContent = await readFile(
+			join(pluginDir, 'composer.json'),
+			'utf-8',
+		);
 		composerData = parseComposerJson(composerContent);
 	} catch {
 		// No composer.json found
@@ -519,14 +529,22 @@ export async function buildMetadata(options) {
 
 	let packageData = {};
 	try {
-		const packageContent = await readFile(join(pluginDir, 'package.json'), 'utf-8');
+		const packageContent = await readFile(
+			join(pluginDir, 'package.json'),
+			'utf-8',
+		);
 		packageData = parsePackageJson(packageContent);
 	} catch {
 		// No package.json found
 	}
 
 	// Resolve values by priority
-	const license = composerData.license || packageData.license || pluginData.license || readmeData.license || '';
+	const license =
+		composerData.license ||
+		packageData.license ||
+		pluginData.license ||
+		readmeData.license ||
+		'';
 	const securityContact = pluginData.security || composerData.securityContact;
 	const description = pluginData.description || readmeData.shortDescription;
 

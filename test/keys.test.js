@@ -25,22 +25,33 @@ describe('generate verification key pair', () => {
 
 		assert.ok(
 			result.publicKey.startsWith('did:key:z6Mk'),
-			`publicKey should be an Ed25519 did:key, got ${result.publicKey.slice(0, 15)}`
+			`publicKey should be an Ed25519 did:key, got ${result.publicKey.slice(0, 15)}`,
 		);
 	});
 
 	it('returns a 32-byte private key', async () => {
 		const result = await generateVerificationKeyPair();
 
-		assert.ok(result.privateKey instanceof Uint8Array, 'privateKey should be a Uint8Array');
-		assert.strictEqual(result.privateKey.length, 32, 'privateKey should be 32 bytes');
+		assert.ok(
+			result.privateKey instanceof Uint8Array,
+			'privateKey should be a Uint8Array',
+		);
+		assert.strictEqual(
+			result.privateKey.length,
+			32,
+			'privateKey should be 32 bytes',
+		);
 	});
 
 	it('generates unique keys each call', async () => {
 		const result1 = await generateVerificationKeyPair();
 		const result2 = await generateVerificationKeyPair();
 
-		assert.notStrictEqual(result1.publicKey, result2.publicKey, 'publicKeys should be different');
+		assert.notStrictEqual(
+			result1.publicKey,
+			result2.publicKey,
+			'publicKeys should be different',
+		);
 	});
 
 	it('keypair can sign and verify', async () => {
@@ -48,7 +59,11 @@ describe('generate verification key pair', () => {
 		const message = 'test';
 
 		const signature = await signWithVerificationKey(message, result.keypair);
-		const isValid = await verifyWithVerificationKey(message, signature, result.keypair);
+		const isValid = await verifyWithVerificationKey(
+			message,
+			signature,
+			result.keypair,
+		);
 
 		assert.strictEqual(isValid, true);
 	});
@@ -68,15 +83,22 @@ describe('generate rotation key pair', () => {
 
 		assert.ok(
 			result.publicKey.startsWith('did:key:zQ3sh'),
-			`publicKey should be a secp256k1 did:key, got ${result.publicKey.slice(0, 15)}`
+			`publicKey should be a secp256k1 did:key, got ${result.publicKey.slice(0, 15)}`,
 		);
 	});
 
 	it('returns a 32-byte private key', async () => {
 		const result = await generateRotationKeyPair();
 
-		assert.ok(result.privateKey instanceof Uint8Array, 'privateKey should be a Uint8Array');
-		assert.strictEqual(result.privateKey.length, 32, 'privateKey should be 32 bytes');
+		assert.ok(
+			result.privateKey instanceof Uint8Array,
+			'privateKey should be a Uint8Array',
+		);
+		assert.strictEqual(
+			result.privateKey.length,
+			32,
+			'privateKey should be 32 bytes',
+		);
 	});
 });
 
@@ -85,7 +107,11 @@ describe('import verification key pair', () => {
 		const original = await generateVerificationKeyPair();
 		const imported = await importVerificationKeyPair(original.privateKey);
 
-		assert.strictEqual(imported.publicKey, original.publicKey, 'publicKeys should match');
+		assert.strictEqual(
+			imported.publicKey,
+			original.publicKey,
+			'publicKeys should match',
+		);
 	});
 
 	it('works with hex string input', async () => {
@@ -93,7 +119,11 @@ describe('import verification key pair', () => {
 		const hexPrivateKey = Buffer.from(original.privateKey).toString('hex');
 		const imported = await importVerificationKeyPair(hexPrivateKey);
 
-		assert.strictEqual(imported.publicKey, original.publicKey, 'publicKeys should match');
+		assert.strictEqual(
+			imported.publicKey,
+			original.publicKey,
+			'publicKeys should match',
+		);
 	});
 
 	it('returns a working keypair for signing', async () => {
@@ -102,7 +132,11 @@ describe('import verification key pair', () => {
 
 		const message = 'test message';
 		const signature = await signWithVerificationKey(message, imported.keypair);
-		const isValid = await verifyWithVerificationKey(message, signature, imported.keypair);
+		const isValid = await verifyWithVerificationKey(
+			message,
+			signature,
+			imported.keypair,
+		);
 
 		assert.strictEqual(isValid, true, 'signature should be valid');
 	});
@@ -113,7 +147,11 @@ describe('import rotation key pair', () => {
 		const original = await generateRotationKeyPair();
 		const imported = await importRotationKeyPair(original.privateKey);
 
-		assert.strictEqual(imported.publicKey, original.publicKey, 'publicKeys should match');
+		assert.strictEqual(
+			imported.publicKey,
+			original.publicKey,
+			'publicKeys should match',
+		);
 	});
 
 	it('works with hex string input', async () => {
@@ -121,7 +159,11 @@ describe('import rotation key pair', () => {
 		const hexPrivateKey = Buffer.from(original.privateKey).toString('hex');
 		const imported = await importRotationKeyPair(hexPrivateKey);
 
-		assert.strictEqual(imported.publicKey, original.publicKey, 'publicKeys should match');
+		assert.strictEqual(
+			imported.publicKey,
+			original.publicKey,
+			'publicKeys should match',
+		);
 	});
 });
 
@@ -132,7 +174,10 @@ describe('sign and verify with verification key', () => {
 
 		const signature = await signWithVerificationKey(message, keys.keypair);
 
-		assert.ok(signature instanceof Uint8Array, 'signature should be a Uint8Array');
+		assert.ok(
+			signature instanceof Uint8Array,
+			'signature should be a Uint8Array',
+		);
 		assert.strictEqual(signature.length, 64, 'signature should be 64 bytes');
 	});
 
@@ -151,7 +196,11 @@ describe('sign and verify with verification key', () => {
 		const message = 'Verify me!';
 
 		const signature = await signWithVerificationKey(message, keys.keypair);
-		const isValid = await verifyWithVerificationKey(message, signature, keys.keypair);
+		const isValid = await verifyWithVerificationKey(
+			message,
+			signature,
+			keys.keypair,
+		);
 
 		assert.strictEqual(isValid, true);
 	});
@@ -162,7 +211,11 @@ describe('sign and verify with verification key', () => {
 		const wrongMessage = 'Wrong message';
 
 		const signature = await signWithVerificationKey(message, keys.keypair);
-		const isValid = await verifyWithVerificationKey(wrongMessage, signature, keys.keypair);
+		const isValid = await verifyWithVerificationKey(
+			wrongMessage,
+			signature,
+			keys.keypair,
+		);
 
 		assert.strictEqual(isValid, false);
 	});
@@ -175,8 +228,15 @@ describe('sign and verify with rotation key', () => {
 
 		const signature = await signWithRotationKey(message, keys.keypair);
 
-		assert.ok(signature instanceof Uint8Array, 'signature should be a Uint8Array');
-		assert.strictEqual(signature.length, 64, 'signature should be 64 bytes (compact format)');
+		assert.ok(
+			signature instanceof Uint8Array,
+			'signature should be a Uint8Array',
+		);
+		assert.strictEqual(
+			signature.length,
+			64,
+			'signature should be 64 bytes (compact format)',
+		);
 	});
 
 	it('works with Uint8Array messages', async () => {
@@ -194,7 +254,11 @@ describe('sign and verify with rotation key', () => {
 		const message = 'Verify rotation!';
 
 		const signature = await signWithRotationKey(message, keys.keypair);
-		const isValid = await verifyWithRotationKey(message, signature, keys.publicKey);
+		const isValid = await verifyWithRotationKey(
+			message,
+			signature,
+			keys.publicKey,
+		);
 
 		assert.strictEqual(isValid, true);
 	});
@@ -205,7 +269,11 @@ describe('sign and verify with rotation key', () => {
 		const wrongMessage = 'Wrong message';
 
 		const signature = await signWithRotationKey(message, keys.keypair);
-		const isValid = await verifyWithRotationKey(wrongMessage, signature, keys.publicKey);
+		const isValid = await verifyWithRotationKey(
+			wrongMessage,
+			signature,
+			keys.publicKey,
+		);
 
 		assert.strictEqual(isValid, false);
 	});

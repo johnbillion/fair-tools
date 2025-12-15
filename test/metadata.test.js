@@ -1,6 +1,14 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { buildMetadataFromContent, createArtifact, createSignedArtifact, parseComposerJson, parsePackageJson, parsePluginHeaders, parseReadmeFile } from '../src/metadata.js';
+import {
+	buildMetadataFromContent,
+	createArtifact,
+	createSignedArtifact,
+	parseComposerJson,
+	parsePackageJson,
+	parsePluginHeaders,
+	parseReadmeFile,
+} from '../src/metadata.js';
 import { generateVerificationKeyPair } from '../src/keys.js';
 
 describe('buildMetadataFromContent', () => {
@@ -17,7 +25,7 @@ describe('buildMetadataFromContent', () => {
 			}),
 			{
 				message: 'Plugin file is missing required "Version:" header',
-			}
+			},
 		);
 	});
 
@@ -113,7 +121,9 @@ describe('buildMetadataFromContent', () => {
 			downloadUrl: 'https://example.com/test.zip',
 		});
 
-		assert.deepStrictEqual(metadata.security, [{ url: 'https://example.com/security' }]);
+		assert.deepStrictEqual(metadata.security, [
+			{ url: 'https://example.com/security' },
+		]);
 	});
 
 	it('has empty security array when no securityContact provided', async () => {
@@ -144,7 +154,9 @@ describe('buildMetadataFromContent', () => {
 			downloadUrl: 'https://example.com/test.zip',
 		});
 
-		assert.deepStrictEqual(metadata.security, [{ email: 'security@example.com' }]);
+		assert.deepStrictEqual(metadata.security, [
+			{ email: 'security@example.com' },
+		]);
 	});
 
 	it('formats URL security contact correctly', async () => {
@@ -160,7 +172,9 @@ describe('buildMetadataFromContent', () => {
 			downloadUrl: 'https://example.com/test.zip',
 		});
 
-		assert.deepStrictEqual(metadata.security, [{ url: 'https://example.com/security-policy' }]);
+		assert.deepStrictEqual(metadata.security, [
+			{ url: 'https://example.com/security-policy' },
+		]);
 	});
 
 	it('treats mailto: URLs as URLs not emails', async () => {
@@ -176,7 +190,9 @@ describe('buildMetadataFromContent', () => {
 			downloadUrl: 'https://example.com/test.zip',
 		});
 
-		assert.deepStrictEqual(metadata.security, [{ url: 'mailto:security@example.com' }]);
+		assert.deepStrictEqual(metadata.security, [
+			{ url: 'mailto:security@example.com' },
+		]);
 	});
 });
 
@@ -279,7 +295,10 @@ describe('parsePluginHeaders', () => {
 		assert.strictEqual(headers.author, 'John Doe');
 		assert.strictEqual(headers.authorUri, 'https://example.com');
 		assert.strictEqual(headers.license, 'GPL-2.0-or-later');
-		assert.strictEqual(headers.licenseUri, 'https://www.gnu.org/licenses/gpl-2.0.html');
+		assert.strictEqual(
+			headers.licenseUri,
+			'https://www.gnu.org/licenses/gpl-2.0.html',
+		);
 		assert.strictEqual(headers.textDomain, 'my-plugin');
 		assert.strictEqual(headers.domainPath, '/languages');
 		assert.strictEqual(headers.requiresWp, '6.0');
@@ -372,7 +391,10 @@ describe('parseComposerJson', () => {
 		});
 
 		const data = parseComposerJson(content);
-		assert.strictEqual(data.securityContact, 'https://example.com/security-policy');
+		assert.strictEqual(
+			data.securityContact,
+			'https://example.com/security-policy',
+		);
 	});
 
 	it('extracts both license and security contact', () => {
@@ -507,7 +529,11 @@ describe('createSignedArtifact', () => {
 			keypair,
 		});
 
-		assert.deepStrictEqual(Object.keys(artifact).sort(), ['checksum', 'signature', 'url']);
+		assert.deepStrictEqual(Object.keys(artifact).sort(), [
+			'checksum',
+			'signature',
+			'url',
+		]);
 		assert.strictEqual(artifact.url, 'https://example.com/file.zip');
 		assert.ok(artifact.checksum.startsWith('sha256:'));
 		assert.ok(artifact.signature);
@@ -523,7 +549,12 @@ describe('createSignedArtifact', () => {
 			contentType: 'application/zip',
 		});
 
-		assert.deepStrictEqual(Object.keys(artifact).sort(), ['checksum', 'content-type', 'signature', 'url']);
+		assert.deepStrictEqual(Object.keys(artifact).sort(), [
+			'checksum',
+			'content-type',
+			'signature',
+			'url',
+		]);
 		assert.strictEqual(artifact.url, 'https://example.com/file.zip');
 		assert.ok(artifact.checksum.startsWith('sha256:'));
 		assert.ok(artifact.signature);

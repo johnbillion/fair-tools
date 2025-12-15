@@ -1,6 +1,9 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { validatePlcDid, DidValidationError } from '../../src/did-validation.js';
+import {
+	validatePlcDid,
+	DidValidationError,
+} from '../../src/did-validation.js';
 
 describe('validatePlcDid', () => {
 	it('accepts valid did:plc: DIDs with correct length', () => {
@@ -13,11 +16,11 @@ describe('validatePlcDid', () => {
 	it('rejects DIDs without did:plc: prefix', () => {
 		assert.throws(
 			() => validatePlcDid('abcdefghijklmnopqrstuvwx'),
-			DidValidationError
+			DidValidationError,
 		);
 		assert.throws(
 			() => validatePlcDid('aaa:bbb:abcdefghijklmnopqrstuvwx'),
-			DidValidationError
+			DidValidationError,
 		);
 	});
 
@@ -25,17 +28,14 @@ describe('validatePlcDid', () => {
 		// Too short (only 9 chars after prefix)
 		assert.throws(
 			() => validatePlcDid('did:plc:abc123xyz'),
-			DidValidationError
+			DidValidationError,
 		);
 		// Too long (25 chars after prefix)
 		assert.throws(
 			() => validatePlcDid('did:plc:abcdefghijklmnopqrstuvwxy'),
-			DidValidationError
+			DidValidationError,
 		);
 		// Just the prefix
-		assert.throws(
-			() => validatePlcDid('did:plc:'),
-			DidValidationError
-		);
+		assert.throws(() => validatePlcDid('did:plc:'), DidValidationError);
 	});
 });

@@ -14,8 +14,11 @@ const SECP256K1_PRIV_PREFIX = new Uint8Array([0x81, 0x26]);
  */
 const ED25519_PRIV_PREFIX = new Uint8Array([0x80, 0x26]);
 
-const SECP256K1_PRIV_PREFIX_HEX = Buffer.from(SECP256K1_PRIV_PREFIX).toString('hex');
-const ED25519_PRIV_PREFIX_HEX = Buffer.from(ED25519_PRIV_PREFIX).toString('hex');
+const SECP256K1_PRIV_PREFIX_HEX = Buffer.from(SECP256K1_PRIV_PREFIX).toString(
+	'hex',
+);
+const ED25519_PRIV_PREFIX_HEX =
+	Buffer.from(ED25519_PRIV_PREFIX).toString('hex');
 
 /**
  * PEM header for EC private keys (SEC1 format, used for secp256k1 rotation keys).
@@ -40,8 +43,10 @@ function decodeMultibaseRotationKey(key) {
 	let decoded;
 	try {
 		decoded = base58btc.decode(key);
-	} catch (err) {
-		throw new SigningKeyError('Invalid key format. The key could not be decoded.');
+	} catch (_err) {
+		throw new SigningKeyError(
+			'Invalid key format. The key could not be decoded.',
+		);
 	}
 
 	if (decoded.length < 2) {
@@ -51,17 +56,23 @@ function decodeMultibaseRotationKey(key) {
 	const prefixHex = Buffer.from(decoded.slice(0, 2)).toString('hex');
 
 	if (prefixHex === ED25519_PRIV_PREFIX_HEX) {
-		throw new SigningKeyError('Wrong key type for this operation. This looks like a verification key, but a rotation key is required.');
+		throw new SigningKeyError(
+			'Wrong key type for this operation. This looks like a verification key, but a rotation key is required.',
+		);
 	}
 
 	if (prefixHex !== SECP256K1_PRIV_PREFIX_HEX) {
-		throw new SigningKeyError(`Unrecognized key type (prefix: ${prefixHex}). Expected a rotation key.`);
+		throw new SigningKeyError(
+			`Unrecognized key type (prefix: ${prefixHex}). Expected a rotation key.`,
+		);
 	}
 
 	const rawKey = decoded.slice(2);
 
 	if (rawKey.length !== 32) {
-		throw new SigningKeyError('Invalid key format. The key has the wrong length.');
+		throw new SigningKeyError(
+			'Invalid key format. The key has the wrong length.',
+		);
 	}
 
 	return rawKey;
@@ -81,8 +92,10 @@ function decodeMultibaseVerificationKey(key) {
 	let decoded;
 	try {
 		decoded = base58btc.decode(key);
-	} catch (err) {
-		throw new SigningKeyError('Invalid key format. The key could not be decoded.');
+	} catch (_err) {
+		throw new SigningKeyError(
+			'Invalid key format. The key could not be decoded.',
+		);
 	}
 
 	if (decoded.length < 2) {
@@ -92,11 +105,15 @@ function decodeMultibaseVerificationKey(key) {
 	const prefixHex = Buffer.from(decoded.slice(0, 2)).toString('hex');
 
 	if (prefixHex === SECP256K1_PRIV_PREFIX_HEX) {
-		throw new SigningKeyError('Wrong key type for this operation. This looks like a rotation key, but a verification key is required.');
+		throw new SigningKeyError(
+			'Wrong key type for this operation. This looks like a rotation key, but a verification key is required.',
+		);
 	}
 
 	if (prefixHex !== ED25519_PRIV_PREFIX_HEX) {
-		throw new SigningKeyError(`Unrecognized key type (prefix: ${prefixHex}). Expected a verification key.`);
+		throw new SigningKeyError(
+			`Unrecognized key type (prefix: ${prefixHex}). Expected a verification key.`,
+		);
 	}
 
 	const rawKey = decoded.slice(2);
@@ -106,7 +123,9 @@ function decodeMultibaseVerificationKey(key) {
 		return rawKey.slice(0, 32);
 	}
 
-	throw new SigningKeyError('Invalid key format. Expected a 64-byte Sodium-format Ed25519 key.');
+	throw new SigningKeyError(
+		'Invalid key format. Expected a 64-byte Sodium-format Ed25519 key.',
+	);
 }
 
 /**
@@ -124,7 +143,9 @@ function decodeECPrivateKeyPEM(key) {
 			format: 'pem',
 		});
 	} catch {
-		throw new SigningKeyError('Invalid rotation key. The PEM file could not be parsed.');
+		throw new SigningKeyError(
+			'Invalid rotation key. The PEM file could not be parsed.',
+		);
 	}
 
 	// Export as JWK to get the raw 'd' parameter (private key)
@@ -132,13 +153,17 @@ function decodeECPrivateKeyPEM(key) {
 		format: 'jwk',
 	});
 	if (!jwk.d) {
-		throw new SigningKeyError('Invalid rotation key. The PEM file is missing private key data.');
+		throw new SigningKeyError(
+			'Invalid rotation key. The PEM file is missing private key data.',
+		);
 	}
 
 	// JWK 'd' is base64url-encoded
 	const rawKey = Buffer.from(jwk.d, 'base64url');
 	if (rawKey.length !== 32) {
-		throw new SigningKeyError('Invalid rotation key. The key has the wrong length.');
+		throw new SigningKeyError(
+			'Invalid rotation key. The key has the wrong length.',
+		);
 	}
 
 	return new Uint8Array(rawKey);
@@ -159,7 +184,9 @@ function decodePKCS8PrivateKeyPEM(key) {
 			format: 'pem',
 		});
 	} catch {
-		throw new SigningKeyError('Invalid verification key. The PEM file could not be parsed.');
+		throw new SigningKeyError(
+			'Invalid verification key. The PEM file could not be parsed.',
+		);
 	}
 
 	// Export as JWK to get the raw 'd' parameter (private key)
@@ -167,13 +194,17 @@ function decodePKCS8PrivateKeyPEM(key) {
 		format: 'jwk',
 	});
 	if (!jwk.d) {
-		throw new SigningKeyError('Invalid verification key. The PEM file is missing private key data.');
+		throw new SigningKeyError(
+			'Invalid verification key. The PEM file is missing private key data.',
+		);
 	}
 
 	// JWK 'd' is base64url-encoded
 	const rawKey = Buffer.from(jwk.d, 'base64url');
 	if (rawKey.length !== 32) {
-		throw new SigningKeyError('Invalid verification key. The key has the wrong length.');
+		throw new SigningKeyError(
+			'Invalid verification key. The key has the wrong length.',
+		);
 	}
 
 	return new Uint8Array(rawKey);
@@ -227,7 +258,9 @@ function parseAsRotationKey(content) {
 
 	// Check if it's a PKCS#8 PEM (wrong type for rotation key)
 	if (isPKCS8PrivateKeyPEM(trimmed)) {
-		throw new SigningKeyError('Wrong key type for this operation. This looks like a verification key, but a rotation key is required.');
+		throw new SigningKeyError(
+			'Wrong key type for this operation. This looks like a verification key, but a rotation key is required.',
+		);
 	}
 
 	// Try multibase format
@@ -241,7 +274,9 @@ function parseAsRotationKey(content) {
 		return trimmed.toLowerCase();
 	}
 
-	throw new SigningKeyError('Unrecognized key format. Expected a PEM, multibase, or hex encoded rotation key.');
+	throw new SigningKeyError(
+		'Unrecognized key format. Expected a PEM, multibase, or hex encoded rotation key.',
+	);
 }
 
 /**
@@ -262,7 +297,9 @@ function parseAsVerificationKey(content) {
 
 	// Check if it's an EC PEM (wrong type for verification key)
 	if (isECPrivateKeyPEM(trimmed)) {
-		throw new SigningKeyError('Wrong key type for this operation. This looks like a rotation key, but a verification key is required.');
+		throw new SigningKeyError(
+			'Wrong key type for this operation. This looks like a rotation key, but a verification key is required.',
+		);
 	}
 
 	// Try multibase format
@@ -276,7 +313,9 @@ function parseAsVerificationKey(content) {
 		return trimmed.toLowerCase();
 	}
 
-	throw new SigningKeyError('Unrecognized key format. Expected a PEM, multibase, or hex encoded verification key.');
+	throw new SigningKeyError(
+		'Unrecognized key format. Expected a PEM, multibase, or hex encoded verification key.',
+	);
 }
 
 /**
@@ -296,9 +335,15 @@ function parseAsVerificationKey(content) {
  * @returns {Promise<{privateKeyHex: string, keyData: object|null}>}
  * @throws {SigningKeyError} If key cannot be loaded
  */
-export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_ROTATION_KEY' }) {
+export async function loadRotationKey({
+	signingFile,
+	signingKey,
+	envVar = 'FAIR_ROTATION_KEY',
+}) {
 	if (signingKey && !signingFile) {
-		throw new SigningKeyError('Cannot specify a signing key without a signing file');
+		throw new SigningKeyError(
+			'Cannot specify a signing key without a signing file',
+		);
 	}
 
 	if (signingFile) {
@@ -311,10 +356,16 @@ export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_
 
 		// Try PEM, multibase, or hex format first (standalone key file)
 		const trimmed = keyContent.trim();
-		if (trimmed.startsWith('-----BEGIN') || trimmed.startsWith('z') || isHexPrivateKey(trimmed)) {
+		if (
+			trimmed.startsWith('-----BEGIN') ||
+			trimmed.startsWith('z') ||
+			isHexPrivateKey(trimmed)
+		) {
 			const standaloneKey = parseAsRotationKey(keyContent);
 			if (signingKey) {
-				throw new SigningKeyError('Cannot specify a signing key when using a standalone key file');
+				throw new SigningKeyError(
+					'Cannot specify a signing key when using a standalone key file',
+				);
 			}
 			return { privateKeyHex: standaloneKey, keyData: null };
 		}
@@ -324,21 +375,27 @@ export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_
 		try {
 			keyData = JSON.parse(keyContent);
 		} catch {
-			throw new SigningKeyError('Key file must be valid JSON or a standalone key (PEM, multibase, or hex)');
+			throw new SigningKeyError(
+				'Key file must be valid JSON or a standalone key (PEM, multibase, or hex)',
+			);
 		}
 
 		const rotationKeys = keyData.rotationKeys || {};
 		const publicKeys = Object.keys(rotationKeys);
 
 		if (publicKeys.length === 0) {
-			throw new SigningKeyError('Key file must contain at least one rotation key');
+			throw new SigningKeyError(
+				'Key file must contain at least one rotation key',
+			);
 		}
 
 		let privateKeyHex;
 		if (signingKey) {
 			const rawValue = rotationKeys[signingKey];
 			if (!rawValue) {
-				throw new SigningKeyError(`Rotation key ${signingKey} not found in key file. Available keys: ${publicKeys.join(', ')}`);
+				throw new SigningKeyError(
+					`Rotation key ${signingKey} not found in key file. Available keys: ${publicKeys.join(', ')}`,
+				);
 			}
 			privateKeyHex = parseAsRotationKey(rawValue);
 		} else {
@@ -350,7 +407,9 @@ export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_
 
 	const privateKeyHex = process.env[envVar];
 	if (!privateKeyHex) {
-		throw new SigningKeyError(`No signing key provided. Set the ${envVar} environment variable or provide a signing file.`);
+		throw new SigningKeyError(
+			`No signing key provided. Set the ${envVar} environment variable or provide a signing file.`,
+		);
 	}
 
 	return { privateKeyHex, keyData: null };
@@ -373,9 +432,15 @@ export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_
  * @returns {Promise<{privateKeyHex: string, keyData: object|null}>}
  * @throws {SigningKeyError} If key cannot be loaded
  */
-export async function loadVerificationKey({ signingFile, signingKey, envVar = 'FAIR_VERIFICATION_KEY' }) {
+export async function loadVerificationKey({
+	signingFile,
+	signingKey,
+	envVar = 'FAIR_VERIFICATION_KEY',
+}) {
 	if (signingKey && !signingFile) {
-		throw new SigningKeyError('Cannot specify a signing key without a signing file');
+		throw new SigningKeyError(
+			'Cannot specify a signing key without a signing file',
+		);
 	}
 
 	if (signingFile) {
@@ -388,10 +453,16 @@ export async function loadVerificationKey({ signingFile, signingKey, envVar = 'F
 
 		// Try PEM, multibase, or hex format first (standalone key file)
 		const trimmed = keyContent.trim();
-		if (trimmed.startsWith('-----BEGIN') || trimmed.startsWith('z') || isHexPrivateKey(trimmed)) {
+		if (
+			trimmed.startsWith('-----BEGIN') ||
+			trimmed.startsWith('z') ||
+			isHexPrivateKey(trimmed)
+		) {
 			const standaloneKey = parseAsVerificationKey(keyContent);
 			if (signingKey) {
-				throw new SigningKeyError('Cannot specify a signing key when using a standalone key file');
+				throw new SigningKeyError(
+					'Cannot specify a signing key when using a standalone key file',
+				);
 			}
 			return { privateKeyHex: standaloneKey, keyData: null };
 		}
@@ -401,21 +472,27 @@ export async function loadVerificationKey({ signingFile, signingKey, envVar = 'F
 		try {
 			keyData = JSON.parse(keyContent);
 		} catch {
-			throw new SigningKeyError('Key file must be valid JSON or a standalone key (PEM, multibase, or hex)');
+			throw new SigningKeyError(
+				'Key file must be valid JSON or a standalone key (PEM, multibase, or hex)',
+			);
 		}
 
 		const verificationKeys = keyData.verificationKeys || {};
 		const publicKeys = Object.keys(verificationKeys);
 
 		if (publicKeys.length === 0) {
-			throw new SigningKeyError('Key file must contain at least one verification key');
+			throw new SigningKeyError(
+				'Key file must contain at least one verification key',
+			);
 		}
 
 		let privateKeyHex;
 		if (signingKey) {
 			const rawValue = verificationKeys[signingKey];
 			if (!rawValue) {
-				throw new SigningKeyError(`Verification key ${signingKey} not found in key file. Available keys: ${publicKeys.join(', ')}`);
+				throw new SigningKeyError(
+					`Verification key ${signingKey} not found in key file. Available keys: ${publicKeys.join(', ')}`,
+				);
 			}
 			privateKeyHex = parseAsVerificationKey(rawValue);
 		} else {
@@ -427,7 +504,9 @@ export async function loadVerificationKey({ signingFile, signingKey, envVar = 'F
 
 	const privateKeyHex = process.env[envVar];
 	if (!privateKeyHex) {
-		throw new SigningKeyError(`No signing key provided. Set the ${envVar} environment variable or provide a signing file.`);
+		throw new SigningKeyError(
+			`No signing key provided. Set the ${envVar} environment variable or provide a signing file.`,
+		);
 	}
 
 	return { privateKeyHex, keyData: null };
@@ -452,7 +531,12 @@ export async function loadVerificationKey({ signingFile, signingKey, envVar = 'F
  * @returns {Promise<{privateKeyHex: string, keyData: object|null}>}
  * @throws {SigningKeyError} If key cannot be loaded
  */
-export async function loadRotationKeyForRevocation({ signingFile, signingKey, revokeKey, envVar = 'FAIR_ROTATION_KEY' }) {
+export async function loadRotationKeyForRevocation({
+	signingFile,
+	signingKey,
+	revokeKey,
+	envVar = 'FAIR_ROTATION_KEY',
+}) {
 	if (signingFile) {
 		let keyContent;
 		try {
@@ -463,10 +547,16 @@ export async function loadRotationKeyForRevocation({ signingFile, signingKey, re
 
 		// Try PEM, multibase, or hex format first (standalone key file)
 		const trimmed = keyContent.trim();
-		if (trimmed.startsWith('-----BEGIN') || trimmed.startsWith('z') || isHexPrivateKey(trimmed)) {
+		if (
+			trimmed.startsWith('-----BEGIN') ||
+			trimmed.startsWith('z') ||
+			isHexPrivateKey(trimmed)
+		) {
 			const standaloneKey = parseAsRotationKey(keyContent);
 			if (signingKey) {
-				throw new SigningKeyError('Cannot specify a signing key when using a standalone key file');
+				throw new SigningKeyError(
+					'Cannot specify a signing key when using a standalone key file',
+				);
 			}
 			return { privateKeyHex: standaloneKey, keyData: null };
 		}
@@ -476,30 +566,40 @@ export async function loadRotationKeyForRevocation({ signingFile, signingKey, re
 		try {
 			keyData = JSON.parse(keyContent);
 		} catch {
-			throw new SigningKeyError('Key file must be valid JSON or a standalone key (PEM, multibase, or hex)');
+			throw new SigningKeyError(
+				'Key file must be valid JSON or a standalone key (PEM, multibase, or hex)',
+			);
 		}
 
 		const rotationKeys = keyData.rotationKeys || {};
 		const publicKeys = Object.keys(rotationKeys);
 
 		if (publicKeys.length === 0) {
-			throw new SigningKeyError('Key file must contain at least one rotation key');
+			throw new SigningKeyError(
+				'Key file must contain at least one rotation key',
+			);
 		}
 
 		let signerPublicKey;
 		if (signingKey) {
 			if (!rotationKeys[signingKey]) {
-				throw new SigningKeyError(`Signing key ${signingKey} not found in key file`);
+				throw new SigningKeyError(
+					`Signing key ${signingKey} not found in key file`,
+				);
 			}
 			if (signingKey === revokeKey) {
-				throw new SigningKeyError('Cannot use the key being revoked to sign the operation');
+				throw new SigningKeyError(
+					'Cannot use the key being revoked to sign the operation',
+				);
 			}
 			signerPublicKey = signingKey;
 		} else {
 			// Auto-select: use first key that isn't the one being revoked
 			signerPublicKey = publicKeys.find((k) => k !== revokeKey);
 			if (!signerPublicKey) {
-				throw new SigningKeyError(`No signing key available. The only rotation key in the file is the one being revoked. Use ${envVar} environment variable to provide a different signing key.`);
+				throw new SigningKeyError(
+					`No signing key available. The only rotation key in the file is the one being revoked. Use ${envVar} environment variable to provide a different signing key.`,
+				);
 			}
 		}
 
@@ -510,7 +610,9 @@ export async function loadRotationKeyForRevocation({ signingFile, signingKey, re
 	// @TODO convert this to a guard condition near the start of the function
 	const privateKeyHex = process.env[envVar];
 	if (!privateKeyHex) {
-		throw new SigningKeyError(`No signing key provided. Set the ${envVar} environment variable or provide a signing file.`);
+		throw new SigningKeyError(
+			`No signing key provided. Set the ${envVar} environment variable or provide a signing file.`,
+		);
 	}
 
 	return { privateKeyHex, keyData: null };

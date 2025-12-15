@@ -2,32 +2,74 @@
 
 const commands = {
 	did: {
-		create: { description: 'Create a new DID', load: () => import('./did-create.js') },
+		create: {
+			description: 'Create a new DID',
+			load: () => import('./did-create.js'),
+		},
 		service: {
-			add: { description: 'Add a service URL to a DID', load: () => import('./did-service-add.js') },
-			replace: { description: 'Replace a service URL in a DID', load: () => import('./did-service-replace.js') },
-			remove: { description: 'Remove a service URL from a DID', load: () => import('./did-service-remove.js') },
+			add: {
+				description: 'Add a service URL to a DID',
+				load: () => import('./did-service-add.js'),
+			},
+			replace: {
+				description: 'Replace a service URL in a DID',
+				load: () => import('./did-service-replace.js'),
+			},
+			remove: {
+				description: 'Remove a service URL from a DID',
+				load: () => import('./did-service-remove.js'),
+			},
 		},
 		'verification-key': {
-			add: { description: 'Add a verification key', load: () => import('./did-verification-key-add.js') },
-			revoke: { description: 'Revoke a verification key', load: () => import('./did-verification-key-revoke.js') },
+			add: {
+				description: 'Add a verification key',
+				load: () => import('./did-verification-key-add.js'),
+			},
+			revoke: {
+				description: 'Revoke a verification key',
+				load: () => import('./did-verification-key-revoke.js'),
+			},
 		},
 		'rotation-key': {
-			add: { description: 'Add a rotation key', load: () => import('./did-rotation-key-add.js') },
-			revoke: { description: 'Revoke a rotation key', load: () => import('./did-rotation-key-revoke.js') },
+			add: {
+				description: 'Add a rotation key',
+				load: () => import('./did-rotation-key-add.js'),
+			},
+			revoke: {
+				description: 'Revoke a rotation key',
+				load: () => import('./did-rotation-key-revoke.js'),
+			},
 		},
 		aka: {
-			add: { description: 'Add a URL to the alsoKnownAs field', load: () => import('./did-aka-add.js') },
-			replace: { description: 'Replace a URL in the alsoKnownAs field', load: () => import('./did-aka-replace.js') },
-			remove: { description: 'Remove a URL from the alsoKnownAs field', load: () => import('./did-aka-remove.js') },
+			add: {
+				description: 'Add a URL to the alsoKnownAs field',
+				load: () => import('./did-aka-add.js'),
+			},
+			replace: {
+				description: 'Replace a URL in the alsoKnownAs field',
+				load: () => import('./did-aka-replace.js'),
+			},
+			remove: {
+				description: 'Remove a URL from the alsoKnownAs field',
+				load: () => import('./did-aka-remove.js'),
+			},
 		},
 		domain: {
-			verify: { description: 'Verify a domain\'s DNS record for a DID', load: () => import('./did-domain-verify.js') },
-			'verify-alias': { description: 'Verify alsoKnownAs domain aliases for a DID', load: () => import('./did-domain-verify-alias.js') },
+			verify: {
+				description: "Verify a domain's DNS record for a DID",
+				load: () => import('./did-domain-verify.js'),
+			},
+			'verify-alias': {
+				description: 'Verify alsoKnownAs domain aliases for a DID',
+				load: () => import('./did-domain-verify-alias.js'),
+			},
 		},
 	},
 	metadata: {
-		build: { description: 'Build a FAIR metadata document', load: () => import('./metadata-build.js') },
+		build: {
+			description: 'Build a FAIR metadata document',
+			load: () => import('./metadata-build.js'),
+		},
 	},
 };
 
@@ -52,7 +94,9 @@ function showHelp() {
 	const allCommands = collectCommands(commands);
 	const maxLen = Math.max(...allCommands.map((c) => c.path.join(' ').length));
 
-	const lines = allCommands.map((c) => `  ${c.path.join(' ').padEnd(maxLen + 2)}${c.description}`);
+	const lines = allCommands.map(
+		(c) => `  ${c.path.join(' ').padEnd(maxLen + 2)}${c.description}`,
+	);
 
 	console.log(`Usage: fair-tools <command> [options]
 
@@ -66,7 +110,9 @@ function showSubHelp(obj, path) {
 	const subCommands = collectCommands(obj, []);
 	const maxLen = Math.max(...subCommands.map((c) => c.path.join(' ').length));
 
-	const lines = subCommands.map((c) => `  ${c.path.join(' ').padEnd(maxLen + 2)}${c.description}`);
+	const lines = subCommands.map(
+		(c) => `  ${c.path.join(' ').padEnd(maxLen + 2)}${c.description}`,
+	);
 
 	console.log(`Usage: fair-tools ${path.join(' ')} <command> [options]
 

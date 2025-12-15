@@ -18,12 +18,12 @@ const DID_PLC_LENGTH = 32;
 export function validatePlcDid(did) {
 	if (!did.startsWith('did:plc:')) {
 		throw new DidValidationError(
-			`Invalid DID format. DID must start with 'did:plc:' prefix.`
+			`Invalid DID format. DID must start with 'did:plc:' prefix.`,
 		);
 	}
 	if (did.length !== DID_PLC_LENGTH) {
 		throw new DidValidationError(
-			`Invalid DID format. DID must be ${DID_PLC_LENGTH} characters in length.`
+			`Invalid DID format. DID must be ${DID_PLC_LENGTH} characters in length.`,
 		);
 	}
 }

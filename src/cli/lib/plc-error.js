@@ -14,9 +14,10 @@
 export function formatPlcError(err, { includeData = true } = {}) {
 	// Check if this is a PlcClientError with additional data
 	if (err.status && err.data && includeData) {
-		const details = typeof err.data === 'string'
-			? err.data
-			: err.data.message || err.data.error || JSON.stringify(err.data);
+		const details =
+			typeof err.data === 'string'
+				? err.data
+				: err.data.message || err.data.error || JSON.stringify(err.data);
 		return `${err.message} (${err.status}): ${details}`;
 	}
 	if (err.status) {
@@ -34,7 +35,9 @@ export function formatPlcError(err, { includeData = true } = {}) {
  */
 export function logPlcError(prefix, err, context = {}) {
 	const hints = diagnosePlcError(err, context);
-	console.error(`\x1b[31m${prefix}: ${formatPlcError(err, { includeData: hints.length === 0 })}\x1b[0m`);
+	console.error(
+		`\x1b[31m${prefix}: ${formatPlcError(err, { includeData: hints.length === 0 })}\x1b[0m`,
+	);
 	for (const hint of hints) {
 		console.error(`\x1b[33m  - ${hint}\x1b[0m`);
 	}
@@ -77,9 +80,8 @@ export function diagnosePlcError(err, context = {}) {
 	}
 
 	// err.data can be a string or an object with a message property
-	const dataString = typeof err.data === 'string'
-		? err.data
-		: err.data?.message;
+	const dataString =
+		typeof err.data === 'string' ? err.data : err.data?.message;
 
 	if (typeof dataString !== 'string') {
 		return hints;
@@ -94,9 +96,15 @@ export function diagnosePlcError(err, context = {}) {
 	// Check if the signing key is valid
 	if (context.signerPublicKey && Array.isArray(op.rotationKeys)) {
 		if (!op.rotationKeys.includes(context.signerPublicKey)) {
-			hints.push(`The signing key ${context.signerPublicKey} is not in the DID's current rotation keys.`);
-			hints.push('This can happen if the key was revoked or was never added to the DID.');
-			hints.push('Use --signing-key to specify a different rotation key, or check your key file.');
+			hints.push(
+				`The signing key ${context.signerPublicKey} is not in the DID's current rotation keys.`,
+			);
+			hints.push(
+				'This can happen if the key was revoked or was never added to the DID.',
+			);
+			hints.push(
+				'Use --signing-key to specify a different rotation key, or check your key file.',
+			);
 		}
 	}
 

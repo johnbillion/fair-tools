@@ -12,7 +12,7 @@ jobs:
     name: Publish fair-tools
     runs-on: ubuntu-24.04
     permissions:
-      contents: read  # To read the repository
+      contents: read # To read the repository
       id-token: write # OIDC token for trusted publishing
     environment:
       name: npm

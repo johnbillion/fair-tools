@@ -20,7 +20,7 @@ Ed25519 was chosen for interoperability with PHP:
 Private keys are stored in PEM format, which enables detection by secret scanning services and tools:
 
 | Key Type     | Algorithm | PEM Format | Header                           |
-|--------------|-----------|------------|----------------------------------|
+| ------------ | --------- | ---------- | -------------------------------- |
 | Rotation     | secp256k1 | SEC1       | `-----BEGIN EC PRIVATE KEY-----` |
 | Verification | ed25519   | PKCS#8     | `-----BEGIN PRIVATE KEY-----`    |
 
