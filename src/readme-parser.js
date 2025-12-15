@@ -211,9 +211,9 @@ export function parseReadmeFile(content) {
 	for (const section of ['description', 'installation', 'changelog', 'faq']) {
 		if (result.sections[section]) {
 			// Convert WordPress-flavour subheadings to markdown before parsing
-			// = Heading = -> #### Heading (h4)
+			// = Heading = -> #### Heading (with optional trailing =)
 			const markdown = result.sections[section].replace(
-				/^=\s*(.+?)\s*=$/gm,
+				/^=\s*(.+?)\s*=?$/gm,
 				'#### $1',
 			);
 			result.sections[section] = marked.parse(markdown, {

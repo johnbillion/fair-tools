@@ -252,5 +252,85 @@ Short description.
 				'<h4>Automatic Installation</h4>\n<ol>\n<li>Go to Plugins</li>\n<li>Click Add New</li>\n</ol>\n<h4>Manual Installation</h4>\n<ol>\n<li>Download the zip</li>\n<li>Upload to plugins folder</li>\n</ol>\n',
 			);
 		});
+
+		it('converts changelog headings without trailing equals sign', () => {
+			const content = `=== Test Plugin ===
+
+Short description.
+
+== Changelog ==
+
+= 1.2.0 - 2024/12/01
+* Added new feature.
+* Fixed bug.
+
+= 1.1.0
+* Initial release.
+`;
+			const data = parseReadmeFile(content);
+			assert.strictEqual(
+				data.sections.changelog,
+				'<h4>1.2.0 - 2024/12/01</h4>\n<ul>\n<li>Added new feature.</li>\n<li>Fixed bug.</li>\n</ul>\n<h4>1.1.0</h4>\n<ul>\n<li>Initial release.</li>\n</ul>\n',
+			);
+		});
+
+		it('normalizes "frequently asked questions" to "faq"', () => {
+			const content = `=== Test Plugin ===
+
+Short description.
+
+== Frequently Asked Questions ==
+
+= How do I use this? =
+
+Just install and activate.
+`;
+			const data = parseReadmeFile(content);
+			assert.ok(data.sections.faq, 'Should have faq section');
+			assert.strictEqual(
+				data.sections['frequently asked questions'],
+				undefined,
+				'Should not have "frequently asked questions" key',
+			);
+			assert.strictEqual(
+				data.sections.faq,
+				'<h4>How do I use this?</h4>\n<p>Just install and activate.</p>\n',
+			);
+		});
+
+		it('orders sections correctly', () => {
+			const content = `=== Test Plugin ===
+
+Short description.
+
+== FAQ ==
+
+= Question? =
+
+Answer.
+
+== Description ==
+
+The description.
+
+== Changelog ==
+
+= 1.0 =
+
+Initial.
+
+== Installation ==
+
+Install it.
+`;
+			const data = parseReadmeFile(content);
+			const sectionKeys = Object.keys(data.sections);
+			assert.deepStrictEqual(sectionKeys, [
+				'description',
+				'installation',
+				'changelog',
+				'faq',
+			]);
+		});
 	});
 });
