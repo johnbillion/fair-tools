@@ -1,0 +1,37 @@
+{
+	"name": "Airplane Mode",
+	"license": "MIT",
+	"licenseUri": "http://norcross.mit-license.org/",
+	"keywords": [
+		"external calls",
+		"HTTP"
+	],
+	"shortDescription": "Control loading of external files when developing locally",
+	"contributors": [
+		"norcross",
+		"johnbillion",
+		"afragen",
+		"szepeviktor",
+		"chriscct7",
+		"markjaquith"
+	],
+	"requires": "4.4",
+	"tested": "6.7",
+	"stableTag": "0.2.8",
+	"donateLink": "https://andrewnorcross.com/donate",
+	"sections": {
+		"description": "Control loading of external files when developing locally. WP loads certain external files (fonts, gravatar, etc) and makes external HTTP calls. This isn't usually an issue, unless you're working in an evironment without a web connection. This plugin removes / unhooks those actions to reduce load time and avoid errors due to missing files.\n\nFeatures\n\n* removes external JS and CSS files from loading\n* replaces all instances of Gravatar with a local image to remove external call\n* removes all HTTP requests\n* disables all WP update checks for core, themes, and plugins\n* includes toggle in admin bar for quick enable / disable",
+		"installation": "This section describes how to install the plugin and get it working.\n\n1. Upload `airplane-mode` to the `/wp-content/plugins/` directory.\n1. Activate the plugin through the 'Plugins' menu in WordPress.\n1. Toggle users as needed\n\nIf you need offline activation, see [this script](https://gist.github.com/solepixel/e1d03f4dcd1b9e86552b3cc6937325bf) written by [Brian DiChiara](https://github.com/solepixel)",
+		"frequently asked questions": "= Why do I need this? =\n\nBecause you are a jet set developer who needs to work without internet.",
+		"screenshots": "",
+		"changelog": "= 0.2.8 - 2024/12/02\n* Confirming `get_plugin_data` or `is_plugin_active` is checked properly. props @swissspidy\n\n= 0.2.7 - 2024/11/12\n* Replacing dull monotone avatars with color ones. props @akirk\n\n= 0.2.6 - 2022/10/13\n* Remove usage of 'jetpack_development_mode' that's been deprecated. props @crstauf\n* Gracefully handle empty values for script and stylesheet URLs. props @johnbillion\n\n= 0.2.5 - 2019/11/15\n* Remove usage of method that's been deprecated in WordPress trunk. props @johnbillion\n\n= 0.2.4 - 2017/12/13\n* Added localhost bypass for loading CSS and JS files when hot reloading. props @shadyvb\n* Added additional hook removals for new automated updates and language packs.\n* Removed outdated `create_function` call for PHP 7.2 compatibility. props @geminorum\n* General cleanup\n\n= 0.2.3 - 2017/03/05\n* Adding option to force transient purge\n* Adding `clean` action to WP-CLI functions\n\n= 0.2.2 - 2016/12/07\n* Adding WP-CLI support. props @markjaquith\n\n= 0.2.1 - 2016/10/19\n* Fix settings page language drowdown when used offline. props @onnimonni\n\n= 0.2.0 - 2016/08/26\n* modify CSS loading for front-end, removed loading for login page. props @barryceelen\n* fixed WP.org theme API call request to avoid `WP_Error` return. props @onnimonni\n\n= 0.1.9 - 2016/07/25\n* Prevent BuddyPress from falling back to Gravatar. props @johnbillion\n\n= 0.1.8 - 2016/07/12\n* allow `JETPACK_DEV_DEBUG` constant to take priority over filter. props @kopepasah\n* added additional CSS for upcoming 4.6. change to upload tab.\n\n= 0.1.7 - 2016/05/18\n* allow local HTTP calls with optional filter. props @johnbillion\n* add back index.php link to main dashboard menu item\n* bumped minimum WP version requirement to 4.4\n\n= 0.1.6 - 2016/04/25\n* minor tweak to include CSS for new icon font\n\n= 0.1.5 - 2016/04/24\n* adding custom icon font for display and removing label. props @barryceelen\n\n= 0.1.4 - 2016/02/26\n* better setup for blocked external assets. props @johnbillion\n\n= 0.1.3 - 2016/02/22\n* modified CSS rules to fix media bulk actions bar from disappearing\n* moved `airplane_mode_status_change` action to run before redirect, and now includes the status being run.\n\n= 0.1.2 - 2016/01/09\n* added back HTTP count when inactive\n* removed HTTP count completely when Query Monitor is active\n\n= 0.1.1 - 2016/01/06\n* fixed incorrect nonce check that was breaking toggle\n* changed CSS and JS checks to include all themes and plugins as well as core\n\n= 0.1.0 - 2015/12/30\n* added `airplane_mode_purge_transients` filter to bypass transient purge\n\n= 0.0.9 - 2015/12/07\n* changed from colored circle to actual airplane icon for usability\n* fixed dashboard link icon for multisite\n* changed to exclude all external stylesheets, not just Open Sans\n* added language files for translateable goodness\n* general cleanup for WP coding standards\n\n= 0.0.8 - 2015/05/18\n* added `class_exists` as now included in DesktopServer and collisions could result\n* fixed `if ( ! defined ...` for `AIRMDE_BASE` constant\n\n= 0.0.7 - 2015/04/21 =\n* fixed some CSS from hiding plugins page bar\n* moved changelog to it's own file\n* added `composer.json`\n* added contributors to readme\n* clarified license (MIT)\n\n= 0.0.6 - 2015/04/02 =\n* version bump for GitHub updater\n\n= 0.0.5 - 2015/04/02 =\n* fixed bug in update logic that was preventing checks when disabled (but activated). props @johnbillion\n\n= 0.0.4 - 2015/04/02 =\n* added multiple checks for all the various theme and plugin update calls. props @chriscct7\n* added HTTP counter on a per-page basis. props @szepeviktor\n\n= 0.0.3 - 2015/01/23 =\n* added `airplane_mode_status_change` hook for functions to fire on status change\n* purge update related transients on disable\n* added WordPress formatted readme file\n\n= 0.0.2 - 2015/01/21 =\n* added GitHub Updater support\n* fixed update capabilities when status is disabled\n\n= 0.0.1 - 2014/06/01 =\n* lots of stuff. I wasn't keeping a changelog. I apologize.",
+		"upgrade notice": "= 0.0.1 =\nInitial release"
+	},
+	"faq": [
+		{
+			"question": "Why do I need this?",
+			"answer": "Because you are a jet set developer who needs to work without internet."
+		}
+	],
+	"screenshots": []
+}

@@ -7,8 +7,8 @@ import {
 	parseComposerJson,
 	parsePackageJson,
 	parsePluginHeaders,
-	parseReadmeFile,
 } from '../src/metadata.js';
+import { parseReadmeFile } from '../src/readme-parser.js';
 import { generateVerificationKeyPair } from '../src/keys.js';
 
 describe('buildMetadataFromContent', () => {

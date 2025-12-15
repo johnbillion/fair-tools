@@ -10,6 +10,7 @@ import { createHash } from 'node:crypto';
 import { basename, dirname, join } from 'node:path';
 import * as uint8arrays from 'uint8arrays';
 import { verifyWithVerificationKey } from './keys.js';
+import { parseReadmeFile } from './readme-parser.js';
 
 /**
  * @typedef {import('./Ed25519Keypair.js').Ed25519Keypair} Ed25519Keypair
@@ -111,64 +112,6 @@ export function parsePluginHeaders(content) {
 	}
 
 	return headers;
-}
-
-/**
- * Parses WordPress readme.txt file content.
- *
- * Extracts license, keywords, and short description.
- *
- * @param {string} content - readme.txt file content
- * @returns {object} Parsed readme data
- */
-export function parseReadmeFile(content) {
-	const data = {};
-
-	// Parse license
-	const licenseMatch = content.match(/^License:\s*(.+)$/im);
-	if (licenseMatch) {
-		data.license = licenseMatch[1].trim();
-	}
-
-	// Parse tags into keywords array
-	const tagsMatch = content.match(/^Tags:\s*(.+)$/im);
-	data.keywords = tagsMatch
-		? tagsMatch[1]
-				.split(',')
-				.map((tag) => tag.trim())
-				.filter(Boolean)
-		: [];
-
-	// Extract short description (first non-empty line after header fields)
-	const lines = content.split('\n');
-	let foundHeaders = false;
-	for (const line of lines) {
-		const trimmed = line.trim();
-		// Skip the title line
-		if (trimmed.startsWith('===') && trimmed.endsWith('===')) {
-			foundHeaders = true;
-			continue;
-		}
-		// Skip header fields (Key: Value format)
-		if (foundHeaders && /^[A-Za-z][A-Za-z\s]+:/.test(trimmed)) {
-			continue;
-		}
-		// Skip empty lines
-		if (!trimmed) {
-			continue;
-		}
-		// Skip section headings
-		if (trimmed.startsWith('==') && trimmed.endsWith('==')) {
-			break;
-		}
-		// This is the short description
-		if (foundHeaders) {
-			data.shortDescription = trimmed;
-			break;
-		}
-	}
-
-	return data;
 }
 
 /**

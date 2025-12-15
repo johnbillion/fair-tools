@@ -1,0 +1,95 @@
+{
+	"name": "Query Monitor - The developer tools panel for WordPress",
+	"license": "GPL v2 or later",
+	"keywords": [
+		"debug",
+		"debug-bar",
+		"development",
+		"performance",
+		"query monitor"
+	],
+	"shortDescription": "Query Monitor is the developer tools panel for WordPress and WooCommerce.",
+	"contributors": [
+		"johnbillion"
+	],
+	"tested": "6.9",
+	"stableTag": "3.20.2",
+	"donateLink": "https://github.com/sponsors/johnbillion",
+	"sections": {
+		"description": "Query Monitor is the developer tools panel for WordPress and WooCommerce. It enables debugging of database queries, PHP errors, hooks and actions, block editor blocks, enqueued scripts and stylesheets, HTTP API calls, and more.\n\nIt includes some advanced features such as debugging of Ajax calls, REST API calls, user capability checks, and full support for block themes and full site editing. It includes the ability to narrow down much of its output by plugin or theme, allowing you to quickly determine poorly performing plugins, themes, or functions.\n\nQuery Monitor focuses heavily on presenting its information in a useful manner, for example by showing aggregate database queries grouped by the plugins, themes, or functions that are responsible for them. It adds an admin toolbar menu showing an overview of the current page, with complete debugging information shown in panels once you select a menu item.\n\nQuery Monitor supports versions of WordPress up to three years old, and PHP version 7.4 or higher.\n\nFor complete information, please see [the Query Monitor website](https://querymonitor.com/).\n\nHere's an overview of what's shown for each page load:\n\n* Database queries, including notifications for slow, duplicate, or erroneous queries. Allows filtering by query type (`SELECT`, `UPDATE`, `DELETE`, etc), responsible component (plugin, theme, WordPress core), and calling function, and provides separate aggregate views for each.\n* The template filename, the complete template hierarchy, and names of all template parts that were loaded or not loaded (for block themes and classic themes).\n* PHP errors presented nicely along with their responsible component and call stack, and a visible warning in the admin toolbar.\n* Usage of \"Doing it Wrong\" or \"Deprecated\" functionality in the code on your site.\n* Blocks and associated properties within post content and within full site editing (FSE).\n* Matched rewrite rules, associated query strings, and query vars.\n* Enqueued scripts and stylesheets, along with their dependencies, dependents, and alerts for broken dependencies.\n* Language settings and loaded translation files (MO files and JSON files) for each text domain.\n* HTTP API requests, with response code, responsible component, and time taken, with alerts for failed or erroneous requests.\n* User capability checks, along with the result and any parameters passed to the capability check.\n* Environment information, including detailed information about PHP, the database, WordPress, and the web server.\n* The values of all WordPress conditional functions such as `is_single()`, `is_home()`, etc.\n* Transients that were updated.\n* Usage of `switch_to_blog()` and `restore_current_blog()` on Multisite installations.\n\nIn addition:\n\n* Whenever a redirect occurs, Query Monitor adds an HTTP header containing the call stack, so you can use your favourite HTTP inspector or browser developer tools to trace what triggered the redirect.\n* The response from any jQuery-initiated Ajax request on the page will contain various debugging information in its headers. PHP errors also get output to the browser's developer console.\n* The response from an authenticated WordPress REST API request will contain an overview of performance information and PHP errors in its headers, as long as the authenticated user has permission to view Query Monitor's output. An [an enveloped REST API request](https://developer.wordpress.org/rest-api/using-the-rest-api/global-parameters/#_envelope) will include even more debugging information in the `qm` property of the response.\n\nBy default, Query Monitor's output is only shown to Administrators on single-site installations, and Super Admins on Multisite installations.\n\nIn addition to this, you can set an authentication cookie which allows you to view Query Monitor output when you're not logged in (or if you're logged in as a non-Administrator). See the Settings panel for details.\n\n### Other Plugins\n\nI maintain several other plugins for developers. Check them out:\n\n* [User Switching](https://wordpress.org/plugins/user-switching/) provides instant switching between user accounts in WordPress.\n* [WP Crontrol](https://wordpress.org/plugins/wp-crontrol/) lets you view and control what's happening in the WP-Cron system\n\n### Privacy Statement\n\nQuery Monitor is private by default and always will be. It does not persistently store any of the data that it collects. It does not send data to any third party, nor does it include any third party resources. [Query Monitor's full privacy statement can be found here](https://querymonitor.com/privacy/).\n\n### Accessibility Statement\n\nQuery Monitor aims to be fully accessible to all of its users. [Query Monitor's full accessibility statement can be found here](https://querymonitor.com/accessibility/).",
+		"screenshots": "1. Admin Toolbar Menu\n2. Aggregate Database Queries by Component\n3. Capability Checks\n4. Database Queries\n5. Hooks and Actions\n6. HTTP API Requests\n7. Aggregate Database Queries by Calling Function",
+		"frequently asked questions": "### Does this plugin work with PHP 8?\n\nYes, it's actively tested and working up to PHP 8.4.\n\n### Who can see Query Monitor's output?\n\nBy default, Query Monitor's output is only shown to Administrators on single-site installations, and Super Admins on Multisite installations.\n\nIn addition to this, you can set an authentication cookie which allows you to view Query Monitor output when you're not logged in, or when you're logged in as a user who cannot usually see Query Monitor's output. See the Settings panel for details.\n\n### Does Query Monitor itself impact the page generation time or memory usage?\n\nShort answer: Yes, but only a little.\n\nLong answer: Query Monitor has a small impact on page generation time because it hooks into a few places in WordPress in the same way that other plugins do. The impact is negligible.\n\nOn pages that have an especially high number of database queries (in the hundreds), Query Monitor currently uses more memory than I would like it to. This is due to the amount of data that is captured in the stack trace for each query. I have been and will be working to continually reduce this.\n\n### Can I prevent Query Monitor from collecting data during long-running requests?\n\nYes, you can call `do_action( 'qm/cease' )` to instruct Query Monitor to cease operating for the remainder of the page generation. It will detach itself from further data collection, discard any data it's collected so far, and skip the output of its information.\n\nThis is useful for long-running operations that perform a very high number of database queries, consume a lot of memory, or otherwise are of no concern to Query Monitor, for example:\n\n* Backing up or restoring your site\n* Importing or exporting a large amount of data\n* Running security scans\n\n### Are there any add-on plugins for Query Monitor?\n\n[A list of add-on plugins for Query Monitor can be found here.](https://querymonitor.com/help/add-on-plugins/)\n\nIn addition, Query Monitor transparently supports add-ons for the Debug Bar plugin. If you have any Debug Bar add-ons installed, deactivate Debug Bar and the add-ons will show up in Query Monitor's menu.\n\n### Where can I suggest a new feature or report a bug?\n\nPlease use [the issue tracker on Query Monitor's GitHub repo](https://github.com/johnbillion/query-monitor/issues) as it's easier to keep track of issues there, rather than on the wordpress.org support forums.\n\n### Is Query Monitor already included with my hosting?\n\nSome web hosts bundle Query Monitor as part of their hosting platform, which means you don't need to install it yourself. Here are some that I'm aware of:\n\n* [Altis Cloud](https://www.altis-dxp.com/resources/developer-docs/dev-tools/).\n* [WordPress VIP](https://wpvip.com/), although users need to be granted the `view_query_monitor` capability even if they're an Administrator. [See the WordPress VIP documentation for details](https://docs.wpvip.com/performance/query-monitor/enable/).\n\n### Can I click on stack traces to open the file in my editor?\n\nYes. You can enable this on the Settings panel.\n\n### How can I report a security bug?\n\n[You can report security bugs through the official Query Monitor Vulnerability Disclosure Program on Patchstack](https://patchstack.com/database/vdp/query-monitor). The Patchstack team helps validate, triage, and handle any security vulnerabilities.\n\n### Do you accept donations?\n\n[I am accepting sponsorships via the GitHub Sponsors program](https://github.com/sponsors/johnbillion). If you work at an agency that develops with WordPress, ask your company to provide sponsorship in order to invest in its supply chain. The tools that I maintain probably save your company time and money, and GitHub sponsorship can now be done at the organisation level.\n\nIn addition, if you like the plugin then I'd love for you to [leave a review](https://wordpress.org/support/view/plugin-reviews/query-monitor). Tell all your friends about it too!"
+	},
+	"faq": [
+		{
+			"question": "Does this plugin work with PHP 8?",
+			"answer": "Yes, it's actively tested and working up to PHP 8.4."
+		},
+		{
+			"question": "Who can see Query Monitor's output?",
+			"answer": "By default, Query Monitor's output is only shown to Administrators on single-site installations, and Super Admins on Multisite installations.\n\nIn addition to this, you can set an authentication cookie which allows you to view Query Monitor output when you're not logged in, or when you're logged in as a user who cannot usually see Query Monitor's output. See the Settings panel for details."
+		},
+		{
+			"question": "Does Query Monitor itself impact the page generation time or memory usage?",
+			"answer": "Short answer: Yes, but only a little.\n\nLong answer: Query Monitor has a small impact on page generation time because it hooks into a few places in WordPress in the same way that other plugins do. The impact is negligible.\n\nOn pages that have an especially high number of database queries (in the hundreds), Query Monitor currently uses more memory than I would like it to. This is due to the amount of data that is captured in the stack trace for each query. I have been and will be working to continually reduce this."
+		},
+		{
+			"question": "Can I prevent Query Monitor from collecting data during long-running requests?",
+			"answer": "Yes, you can call `do_action( 'qm/cease' )` to instruct Query Monitor to cease operating for the remainder of the page generation. It will detach itself from further data collection, discard any data it's collected so far, and skip the output of its information.\n\nThis is useful for long-running operations that perform a very high number of database queries, consume a lot of memory, or otherwise are of no concern to Query Monitor, for example:\n\n* Backing up or restoring your site\n* Importing or exporting a large amount of data\n* Running security scans"
+		},
+		{
+			"question": "Are there any add-on plugins for Query Monitor?",
+			"answer": "[A list of add-on plugins for Query Monitor can be found here.](https://querymonitor.com/help/add-on-plugins/)\n\nIn addition, Query Monitor transparently supports add-ons for the Debug Bar plugin. If you have any Debug Bar add-ons installed, deactivate Debug Bar and the add-ons will show up in Query Monitor's menu."
+		},
+		{
+			"question": "Where can I suggest a new feature or report a bug?",
+			"answer": "Please use [the issue tracker on Query Monitor's GitHub repo](https://github.com/johnbillion/query-monitor/issues) as it's easier to keep track of issues there, rather than on the wordpress.org support forums."
+		},
+		{
+			"question": "Is Query Monitor already included with my hosting?",
+			"answer": "Some web hosts bundle Query Monitor as part of their hosting platform, which means you don't need to install it yourself. Here are some that I'm aware of:\n\n* [Altis Cloud](https://www.altis-dxp.com/resources/developer-docs/dev-tools/).\n* [WordPress VIP](https://wpvip.com/), although users need to be granted the `view_query_monitor` capability even if they're an Administrator. [See the WordPress VIP documentation for details](https://docs.wpvip.com/performance/query-monitor/enable/)."
+		},
+		{
+			"question": "Can I click on stack traces to open the file in my editor?",
+			"answer": "Yes. You can enable this on the Settings panel."
+		},
+		{
+			"question": "How can I report a security bug?",
+			"answer": "[You can report security bugs through the official Query Monitor Vulnerability Disclosure Program on Patchstack](https://patchstack.com/database/vdp/query-monitor). The Patchstack team helps validate, triage, and handle any security vulnerabilities."
+		},
+		{
+			"question": "Do you accept donations?",
+			"answer": "[I am accepting sponsorships via the GitHub Sponsors program](https://github.com/sponsors/johnbillion). If you work at an agency that develops with WordPress, ask your company to provide sponsorship in order to invest in its supply chain. The tools that I maintain probably save your company time and money, and GitHub sponsorship can now be done at the organisation level.\n\nIn addition, if you like the plugin then I'd love for you to [leave a review](https://wordpress.org/support/view/plugin-reviews/query-monitor). Tell all your friends about it too!"
+		}
+	],
+	"screenshots": [
+		{
+			"number": 1,
+			"description": "Admin Toolbar Menu"
+		},
+		{
+			"number": 2,
+			"description": "Aggregate Database Queries by Component"
+		},
+		{
+			"number": 3,
+			"description": "Capability Checks"
+		},
+		{
+			"number": 4,
+			"description": "Database Queries"
+		},
+		{
+			"number": 5,
+			"description": "Hooks and Actions"
+		},
+		{
+			"number": 6,
+			"description": "HTTP API Requests"
+		},
+		{
+			"number": 7,
+			"description": "Aggregate Database Queries by Calling Function"
+		}
+	]
+}
