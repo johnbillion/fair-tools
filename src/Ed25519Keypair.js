@@ -37,9 +37,10 @@ export class Ed25519Keypair {
 	/**
 	 * Create a new Ed25519 keypair.
 	 *
+	 * @param {object} [_options] - Options (ignored, for API compatibility with Secp256k1Keypair)
 	 * @returns {Promise<Ed25519Keypair>}
 	 */
-	static async create() {
+	static async create(_options) {
 		const privateKey = ed25519.utils.randomSecretKey();
 		const publicKey = ed25519.getPublicKey(privateKey);
 		return new Ed25519Keypair(privateKey, publicKey);
@@ -49,9 +50,10 @@ export class Ed25519Keypair {
 	 * Import an Ed25519 keypair from a private key.
 	 *
 	 * @param {Uint8Array|string} privateKey - 32-byte private key or hex string
+	 * @param {object} [_options] - Options (ignored, for API compatibility with Secp256k1Keypair)
 	 * @returns {Promise<Ed25519Keypair>}
 	 */
-	static async import(privateKey) {
+	static async import(privateKey, _options) {
 		const privBytes =
 			typeof privateKey === 'string'
 				? uint8arrays.fromString(privateKey, 'hex')
