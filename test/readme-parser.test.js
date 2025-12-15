@@ -810,5 +810,47 @@ Use wp plugin list.
 				},
 			});
 		});
+
+		it('strips trailing hashes from markdown headings', () => {
+			// Issue found in header-footer-elementor: "### Heading ###" format
+			const content = `=== Test Plugin ===
+
+Short description.
+
+== Description ==
+
+Intro text.
+
+### Features ###
+
+Feature list.
+
+### More Info###
+
+More content.
+`;
+			const data = parseReadmeFile(content);
+			assert.deepStrictEqual(data, {
+				name: 'Test Plugin',
+				license: undefined,
+				licenseUri: undefined,
+				keywords: [],
+				shortDescription: 'Short description.',
+				contributors: undefined,
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {
+					description:
+						'<p>Intro text.</p>\n' +
+						'<h3>Features</h3>\n' +
+						'<p>Feature list.</p>\n' +
+						'<h3>More Info</h3>\n' +
+						'<p>More content.</p>\n',
+				},
+			});
+		});
 	});
 });

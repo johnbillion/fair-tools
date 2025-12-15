@@ -269,10 +269,13 @@ export function parseReadmeFile(content) {
 		// Convert WordPress-flavour subheadings to markdown before parsing
 		// Handles 1-3 equals signs: = Heading =, == Heading ==, === Heading ===
 		// All become #### Heading (h4) as they're subheadings within sections
-		const markdown = result.sections[section].replace(
+		let markdown = result.sections[section].replace(
 			/^={1,3}\s*(.+?)\s*={0,3}\s*$/gm,
 			'#### $1',
 		);
+		// Strip trailing hashes from markdown headings (e.g., "### Heading ###" -> "### Heading")
+		// Some readmes use ATX-style closing hashes which marked doesn't handle
+		markdown = markdown.replace(/^(#{1,6}\s+.+?)\s*#{1,6}\s*$/gm, '$1');
 		result.sections[section] = marked.parse(markdown, {
 			async: false,
 			breaks: true, // WordPress readme uses single newlines for <br>
