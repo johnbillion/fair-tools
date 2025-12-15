@@ -10,6 +10,25 @@
 import { marked } from 'marked';
 
 /**
+ * Normalizes a section name to camelCase.
+ *
+ * - "frequently asked questions" -> "faq"
+ * - "upgrade notice" -> "upgradeNotice"
+ * - "wp cli commands" -> "wpCliCommands"
+ *
+ * @param {string} name - Section name (already lowercase)
+ * @returns {string} Normalized name in camelCase
+ */
+function normalizeSectionName(name) {
+	// Special case mappings
+	if (name === 'frequently asked questions') {
+		return 'faq';
+	}
+	// Convert spaces to camelCase
+	return name.replace(/\s+([a-z])/g, (_, c) => c.toUpperCase());
+}
+
+/**
  * Tokenizes WordPress readme.txt into header block and named sections.
  *
  * Supports both WordPress-flavour (== Section ==) and Markdown-flavour (## Section).
@@ -39,11 +58,7 @@ function tokenizeReadme(content) {
 
 	// Extract each section's content
 	for (let i = 0; i < matches.length; i++) {
-		let name = matches[i][1].toLowerCase();
-		// Normalize section names
-		if (name === 'frequently asked questions') {
-			name = 'faq';
-		}
+		const name = normalizeSectionName(matches[i][1].toLowerCase());
 		const start = matches[i].index + matches[i][0].length;
 		const end = matches[i + 1]?.index ?? content.length;
 		sections.set(name, content.slice(start, end).trim());
@@ -208,18 +223,16 @@ export function parseReadmeFile(content) {
 	}
 
 	// Convert markdown sections to HTML
-	for (const section of ['description', 'installation', 'changelog', 'faq']) {
-		if (result.sections[section]) {
-			// Convert WordPress-flavour subheadings to markdown before parsing
-			// = Heading = -> #### Heading (with optional trailing =)
-			const markdown = result.sections[section].replace(
-				/^=\s*(.+?)\s*=?$/gm,
-				'#### $1',
-			);
-			result.sections[section] = marked.parse(markdown, {
-				async: false,
-			});
-		}
+	for (const section of Object.keys(result.sections)) {
+		// Convert WordPress-flavour subheadings to markdown before parsing
+		// = Heading = -> #### Heading (with optional trailing =)
+		const markdown = result.sections[section].replace(
+			/^=\s*(.+?)\s*=?$/gm,
+			'#### $1',
+		);
+		result.sections[section] = marked.parse(markdown, {
+			async: false,
+		});
 	}
 
 	// Reorder sections: description, installation, changelog, faq, screenshots, then rest

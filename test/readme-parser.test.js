@@ -332,5 +332,48 @@ Install it.
 				'faq',
 			]);
 		});
+
+		it('normalizes section names to camelCase', () => {
+			const content = `=== Test Plugin ===
+
+Short description.
+
+== Upgrade Notice ==
+
+= 1.0 =
+Initial release.
+
+== WP CLI Commands ==
+
+Run \`wp help\` for info.
+`;
+			const data = parseReadmeFile(content);
+			assert.deepStrictEqual(data.sections, {
+				upgradeNotice: '<h4>1.0</h4>\n<p>Initial release.</p>\n',
+				wpCliCommands: '<p>Run <code>wp help</code> for info.</p>\n',
+			});
+		});
+
+		it('parses all sections as markdown to HTML', () => {
+			const content = `=== Test Plugin ===
+
+Short description.
+
+== Upgrade Notice ==
+
+= 1.0 =
+Initial release.
+
+== Custom Section ==
+
+Some **bold** text and a [link](https://example.com).
+`;
+			const data = parseReadmeFile(content);
+			assert.deepStrictEqual(data.sections, {
+				upgradeNotice: '<h4>1.0</h4>\n<p>Initial release.</p>\n',
+				customSection:
+					'<p>Some <strong>bold</strong> text and a <a href="https://example.com">link</a>.</p>\n',
+			});
+		});
 	});
 });
