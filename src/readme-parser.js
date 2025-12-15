@@ -7,6 +7,8 @@
  * @see https://developer.wordpress.org/plugins/wordpress-org/how-your-readme-txt-works/
  */
 
+import { marked } from 'marked';
+
 /**
  * Tokenizes WordPress readme.txt into header block and named sections.
  *
@@ -239,6 +241,13 @@ export function parseReadmeFile(content) {
 	}
 	if (sections.has('screenshots')) {
 		result.screenshots = parseScreenshotsSection(sections.get('screenshots'));
+	}
+
+	// Convert description section from markdown to HTML
+	if (result.sections.description) {
+		result.sections.description = marked.parse(result.sections.description, {
+			async: false,
+		});
 	}
 
 	return result;
