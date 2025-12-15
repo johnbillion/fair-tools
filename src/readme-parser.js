@@ -39,7 +39,11 @@ function tokenizeReadme(content) {
 
 	// Extract each section's content
 	for (let i = 0; i < matches.length; i++) {
-		const name = matches[i][1].toLowerCase();
+		let name = matches[i][1].toLowerCase();
+		// Normalize section names
+		if (name === 'frequently asked questions') {
+			name = 'faq';
+		}
 		const start = matches[i].index + matches[i][0].length;
 		const end = matches[i + 1]?.index ?? content.length;
 		sections.set(name, content.slice(start, end).trim());
@@ -114,40 +118,6 @@ function parseShortDescription(headerBlock) {
 }
 
 /**
- * Parses FAQ section into Q&A pairs.
- *
- * Supports both formats:
- * - WordPress-flavour: = Question here =
- * - Markdown-flavour: ### Question here
- *
- * @param {string} content - FAQ section content
- * @returns {Array<{ question: string, answer: string }>}
- */
-function parseFaqSection(content) {
-	const faq = [];
-
-	// Try WordPress-flavour first: = Question =
-	let questionRegex = /^=\s*(.+?)\s*=$/gm;
-	let matches = [...content.matchAll(questionRegex)];
-
-	// If no WordPress-flavour questions, try Markdown-flavour: ### Question
-	if (matches.length === 0) {
-		questionRegex = /^###\s+(.+)$/gm;
-		matches = [...content.matchAll(questionRegex)];
-	}
-
-	for (let i = 0; i < matches.length; i++) {
-		const question = matches[i][1];
-		const start = matches[i].index + matches[i][0].length;
-		const end = matches[i + 1]?.index ?? content.length;
-		const answer = content.slice(start, end).trim();
-		faq.push({ question, answer });
-	}
-
-	return faq;
-}
-
-/**
  * Parses Screenshots section into array of objects.
  *
  * Screenshots use the format:
@@ -191,7 +161,6 @@ function parseScreenshotsSection(content) {
  *   stableTag: string | undefined,
  *   donateLink: string | undefined,
  *   sections: Record<string, string>,
- *   faq?: Array<{ question: string, answer: string }>,
  *   screenshots?: Array<{ description: string }>
  * }}
  */
@@ -233,18 +202,13 @@ export function parseReadmeFile(content) {
 		sections: Object.fromEntries(sections),
 	};
 
-	// Parse structured sections (check common variations of section names)
-	const faqSection =
-		sections.get('faq') || sections.get('frequently asked questions');
-	if (faqSection) {
-		result.faq = parseFaqSection(faqSection);
-	}
+	// Parse screenshots section into structured data
 	if (sections.has('screenshots')) {
 		result.screenshots = parseScreenshotsSection(sections.get('screenshots'));
 	}
 
 	// Convert markdown sections to HTML
-	for (const section of ['description', 'installation']) {
+	for (const section of ['description', 'installation', 'changelog', 'faq']) {
 		if (result.sections[section]) {
 			// Convert WordPress-flavour subheadings to markdown before parsing
 			// = Heading = -> #### Heading (h4)
@@ -257,6 +221,29 @@ export function parseReadmeFile(content) {
 			});
 		}
 	}
+
+	// Reorder sections: description, installation, changelog, faq, screenshots, then rest
+	/** @type {Record<string, string>} */
+	const orderedSections = {};
+	const sectionOrder = [
+		'description',
+		'installation',
+		'changelog',
+		'faq',
+		'screenshots',
+	];
+	for (const key of sectionOrder) {
+		if (result.sections[key] !== undefined) {
+			orderedSections[key] = result.sections[key];
+		}
+	}
+	// Add any remaining sections
+	for (const key of Object.keys(result.sections)) {
+		if (!sectionOrder.includes(key)) {
+			orderedSections[key] = result.sections[key];
+		}
+	}
+	result.sections = orderedSections;
 
 	return result;
 }
