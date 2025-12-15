@@ -1,0 +1,28 @@
+{
+	"name": "Classic Widgets",
+	"license": "GPLv2 or later",
+	"licenseUri": "http://www.gnu.org/licenses/gpl-2.0.html",
+	"keywords": [
+		"gutenberg",
+		"disable",
+		"disable gutenberg",
+		"editor",
+		"classic widgets"
+	],
+	"shortDescription": "Enables the previous \"classic\" widgets settings screens in Appearance - Widgets and the Customizer. Disables the block editor from managing widgets.",
+	"contributors": [
+		"wordpressdotorg",
+		"hellofromtonya",
+		"azaozz",
+		"ironprogrammer"
+	],
+	"requires": "4.9",
+	"testedUpTo": "6.9",
+	"requiresPhp": "5.6",
+	"stableTag": "0.3",
+	"sections": {
+		"description": "<p>Classic Widgets is an official plugin maintained by the WordPress team that restores the previous (&quot;classic&quot;) WordPress widgets settings screens. It will be supported and maintained to 2024, or as long as is necessary.</p>\n<p>Once activated and when using a classic (non-block) theme, this plugin restores the previous widgets settings screens and disables the block editor from managing widgets. There is no other configuration, the classic widgets settings screens are enabled or disabled by either enabling or disabling this plugin.</p>\n",
+		"changelog": "<h4>0.3</h4>\n<p>Update for 5.9.</p>\n<h4>0.2</h4>\n<p>Update filter name.</p>\n<h4>0.1</h4>\n<p>Initial release.</p>\n",
+		"faq": "<h4>Are there any settings?</h4>\n<p>No, there are no settings. Once activated, this plugin restores the previous (&quot;classic&quot;) WordPress widgets screen and disables the block editor from managing widgets.</p>\n<h4>Does this work with full site editing and block themes?</h4>\n<p>No, as block themes rely on blocks. <a href=\"https://wordpress.org/support/article/block-themes/\">See Block themes article</a> for more information.</p>\n"
+	}
+}

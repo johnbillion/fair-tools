@@ -1,0 +1,29 @@
+{
+	"name": "WP Super Cache",
+	"license": "GPLv2 or later",
+	"licenseUri": "http://www.gnu.org/licenses/gpl-2.0.html",
+	"keywords": [
+		"performance",
+		"caching",
+		"wp-cache",
+		"wp-super-cache",
+		"cache"
+	],
+	"shortDescription": "A very fast caching engine for WordPress that produces static html files.",
+	"contributors": [
+		"donncha",
+		"automattic",
+		"adnan007",
+		"dilirity",
+		"mikemayhem3030",
+		"pyronaur",
+		"thingalon"
+	],
+	"requires": "6.7",
+	"testedUpTo": "6.9",
+	"requiresPhp": "7.2",
+	"stableTag": "3.0.3",
+	"sections": {
+		"changelog": "<h3>3.0.3 - 2025-11-11</h3>\n<h4>Added</h4>\n<ul>\n<li>Tested up to WordPress 6.9.</li>\n</ul>\n<h4>Changed</h4>\n<ul>\n<li>Update package dependencies.</li>\n</ul>\n<h4>Fixed</h4>\n<ul>\n<li>Phan: Address PhanRedundantCondition, PhanRedundantArrayValuesCall, and PhanPluginRedundantAssignment violations.</li>\n<li>Remove redundant code.</li>\n</ul>\n<hr>\n<p><a href=\"https://github.com/Automattic/jetpack/blob/trunk/projects/plugins/super-cache/CHANGELOG.md#changelog\">See the previous changelogs here</a></p>\n"
+	}
+}

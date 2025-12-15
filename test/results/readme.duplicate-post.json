@@ -1,0 +1,47 @@
+{
+	"name": "Yoast Duplicate Post",
+	"license": "GPLv2 or later",
+	"licenseUri": "http://www.gnu.org/licenses/gpl-2.0.html",
+	"keywords": [
+		"duplicate post",
+		"copy",
+		"clone"
+	],
+	"shortDescription": "The go-to tool for cloning posts and pages, including the powerful Rewrite & Republish feature.",
+	"contributors": [
+		"yoast",
+		"lopo"
+	],
+	"requires": "6.6",
+	"testedUpTo": "6.9",
+	"requiresPhp": "5.6.20",
+	"stableTag": "4.5",
+	"donateLink": "https://yoast.com/wordpress/plugins/duplicate-post/",
+	"sections": {
+		"description": "<p>This plugin allows users to clone posts of any type, or copy them to new drafts for further editing.</p>\n<p>How it works:</p>\n<ol>\n<li><p>In &#39;Edit Posts&#39;/&#39;Edit Pages&#39;, you can click on &#39;Clone&#39; link below the post/page title: this will immediately create a copy and return to the list.</p>\n</li>\n<li><p>In &#39;Edit Posts&#39;/&#39;Edit Pages&#39;, you can select one or more items, then choose &#39;Clone&#39; in the &#39;Bulk Actions&#39; dropdown to copy them all at once.</p>\n</li>\n<li><p>In &#39;Edit Posts&#39;/&#39;Edit Pages&#39;, you can click on &#39;New Draft&#39; link below the post/page title.</p>\n</li>\n<li><p>On the post edit screen, you can click on &#39;Copy to a new draft&#39; above &quot;Cancel&quot;/&quot;Move to trash&quot; or in the admin bar.</p>\n</li>\n<li><p>While viewing a post as a logged in user, you can click on &#39;Copy to a new draft&#39; in the admin bar.</p>\n</li>\n</ol>\n<p>3, 4 and 5 will lead to the edit page for the new draft: change what you want, click on &#39;Publish&#39; and you&#39;re done.</p>\n<p>There is also a <strong>template tag</strong>, so you can put it in your templates and clone your posts/pages from the front-end. Clicking on the link will lead you to the edit page for the new draft, just like the admin bar link.</p>\n<p>Duplicate Post has many useful settings to customize its behavior and restrict its use to certain roles or post types. Check out the extensive documentation on <a href=\"https://yoast.com/wordpress/plugins/duplicate-post/\">yoast.com</a> and our <a href=\"https://developer.yoast.com/duplicate-post/overview/\">developer docs</a>.</p>\n<h3>Contribute</h3>\n<p>If you find this useful and if you want to contribute, there are two ways:</p>\n<ol>\n<li>Submit your bug reports, suggestions and requests for features on <a href=\"https://github.com/Yoast/duplicate-post\">GitHub</a>;</li>\n<li>If you want to translate it to your language (there are just a few lines of text), you can use the <a href=\"https://translate.wordpress.org/projects/wp-plugins/duplicate-post\">translation project</a>;</li>\n</ol>\n",
+		"installation": "<p>Use WordPress&#39; Add New Plugin feature, searching &quot;Duplicate Post&quot;, or download the archive and:</p>\n<ol>\n<li>Unzip the archive on your computer</li>\n<li>Upload <code>duplicate-post</code> directory to the <code>/wp-content/plugins/</code> directory</li>\n<li>Activate the plugin through the &#39;Plugins&#39; menu in WordPress</li>\n<li>Go to Settings -&gt; Duplicate Post and customize behaviour as needed</li>\n</ol>\n",
+		"changelog": "<h4>4.5</h4>\n<p>Release Date: June 28th, 2022</p>\n<p>Enhancements:</p>\n<ul>\n<li>Improves the impact of the plugin on the performance of the site by avoiding useless calls on the <code>gettext</code> filter.</li>\n</ul>\n<p>Bugfixes:</p>\n<ul>\n<li>Fixes a bug where a section in the Classic Editor&#39;s submitbox would be displayed with incorrect margins.</li>\n</ul>\n<p>Other:</p>\n<ul>\n<li>Sets the WordPress tested up to version to 6.0.</li>\n</ul>\n<h4>4.4</h4>\n<p>Release Date: January 25th, 2022</p>\n<p>Enhancements:</p>\n<ul>\n<li>Converts the upgrade notice into a welcome notice for first-time users.</li>\n</ul>\n<p>Bugfixes:</p>\n<ul>\n<li>Fixes a bug where HTML tags in a Custom HTML block would be removed when republishing a scheduled Rewrite &amp; Republish copy.</li>\n<li>Fixes a bug where the button style would be broken in the Classic Editor.</li>\n<li>Fixes a bug where a fatal error would be triggered in the Widgets page in combination with some themes or plugins.</li>\n</ul>\n<p>Other:</p>\n<ul>\n<li>Sets the WordPress tested up to version to 5.9.</li>\n</ul>\n<h4>Earlier versions</h4>\n<p>For the changelog of earlier versions, please refer to <a href=\"https://yoa.st/duplicate-post-changelog\">the changelog on yoast.com</a>.</p>\n",
+		"faq": "<h4>The plugin doesn&#39;t work, why?</h4>\n<p>First, check your version of WordPress: the plugin is not supposed to work on old versions anymore. Make sure also to upgrade to the last version of the plugin!</p>\n<p>Then try to deactivate and re-activate it, some user have reported that this fixes some problems.</p>\n<p>Pay also attention to the &quot;Permissions&quot; tab in the Settings: make sure the plugin is enabled for the desired roles and post types.</p>\n<p>If it still doesn&#39;t work, maybe there is some kind of conflict with other plugins: feel free <a href=\"https://wordpress.org/support/plugin/duplicate-post\">to write in the forum</a> and we&#39;ll try to discover a solution (it will be <em>really</em> helpful if you try to deactivate all your other plugins one by one to see which one conflicts with mine... But do it only if you know what you&#39;re doing, I will not be responsible of any problem you may experience).</p>\n<h4>The plugin is not translated in my language!</h4>\n<p>From version 3.0 the plugin&#39;s translations are managed by the WordPress.org platform and the plugin is shipped without language files, so first of all update translations under Dashboard-&gt;Updates.</p>\n<p>If Duplicate Post is still in English, or if there are some untranslated strings, you can <a href=\"https://translate.wordpress.org/projects/wp-plugins/duplicate-post\">help translating to your language</a>: you only need a WordPress.org account.</p>\n",
+		"screenshots": "<ol>\n<li>Classic editor.</li>\n<li>Block editor.</li>\n<li>Post list.</li>\n<li>Admin bar menu.</li>\n<li>Bulk actions.</li>\n<li>The options page.</li>\n</ol>\n"
+	},
+	"screenshots": [
+		{
+			"description": "Classic editor."
+		},
+		{
+			"description": "Block editor."
+		},
+		{
+			"description": "Post list."
+		},
+		{
+			"description": "Admin bar menu."
+		},
+		{
+			"description": "Bulk actions."
+		},
+		{
+			"description": "The options page."
+		}
+	]
+}
