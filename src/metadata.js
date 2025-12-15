@@ -9,7 +9,7 @@ import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { basename, dirname, join } from 'node:path';
 import * as uint8arrays from 'uint8arrays';
-import { signWithVerificationKey, verifyWithVerificationKey } from './keys.js';
+import { verifyWithVerificationKey } from './keys.js';
 
 /**
  * JSON-LD context for metadata documents.
@@ -52,7 +52,7 @@ export async function calculateChecksum(data) {
  */
 export async function signArtifact(data, keypair) {
 	const hash = createHash('sha384').update(data).digest();
-	const sig = await signWithVerificationKey(hash, keypair);
+	const sig = await keypair.sign(hash);
 	return uint8arrays.toString(sig, 'base64url');
 }
 

@@ -5,9 +5,7 @@ import {
 	generateRotationKeyPair,
 	importVerificationKeyPair,
 	importRotationKeyPair,
-	signWithVerificationKey,
 	verifyWithVerificationKey,
-	signWithRotationKey,
 	verifyWithRotationKey,
 } from '../src/keys.js';
 
@@ -56,9 +54,9 @@ describe('generate verification key pair', () => {
 
 	it('keypair can sign and verify', async () => {
 		const result = await generateVerificationKeyPair();
-		const message = 'test';
+		const message = new TextEncoder().encode('test');
 
-		const signature = await signWithVerificationKey(message, result.keypair);
+		const signature = await result.keypair.sign(message);
 		const isValid = await verifyWithVerificationKey(
 			message,
 			signature,
@@ -126,12 +124,12 @@ describe('import verification key pair', () => {
 		);
 	});
 
-	it('returns a working keypair for signing', async () => {
+	it('imported keypair can sign and verify', async () => {
 		const original = await generateVerificationKeyPair();
 		const imported = await importVerificationKeyPair(original.privateKey);
 
-		const message = 'test message';
-		const signature = await signWithVerificationKey(message, imported.keypair);
+		const message = new TextEncoder().encode('test message');
+		const signature = await imported.keypair.sign(message);
 		const isValid = await verifyWithVerificationKey(
 			message,
 			signature,
@@ -167,12 +165,12 @@ describe('import rotation key pair', () => {
 	});
 });
 
-describe('sign and verify with verification key', () => {
+describe('verify with verification key', () => {
 	it('signature is 64 bytes', async () => {
 		const keys = await generateVerificationKeyPair();
-		const message = 'Sign this message!';
+		const message = new TextEncoder().encode('Sign this message!');
 
-		const signature = await signWithVerificationKey(message, keys.keypair);
+		const signature = await keys.keypair.sign(message);
 
 		assert.ok(
 			signature instanceof Uint8Array,
@@ -185,7 +183,7 @@ describe('sign and verify with verification key', () => {
 		const keys = await generateVerificationKeyPair();
 		const message = new TextEncoder().encode('binary message');
 
-		const signature = await signWithVerificationKey(message, keys.keypair);
+		const signature = await keys.keypair.sign(message);
 
 		assert.ok(signature instanceof Uint8Array);
 		assert.strictEqual(signature.length, 64);
@@ -193,9 +191,9 @@ describe('sign and verify with verification key', () => {
 
 	it('verifies valid signatures', async () => {
 		const keys = await generateVerificationKeyPair();
-		const message = 'Verify me!';
+		const message = new TextEncoder().encode('Verify me!');
 
-		const signature = await signWithVerificationKey(message, keys.keypair);
+		const signature = await keys.keypair.sign(message);
 		const isValid = await verifyWithVerificationKey(
 			message,
 			signature,
@@ -207,10 +205,10 @@ describe('sign and verify with verification key', () => {
 
 	it('rejects invalid signatures', async () => {
 		const keys = await generateVerificationKeyPair();
-		const message = 'Original message';
-		const wrongMessage = 'Wrong message';
+		const message = new TextEncoder().encode('Original message');
+		const wrongMessage = new TextEncoder().encode('Wrong message');
 
-		const signature = await signWithVerificationKey(message, keys.keypair);
+		const signature = await keys.keypair.sign(message);
 		const isValid = await verifyWithVerificationKey(
 			wrongMessage,
 			signature,
@@ -221,12 +219,12 @@ describe('sign and verify with verification key', () => {
 	});
 });
 
-describe('sign and verify with rotation key', () => {
+describe('verify with rotation key', () => {
 	it('signature is 64 bytes (compact format)', async () => {
 		const keys = await generateRotationKeyPair();
 		const message = 'Rotate my keys!';
 
-		const signature = await signWithRotationKey(message, keys.keypair);
+		const signature = await keys.keypair.sign(message);
 
 		assert.ok(
 			signature instanceof Uint8Array,
@@ -243,7 +241,7 @@ describe('sign and verify with rotation key', () => {
 		const keys = await generateRotationKeyPair();
 		const message = new TextEncoder().encode('binary rotation message');
 
-		const signature = await signWithRotationKey(message, keys.keypair);
+		const signature = await keys.keypair.sign(message);
 
 		assert.ok(signature instanceof Uint8Array);
 		assert.strictEqual(signature.length, 64);
@@ -253,7 +251,7 @@ describe('sign and verify with rotation key', () => {
 		const keys = await generateRotationKeyPair();
 		const message = 'Verify rotation!';
 
-		const signature = await signWithRotationKey(message, keys.keypair);
+		const signature = await keys.keypair.sign(message);
 		const isValid = await verifyWithRotationKey(
 			message,
 			signature,
@@ -268,7 +266,7 @@ describe('sign and verify with rotation key', () => {
 		const message = 'Original message';
 		const wrongMessage = 'Wrong message';
 
-		const signature = await signWithRotationKey(message, keys.keypair);
+		const signature = await keys.keypair.sign(message);
 		const isValid = await verifyWithRotationKey(
 			wrongMessage,
 			signature,

@@ -95,59 +95,25 @@ export async function importRotationKeyPair(privateKey) {
 }
 
 /**
- * Signs a message using a verification key.
- *
- * @param {Uint8Array|string} message - The message to sign
- * @param {Ed25519Keypair} keypair - The keypair to sign with
- * @returns {Promise<Uint8Array>} 64-byte signature
- */
-export async function signWithVerificationKey(message, keypair) {
-	const messageBytes =
-		typeof message === 'string' ? new TextEncoder().encode(message) : message;
-
-	return keypair.sign(messageBytes);
-}
-
-/**
- * Signs a message using a rotation key.
- *
- * @param {Uint8Array|string} message - The message to sign
- * @param {Secp256k1Keypair} keypair - The keypair to sign with
- * @returns {Promise<Uint8Array>} The signature
- */
-export async function signWithRotationKey(message, keypair) {
-	const messageBytes =
-		typeof message === 'string' ? new TextEncoder().encode(message) : message;
-
-	return keypair.sign(messageBytes);
-}
-
-/**
  * Verifies a signature using a verification key.
  *
- * @param {Uint8Array|string} message - The original message
+ * @param {Uint8Array} message - The original message
  * @param {Uint8Array} signature - The signature to verify
  * @param {Ed25519Keypair} keypair - The keypair to verify with
  * @returns {Promise<boolean>} Whether the signature is valid
  */
 export async function verifyWithVerificationKey(message, signature, keypair) {
-	const messageBytes =
-		typeof message === 'string' ? new TextEncoder().encode(message) : message;
-
-	return ed25519.verify(signature, messageBytes, keypair.publicKeyBytes());
+	return ed25519.verify(signature, message, keypair.publicKeyBytes());
 }
 
 /**
  * Verifies a signature using a rotation key.
  *
- * @param {Uint8Array|string} message - The original message
+ * @param {Uint8Array} message - The original message
  * @param {Uint8Array} signature - The signature to verify
  * @param {string} publicKey - The did:key formatted public key
  * @returns {Promise<boolean>} Whether the signature is valid
  */
 export async function verifyWithRotationKey(message, signature, publicKey) {
-	const messageBytes =
-		typeof message === 'string' ? new TextEncoder().encode(message) : message;
-
-	return verifySignature(publicKey, messageBytes, signature);
+	return verifySignature(publicKey, message, signature);
 }
