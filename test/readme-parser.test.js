@@ -228,5 +228,29 @@ Details about feature two.
 				'<p>Some intro text.</p>\n<h4>Feature One</h4>\n<p>Details about feature one.</p>\n<h4>Feature Two</h4>\n<p>Details about feature two.</p>\n',
 			);
 		});
+
+		it('converts installation section markdown to HTML', () => {
+			const content = `=== Test Plugin ===
+
+Short description.
+
+== Installation ==
+
+= Automatic Installation =
+
+1. Go to Plugins
+2. Click Add New
+
+= Manual Installation =
+
+1. Download the zip
+2. Upload to plugins folder
+`;
+			const data = parseReadmeFile(content);
+			assert.strictEqual(
+				data.sections.installation,
+				'<h4>Automatic Installation</h4>\n<ol>\n<li>Go to Plugins</li>\n<li>Click Add New</li>\n</ol>\n<h4>Manual Installation</h4>\n<ol>\n<li>Download the zip</li>\n<li>Upload to plugins folder</li>\n</ol>\n',
+			);
+		});
 	});
 });

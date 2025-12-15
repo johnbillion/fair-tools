@@ -243,17 +243,19 @@ export function parseReadmeFile(content) {
 		result.screenshots = parseScreenshotsSection(sections.get('screenshots'));
 	}
 
-	// Convert description section from markdown to HTML
-	if (result.sections.description) {
-		// Convert WordPress-flavour subheadings to markdown before parsing
-		// = Heading = -> #### Heading (h4)
-		const markdown = result.sections.description.replace(
-			/^=\s*(.+?)\s*=$/gm,
-			'#### $1',
-		);
-		result.sections.description = marked.parse(markdown, {
-			async: false,
-		});
+	// Convert markdown sections to HTML
+	for (const section of ['description', 'installation']) {
+		if (result.sections[section]) {
+			// Convert WordPress-flavour subheadings to markdown before parsing
+			// = Heading = -> #### Heading (h4)
+			const markdown = result.sections[section].replace(
+				/^=\s*(.+?)\s*=$/gm,
+				'#### $1',
+			);
+			result.sections[section] = marked.parse(markdown, {
+				async: false,
+			});
+		}
 	}
 
 	return result;
