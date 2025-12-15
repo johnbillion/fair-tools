@@ -7,7 +7,12 @@ import { revokeRotationKey } from '../did.js';
 import { loadRotationKeyForRevocation, SigningKeyError } from '../signing.js';
 import { logPlcError } from './lib/plc-error.js';
 import { rotationKeyHelp } from './lib/help.js';
-import { validatePlcDid, DidValidationError } from '../did-validation.js';
+import {
+	validatePlcDid,
+	DidValidationError,
+	validateRotationKey,
+	PublicKeyValidationError,
+} from '../did-validation.js';
 
 const { values } = parseArgs({
 	options: {
@@ -80,6 +85,17 @@ try {
 	validatePlcDid(values.did);
 } catch (err) {
 	if (err instanceof DidValidationError) {
+		console.error(`Error: ${err.message}`);
+		process.exit(1);
+	}
+	throw err;
+}
+
+// Validate the rotation key that is to be revoked
+try {
+	validateRotationKey(values.revoke);
+} catch (err) {
+	if (err instanceof PublicKeyValidationError) {
 		console.error(`Error: ${err.message}`);
 		process.exit(1);
 	}

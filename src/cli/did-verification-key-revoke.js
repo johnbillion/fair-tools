@@ -7,7 +7,12 @@ import { revokeVerificationKey } from '../did.js';
 import { loadRotationKey, SigningKeyError } from '../signing.js';
 import { logPlcError } from './lib/plc-error.js';
 import { rotationKeyHelp } from './lib/help.js';
-import { validatePlcDid, DidValidationError } from '../did-validation.js';
+import {
+	validatePlcDid,
+	DidValidationError,
+	validateVerificationKey,
+	PublicKeyValidationError,
+} from '../did-validation.js';
 
 const { values } = parseArgs({
 	options: {
@@ -77,6 +82,17 @@ try {
 	validatePlcDid(values.did);
 } catch (err) {
 	if (err instanceof DidValidationError) {
+		console.error(`Error: ${err.message}`);
+		process.exit(1);
+	}
+	throw err;
+}
+
+// Validate verification key format
+try {
+	validateVerificationKey(values.revoke);
+} catch (err) {
+	if (err instanceof PublicKeyValidationError) {
 		console.error(`Error: ${err.message}`);
 		process.exit(1);
 	}
