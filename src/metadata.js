@@ -81,7 +81,23 @@ export async function verifyArtifact(data, signature, keypair) {
  * Parses plugin headers from PHP file content.
  *
  * @param {string} content - PHP file content
- * @returns {object} Parsed headers
+ * @returns {{
+ *   name?: string,
+ *   pluginUri?: string,
+ *   pluginId?: string,
+ *   description?: string,
+ *   version?: string,
+ *   author?: string,
+ *   authorUri?: string,
+ *   license?: string,
+ *   licenseUri?: string,
+ *   textDomain?: string,
+ *   domainPath?: string,
+ *   requiresWp?: string,
+ *   requiresPhp?: string,
+ *   updateUri?: string,
+ *   security?: string
+ * }} Parsed headers
  */
 export function parsePluginHeaders(content) {
 	const headers = {};
@@ -181,7 +197,21 @@ export function parsePackageJson(content) {
  *   sections?: object,
  *   releases?: Array
  * }} options
- * @returns {object} Metadata document
+ * @returns {{
+ *   '@context': string,
+ *   id: string,
+ *   type: string,
+ *   name: string,
+ *   slug: string,
+ *   filename: string,
+ *   description: string,
+ *   authors: Array<{ name: string, url?: string, email?: string }>,
+ *   license: string,
+ *   security: Array,
+ *   keywords: Array<string>,
+ *   sections: object,
+ *   releases: Array
+ * }} Metadata document
  */
 export function createMetadataDocument(options) {
 	const {
@@ -262,7 +292,12 @@ export function createReleaseDocument(options) {
  *   signature?: string, // base64url-encoded
  *   contentType?: string // MIME type
  * }} options
- * @returns {object} Artifact object
+ * @returns {{
+ *   url: string,
+ *   checksum: string,
+ *   'content-type'?: string,
+ *   signature?: string
+ * }} Artifact object
  */
 export function createArtifact(options) {
 	const { url, checksum, signature, contentType } = options;
@@ -544,12 +579,13 @@ export async function buildMetadata(options) {
 	const description = pluginData.description || readmeData.shortDescription;
 
 	// Build author object
+	/** @type {{ name: string, url?: string } | undefined} */
 	let author;
 	if (pluginData.author) {
-		author = { name: pluginData.author };
-		if (pluginData.authorUri) {
-			author.url = pluginData.authorUri;
-		}
+		author = {
+			name: pluginData.author,
+			...(pluginData.authorUri && { url: pluginData.authorUri }),
+		};
 	}
 
 	// Read zip data
