@@ -42,6 +42,12 @@ const { values } = parseArgs({
 			type: 'string',
 			short: 'o',
 		},
+		'assets-dir': {
+			type: 'string',
+		},
+		'assets-url': {
+			type: 'string',
+		},
 		help: {
 			type: 'boolean',
 			short: 'h',
@@ -65,6 +71,8 @@ ${verificationKeyHelp()}
 Optional:
   -m, --metadata-file <file>  Path to existing metadata.json to preserve previous releases
   -o, --output-file <file>    Write metadata to file (default: stdout)
+      --assets-dir <dir>      Local assets directory (e.g., .wordpress-org)
+      --assets-url <url>      Base URL for assets (required with --assets-dir)
   -h, --help                  Show this help message
 
 Examples:
@@ -99,6 +107,16 @@ try {
 		process.exit(1);
 	}
 	throw err;
+}
+
+// Validate assets options (both must be provided together)
+if (values['assets-dir'] && !values['assets-url']) {
+	console.error('Error: --assets-url is required when using --assets-dir');
+	process.exit(1);
+}
+if (values['assets-url'] && !values['assets-dir']) {
+	console.error('Error: --assets-dir is required when using --assets-url');
+	process.exit(1);
 }
 
 // Load signing key
@@ -145,6 +163,8 @@ try {
 		zipFile: values['zip-file'],
 		downloadUrl: values.url,
 		existingReleases,
+		assetsDir: values['assets-dir'],
+		assetsUrl: values['assets-url'],
 	}));
 } catch (err) {
 	console.error(`Error building metadata: ${err.message}`);

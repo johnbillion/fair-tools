@@ -5,7 +5,7 @@
  * with support for plugins and themes for WordPress.
  */
 
-import { readFile, realpath } from 'node:fs/promises';
+import { readFile, readdir, realpath } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { basename, dirname, join } from 'node:path';
 import * as uint8arrays from 'uint8arrays';
@@ -355,6 +355,152 @@ function formatSecurityContact(value) {
 }
 
 /**
+ * @typedef {{
+ *   url: string,
+ *   'content-type': string,
+ *   height: number|null,
+ *   width: number|null
+ * }} AssetArtifact
+ */
+
+/**
+ * Asset file patterns for WordPress plugins.
+ *
+ * See https://developer.wordpress.org/plugins/wordpress-org/plugin-assets/
+ *
+ * @type {Array<{pattern: RegExp, type: 'banner'|'icon', width: number|null, height: number|null}>}
+ */
+const ASSET_PATTERNS = [
+	// Banners
+	{
+		pattern: /^banner-772x250\.(png|jpe?g|gif)$/i,
+		type: 'banner',
+		width: 772,
+		height: 250,
+	},
+	{
+		pattern: /^banner-1544x500\.(png|jpe?g|gif)$/i,
+		type: 'banner',
+		width: 1544,
+		height: 500,
+	},
+	// Icons
+	{
+		pattern: /^icon\.svg$/i,
+		type: 'icon',
+		width: null,
+		height: null,
+	},
+	{
+		pattern: /^icon-128x128\.(png|jpe?g|gif)$/i,
+		type: 'icon',
+		width: 128,
+		height: 128,
+	},
+	{
+		pattern: /^icon-256x256\.(png|jpe?g|gif)$/i,
+		type: 'icon',
+		width: 256,
+		height: 256,
+	},
+];
+
+/**
+ * Maps file extensions to MIME types for assets.
+ *
+ * @param {string} filename
+ * @returns {string} MIME type
+ */
+function getAssetContentType(filename) {
+	const ext = filename.split('.').pop()?.toLowerCase();
+	switch (ext) {
+		case 'png':
+			return 'image/png';
+		case 'jpg':
+		case 'jpeg':
+			return 'image/jpeg';
+		case 'gif':
+			return 'image/gif';
+		case 'svg':
+			return 'image/svg+xml';
+		default:
+			return 'application/octet-stream';
+	}
+}
+
+/**
+ * Matches filenames against asset patterns and constructs artifact entries.
+ *
+ * Pure function that processes a list of filenames and returns categorized
+ * asset artifacts ready for inclusion in release documents.
+ *
+ * @param {string[]} filenames - Array of filenames to match
+ * @param {string} baseUrl - Base URL for assets (must end with /)
+ * @returns {{banners: AssetArtifact[], icons: AssetArtifact[]}}
+ */
+export function matchAssetFiles(filenames, baseUrl) {
+	const banners = [];
+	const icons = [];
+
+	// Iterate patterns and find matching files (more efficient than checking
+	// every file against every pattern)
+	for (const assetPattern of ASSET_PATTERNS) {
+		const file = filenames.find((f) => assetPattern.pattern.test(f));
+		if (file) {
+			const artifact = {
+				url: `${baseUrl}${file}`,
+				'content-type': getAssetContentType(file),
+				height: assetPattern.height,
+				width: assetPattern.width,
+			};
+
+			if (assetPattern.type === 'banner') {
+				banners.push(artifact);
+			} else {
+				icons.push(artifact);
+			}
+		}
+	}
+
+	return { banners, icons };
+}
+
+/**
+ * Discovers asset files in a directory and constructs artifact entries.
+ *
+ * Scans for WordPress plugin asset files (banners and icons) and returns
+ * arrays of artifact objects ready for inclusion in release documents.
+ *
+ * @param {{
+ *   assetsDir: string,
+ *   assetsUrl: string
+ * }} options
+ * @returns {Promise<{banners: AssetArtifact[], icons: AssetArtifact[]}>}
+ * @throws {Error} If directory doesn't exist or no assets found
+ */
+export async function discoverAssets(options) {
+	const { assetsDir, assetsUrl } = options;
+
+	let files;
+	try {
+		files = await readdir(assetsDir);
+	} catch {
+		throw new Error(`Assets directory not found: ${assetsDir}`);
+	}
+
+	// Ensure assetsUrl ends with /
+	const baseUrl = assetsUrl.endsWith('/') ? assetsUrl : `${assetsUrl}/`;
+
+	const { banners, icons } = matchAssetFiles(files, baseUrl);
+
+	if (banners.length === 0 && icons.length === 0) {
+		throw new Error(`No asset files found in directory: ${assetsDir}`);
+	}
+
+	return { banners, icons };
+}
+
+/**
  * Builds complete FAIR metadata for a release of a plugin for WordPress.
  *
  * This is the core metadata building function that accepts pre-resolved final values.
@@ -378,7 +524,9 @@ function formatSecurityContact(value) {
  *   requiresPhp?: string,
  *   testedUpTo?: string, // WordPress version tested up to (from readme)
  *   zipData: Buffer|Uint8Array,
- *   downloadUrl: string
+ *   downloadUrl: string,
+ *   banners?: AssetArtifact[],
+ *   icons?: AssetArtifact[]
  * }} options
  * @returns {Promise<{metadata: object, overwrittenVersion: string|null}>} Complete metadata document with release and overwrite info
  */
@@ -409,6 +557,10 @@ export async function buildMetadataFromContent(options) {
 		testedUpTo,
 		zipData,
 		downloadUrl,
+
+		// Assets
+		banners = [],
+		icons = [],
 	} = options;
 
 	// Validate required fields
@@ -443,12 +595,20 @@ export async function buildMetadataFromContent(options) {
 		suggests['env:wp'] = `>=${suggestedWp}`;
 	}
 
+	// Build artifacts object (order: banner, icon, package)
+	const artifacts = {};
+	if (banners.length > 0) {
+		artifacts.banner = banners;
+	}
+	if (icons.length > 0) {
+		artifacts.icon = icons;
+	}
+	artifacts.package = [artifact];
+
 	// Create release
 	const release = createReleaseDocument({
 		version,
-		artifacts: {
-			package: [artifact],
-		},
+		artifacts,
 		requires,
 		suggests,
 	});
@@ -500,7 +660,9 @@ export async function buildMetadataFromContent(options) {
  *   pluginFile: string, // path to main plugin PHP file
  *   zipFile: string,
  *   downloadUrl: string,
- *   existingReleases?: Array
+ *   existingReleases?: Array,
+ *   assetsDir?: string, // path to assets directory
+ *   assetsUrl?: string // base URL for assets
  * }} options
  * @returns {Promise<{metadata: object, overwrittenVersion: string|null}>} Complete metadata document with release and overwrite info
  */
@@ -512,6 +674,8 @@ export async function buildMetadata(options) {
 		zipFile,
 		downloadUrl,
 		existingReleases = [],
+		assetsDir,
+		assetsUrl,
 	} = options;
 
 	// Resolve to absolute path to handle relative paths like "plugin.php"
@@ -594,6 +758,13 @@ export async function buildMetadata(options) {
 	// Read zip data
 	const zipData = await readFile(zipFile);
 
+	// Discover assets if directory provided
+	let banners = [];
+	let icons = [];
+	if (assetsDir && assetsUrl) {
+		({ banners, icons } = await discoverAssets({ assetsDir, assetsUrl }));
+	}
+
 	return buildMetadataFromContent({
 		// Keys
 		keypair,
@@ -620,5 +791,9 @@ export async function buildMetadata(options) {
 		testedUpTo: readmeData.testedUpTo,
 		zipData,
 		downloadUrl,
+
+		// Assets
+		banners,
+		icons,
 	});
 }

@@ -1,9 +1,14 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import {
 	buildMetadataFromContent,
 	createArtifact,
 	createSignedArtifact,
+	discoverAssets,
+	matchAssetFiles,
 	parseComposerJson,
 	parsePackageJson,
 	parsePluginHeaders,
@@ -758,5 +763,449 @@ describe('buildMetadataFromContent artifact content-type', () => {
 
 		const artifact = metadata.releases[0].artifacts.package[0];
 		assert.strictEqual(artifact['content-type'], 'application/zip');
+	});
+});
+
+describe('discoverAssets', () => {
+	it('throws when directory does not exist', async () => {
+		await assert.rejects(
+			discoverAssets({
+				assetsDir: '/nonexistent/path',
+				assetsUrl: 'https://example.com/assets/',
+			}),
+			{
+				message: 'Assets directory not found: /nonexistent/path',
+			},
+		);
+	});
+
+	it('throws when no matching asset files found', async () => {
+		const testDir = join(tmpdir(), `fair-test-${Date.now()}`);
+		await mkdir(testDir);
+
+		try {
+			await writeFile(join(testDir, 'unrelated.txt'), 'not an asset');
+
+			await assert.rejects(
+				discoverAssets({
+					assetsDir: testDir,
+					assetsUrl: 'https://example.com/assets/',
+				}),
+				{
+					message: `No asset files found in directory: ${testDir}`,
+				},
+			);
+		} finally {
+			await rm(testDir, { recursive: true });
+		}
+	});
+
+	it('discovers banner files', async () => {
+		const testDir = join(tmpdir(), `fair-test-${Date.now()}`);
+		await mkdir(testDir);
+
+		try {
+			await writeFile(join(testDir, 'banner-772x250.png'), '');
+			await writeFile(join(testDir, 'banner-1544x500.jpg'), '');
+
+			const { banners, icons } = await discoverAssets({
+				assetsDir: testDir,
+				assetsUrl: 'https://example.com/assets/',
+			});
+
+			assert.strictEqual(banners.length, 2);
+			assert.strictEqual(icons.length, 0);
+
+			const banner772 = banners.find((b) => b.width === 772);
+			assert.strictEqual(
+				banner772.url,
+				'https://example.com/assets/banner-772x250.png',
+			);
+			assert.strictEqual(banner772['content-type'], 'image/png');
+			assert.strictEqual(banner772.height, 250);
+			assert.strictEqual(banner772.width, 772);
+
+			const banner1544 = banners.find((b) => b.width === 1544);
+			assert.strictEqual(
+				banner1544.url,
+				'https://example.com/assets/banner-1544x500.jpg',
+			);
+			assert.strictEqual(banner1544['content-type'], 'image/jpeg');
+			assert.strictEqual(banner1544.height, 500);
+			assert.strictEqual(banner1544.width, 1544);
+		} finally {
+			await rm(testDir, { recursive: true });
+		}
+	});
+
+	it('discovers icon files', async () => {
+		const testDir = join(tmpdir(), `fair-test-${Date.now()}`);
+		await mkdir(testDir);
+
+		try {
+			await writeFile(join(testDir, 'icon.svg'), '');
+			await writeFile(join(testDir, 'icon-128x128.png'), '');
+			await writeFile(join(testDir, 'icon-256x256.gif'), '');
+
+			const { banners, icons } = await discoverAssets({
+				assetsDir: testDir,
+				assetsUrl: 'https://example.com/assets',
+			});
+
+			assert.strictEqual(banners.length, 0);
+			assert.strictEqual(icons.length, 3);
+
+			const svg = icons.find((i) => i.url.endsWith('.svg'));
+			assert.strictEqual(svg.url, 'https://example.com/assets/icon.svg');
+			assert.strictEqual(svg['content-type'], 'image/svg+xml');
+			assert.strictEqual(svg.height, null);
+			assert.strictEqual(svg.width, null);
+
+			const icon128 = icons.find((i) => i.width === 128);
+			assert.strictEqual(
+				icon128.url,
+				'https://example.com/assets/icon-128x128.png',
+			);
+			assert.strictEqual(icon128['content-type'], 'image/png');
+			assert.strictEqual(icon128.height, 128);
+
+			const icon256 = icons.find((i) => i.width === 256);
+			assert.strictEqual(
+				icon256.url,
+				'https://example.com/assets/icon-256x256.gif',
+			);
+			assert.strictEqual(icon256['content-type'], 'image/gif');
+		} finally {
+			await rm(testDir, { recursive: true });
+		}
+	});
+
+	it('adds trailing slash to assetsUrl if missing', async () => {
+		const testDir = join(tmpdir(), `fair-test-${Date.now()}`);
+		await mkdir(testDir);
+
+		try {
+			await writeFile(join(testDir, 'icon.svg'), '');
+
+			const { icons } = await discoverAssets({
+				assetsDir: testDir,
+				assetsUrl: 'https://example.com/assets',
+			});
+
+			assert.strictEqual(icons[0].url, 'https://example.com/assets/icon.svg');
+		} finally {
+			await rm(testDir, { recursive: true });
+		}
+	});
+
+	it('handles assetsUrl with trailing slash', async () => {
+		const testDir = join(tmpdir(), `fair-test-${Date.now()}`);
+		await mkdir(testDir);
+
+		try {
+			await writeFile(join(testDir, 'icon.svg'), '');
+
+			const { icons } = await discoverAssets({
+				assetsDir: testDir,
+				assetsUrl: 'https://example.com/assets/',
+			});
+
+			assert.strictEqual(icons[0].url, 'https://example.com/assets/icon.svg');
+		} finally {
+			await rm(testDir, { recursive: true });
+		}
+	});
+
+	it('ignores non-matching files', async () => {
+		const testDir = join(tmpdir(), `fair-test-${Date.now()}`);
+		await mkdir(testDir);
+
+		try {
+			await writeFile(join(testDir, 'icon.svg'), '');
+			await writeFile(join(testDir, 'screenshot-1.png'), '');
+			await writeFile(join(testDir, 'readme.txt'), '');
+
+			const { banners, icons } = await discoverAssets({
+				assetsDir: testDir,
+				assetsUrl: 'https://example.com/assets/',
+			});
+
+			assert.strictEqual(banners.length, 0);
+			assert.strictEqual(icons.length, 1);
+		} finally {
+			await rm(testDir, { recursive: true });
+		}
+	});
+});
+
+describe('matchAssetFiles', () => {
+	it('returns empty arrays for no matching files', () => {
+		const { banners, icons } = matchAssetFiles(
+			['readme.txt', 'screenshot-1.png', 'random.jpg'],
+			'https://example.com/assets/',
+		);
+
+		assert.deepStrictEqual(banners, []);
+		assert.deepStrictEqual(icons, []);
+	});
+
+	it('matches standard banner file', () => {
+		const { banners } = matchAssetFiles(
+			['banner-772x250.png'],
+			'https://example.com/assets/',
+		);
+
+		assert.strictEqual(banners.length, 1);
+		assert.deepStrictEqual(banners[0], {
+			url: 'https://example.com/assets/banner-772x250.png',
+			'content-type': 'image/png',
+			height: 250,
+			width: 772,
+		});
+	});
+
+	it('matches retina banner file', () => {
+		const { banners } = matchAssetFiles(
+			['banner-1544x500.jpg'],
+			'https://example.com/assets/',
+		);
+
+		assert.strictEqual(banners.length, 1);
+		assert.deepStrictEqual(banners[0], {
+			url: 'https://example.com/assets/banner-1544x500.jpg',
+			'content-type': 'image/jpeg',
+			height: 500,
+			width: 1544,
+		});
+	});
+
+	it('matches SVG icon file', () => {
+		const { icons } = matchAssetFiles(
+			['icon.svg'],
+			'https://example.com/assets/',
+		);
+
+		assert.strictEqual(icons.length, 1);
+		assert.deepStrictEqual(icons[0], {
+			url: 'https://example.com/assets/icon.svg',
+			'content-type': 'image/svg+xml',
+			height: null,
+			width: null,
+		});
+	});
+
+	it('matches standard icon file', () => {
+		const { icons } = matchAssetFiles(
+			['icon-128x128.png'],
+			'https://example.com/assets/',
+		);
+
+		assert.strictEqual(icons.length, 1);
+		assert.deepStrictEqual(icons[0], {
+			url: 'https://example.com/assets/icon-128x128.png',
+			'content-type': 'image/png',
+			height: 128,
+			width: 128,
+		});
+	});
+
+	it('matches retina icon file', () => {
+		const { icons } = matchAssetFiles(
+			['icon-256x256.gif'],
+			'https://example.com/assets/',
+		);
+
+		assert.strictEqual(icons.length, 1);
+		assert.deepStrictEqual(icons[0], {
+			url: 'https://example.com/assets/icon-256x256.gif',
+			'content-type': 'image/gif',
+			height: 256,
+			width: 256,
+		});
+	});
+
+	it('matches multiple banner and icon files', () => {
+		const { banners, icons } = matchAssetFiles(
+			[
+				'banner-772x250.png',
+				'banner-1544x500.jpg',
+				'icon.svg',
+				'icon-128x128.png',
+				'icon-256x256.png',
+			],
+			'https://example.com/assets/',
+		);
+
+		assert.strictEqual(banners.length, 2);
+		assert.strictEqual(icons.length, 3);
+	});
+
+	it('handles jpeg extension', () => {
+		const { banners } = matchAssetFiles(
+			['banner-772x250.jpeg'],
+			'https://example.com/assets/',
+		);
+
+		assert.strictEqual(banners.length, 1);
+		assert.strictEqual(banners[0]['content-type'], 'image/jpeg');
+	});
+
+	it('ignores files that do not match patterns', () => {
+		const { banners, icons } = matchAssetFiles(
+			[
+				'icon.svg',
+				'banner-wrong-size.png',
+				'icon-64x64.png',
+				'screenshot-1.png',
+			],
+			'https://example.com/assets/',
+		);
+
+		assert.strictEqual(banners.length, 0);
+		assert.strictEqual(icons.length, 1);
+	});
+
+	it('constructs URLs correctly with base URL', () => {
+		const { icons } = matchAssetFiles(
+			['icon.svg'],
+			'https://ps.w.org/my-plugin/assets/',
+		);
+
+		assert.strictEqual(
+			icons[0].url,
+			'https://ps.w.org/my-plugin/assets/icon.svg',
+		);
+	});
+});
+
+describe('buildMetadataFromContent with assets', () => {
+	it('includes banners and icons in artifacts', async () => {
+		const { keypair } = await generateVerificationKeyPair();
+
+		const banners = [
+			{
+				url: 'https://example.com/assets/banner-772x250.png',
+				'content-type': 'image/png',
+				height: 250,
+				width: 772,
+			},
+		];
+
+		const icons = [
+			{
+				url: 'https://example.com/assets/icon.svg',
+				'content-type': 'image/svg+xml',
+				height: null,
+				width: null,
+			},
+		];
+
+		const { metadata } = await buildMetadataFromContent({
+			did: 'did:plc:test123',
+			keypair,
+			slug: 'test-plugin',
+			filename: 'test-plugin/test-plugin.php',
+			version: '1.0.0',
+			zipData: Buffer.from('fake zip'),
+			downloadUrl: 'https://example.com/test.zip',
+			banners,
+			icons,
+		});
+
+		const artifacts = metadata.releases[0].artifacts;
+
+		assert.strictEqual(artifacts.banner.length, 1);
+		assert.strictEqual(artifacts.icon.length, 1);
+		assert.strictEqual(artifacts.package.length, 1);
+
+		assert.deepStrictEqual(artifacts.banner[0], banners[0]);
+		assert.deepStrictEqual(artifacts.icon[0], icons[0]);
+	});
+
+	it('orders artifacts as banner, icon, package', async () => {
+		const { keypair } = await generateVerificationKeyPair();
+
+		const { metadata } = await buildMetadataFromContent({
+			did: 'did:plc:test123',
+			keypair,
+			slug: 'test-plugin',
+			filename: 'test-plugin/test-plugin.php',
+			version: '1.0.0',
+			zipData: Buffer.from('fake zip'),
+			downloadUrl: 'https://example.com/test.zip',
+			banners: [
+				{
+					url: 'https://example.com/banner.png',
+					'content-type': 'image/png',
+					height: 250,
+					width: 772,
+				},
+			],
+			icons: [
+				{
+					url: 'https://example.com/icon.svg',
+					'content-type': 'image/svg+xml',
+					height: null,
+					width: null,
+				},
+			],
+		});
+
+		const artifactKeys = Object.keys(metadata.releases[0].artifacts);
+		assert.deepStrictEqual(artifactKeys, ['banner', 'icon', 'package']);
+	});
+
+	it('omits banner key when no banners provided', async () => {
+		const { keypair } = await generateVerificationKeyPair();
+
+		const { metadata } = await buildMetadataFromContent({
+			did: 'did:plc:test123',
+			keypair,
+			slug: 'test-plugin',
+			filename: 'test-plugin/test-plugin.php',
+			version: '1.0.0',
+			zipData: Buffer.from('fake zip'),
+			downloadUrl: 'https://example.com/test.zip',
+			icons: [
+				{
+					url: 'https://example.com/icon.svg',
+					'content-type': 'image/svg+xml',
+					height: null,
+					width: null,
+				},
+			],
+		});
+
+		const artifacts = metadata.releases[0].artifacts;
+		assert.strictEqual('banner' in artifacts, false);
+		assert.strictEqual('icon' in artifacts, true);
+		assert.strictEqual('package' in artifacts, true);
+	});
+
+	it('omits icon key when no icons provided', async () => {
+		const { keypair } = await generateVerificationKeyPair();
+
+		const { metadata } = await buildMetadataFromContent({
+			did: 'did:plc:test123',
+			keypair,
+			slug: 'test-plugin',
+			filename: 'test-plugin/test-plugin.php',
+			version: '1.0.0',
+			zipData: Buffer.from('fake zip'),
+			downloadUrl: 'https://example.com/test.zip',
+			banners: [
+				{
+					url: 'https://example.com/banner.png',
+					'content-type': 'image/png',
+					height: 250,
+					width: 772,
+				},
+			],
+		});
+
+		const artifacts = metadata.releases[0].artifacts;
+		assert.strictEqual('banner' in artifacts, true);
+		assert.strictEqual('icon' in artifacts, false);
+		assert.strictEqual('package' in artifacts, true);
 	});
 });
