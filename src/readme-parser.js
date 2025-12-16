@@ -39,30 +39,32 @@ function normalizeSectionName(name) {
 function tokenizeReadme(content) {
 	const sections = new Map();
 
-	// Try WordPress-flavour first: == Section == (but not === Title ===)
-	// Allow trailing whitespace after closing ==
-	let sectionRegex = /^==(?!=)\s*(.+?)\s*==(?!=)\s*$/gm;
-	let matches = [...content.matchAll(sectionRegex)];
+	// Match both WordPress-flavour (== Section ==) and Markdown-flavour (## Section)
+	// Some readmes mix both styles, so we need to find all of them
+	const wpSectionRegex = /^==(?!=)\s*(.+?)\s*==(?!=)\s*$/gm;
+	const mdSectionRegex = /^##\s+(.+?)(?:\s*##)?\s*$/gm;
 
-	// If no WordPress-flavour sections, try Markdown-flavour: ## Section
-	if (matches.length === 0) {
-		sectionRegex = /^##\s+(.+)$/gm;
-		matches = [...content.matchAll(sectionRegex)];
-	}
+	const wpMatches = [...content.matchAll(wpSectionRegex)];
+	const mdMatches = [...content.matchAll(mdSectionRegex)];
 
-	if (matches.length === 0) {
+	// Combine and sort by position in the document
+	const allMatches = [...wpMatches, ...mdMatches].sort(
+		(a, b) => a.index - b.index,
+	);
+
+	if (allMatches.length === 0) {
 		return { headerBlock: content, sections };
 	}
 
 	// Everything before the first section is the header block
-	const headerBlock = content.slice(0, matches[0].index).trim();
+	const headerBlock = content.slice(0, allMatches[0].index).trim();
 
 	// Extract each section's content, preserving original title for unsupported sections
-	for (let i = 0; i < matches.length; i++) {
-		const originalTitle = matches[i][1].trim();
+	for (let i = 0; i < allMatches.length; i++) {
+		const originalTitle = allMatches[i][1].trim();
 		const name = normalizeSectionName(originalTitle.toLowerCase());
-		const start = matches[i].index + matches[i][0].length;
-		const end = matches[i + 1]?.index ?? content.length;
+		const start = allMatches[i].index + allMatches[i][0].length;
+		const end = allMatches[i + 1]?.index ?? content.length;
 		sections.set(name, {
 			content: content.slice(start, end).trim(),
 			originalTitle,

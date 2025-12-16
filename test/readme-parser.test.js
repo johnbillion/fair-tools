@@ -852,5 +852,45 @@ More content.
 				},
 			});
 		});
+
+		it('handles mixed WordPress and markdown section headers', () => {
+			// Issue found in wp-super-cache: uses ## Description ## but == Changelog ==
+			const content = `=== Test Plugin ===
+
+Short description.
+
+## Description ##
+
+The description.
+
+## Installation ##
+
+Install steps.
+
+== Changelog ==
+
+= 1.0 =
+Initial.
+`;
+			const data = parseReadmeFile(content);
+			assert.deepStrictEqual(data, {
+				name: 'Test Plugin',
+				license: undefined,
+				licenseUri: undefined,
+				keywords: [],
+				shortDescription: 'Short description.',
+				contributors: undefined,
+				requires: undefined,
+				testedUpTo: undefined,
+				requiresPhp: undefined,
+				stableTag: undefined,
+				donateLink: undefined,
+				sections: {
+					description: '<p>The description.</p>\n',
+					installation: '<p>Install steps.</p>\n',
+					changelog: '<h4>1.0</h4>\n<p>Initial.</p>\n',
+				},
+			});
+		});
 	});
 });
