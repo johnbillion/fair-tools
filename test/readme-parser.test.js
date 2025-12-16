@@ -46,6 +46,10 @@ describe('parseReadmeFile', () => {
 				(f) => f.startsWith('readme.') && f.endsWith('.txt'),
 			);
 
+			// Track that optional fields are tested at least once
+			let hasScreenshotsFixture = false;
+			let hasKeywordsFixture = false;
+
 			for (const file of readmeFiles) {
 				// Convert readme.user-switching.txt -> userSwitching (for fixtures lookup)
 				const name = basename(file, '.txt')
@@ -96,23 +100,20 @@ describe('parseReadmeFile', () => {
 					`${name}: stableTag should be string`,
 				);
 
-				// If faq exists, it should be an array of objects with question/answer
-				if (data.faq) {
-					assert.ok(Array.isArray(data.faq), `${name}: faq should be array`);
-					for (const item of data.faq) {
-						assert.ok(
-							typeof item.question === 'string',
-							`${name}: faq question should be string`,
-						);
-						assert.ok(
-							typeof item.answer === 'string',
-							`${name}: faq answer should be string`,
-						);
-					}
+				// Check that returned properties are not empty
+				// (screenshots and keywords are optional, so excluded)
+				for (const prop of Object.keys(data)) {
+					if (prop === 'screenshots' || prop === 'keywords') continue;
+					const val = data[prop];
+					assert.ok(
+						val !== '' && !(Array.isArray(val) && val.length === 0),
+						`${name}: ${prop} should not be empty`,
+					);
 				}
 
 				// If screenshots exists, it should be an array of objects with description
 				if (data.screenshots) {
+					hasScreenshotsFixture = true;
 					assert.ok(
 						Array.isArray(data.screenshots),
 						`${name}: screenshots should be array`,
@@ -124,7 +125,22 @@ describe('parseReadmeFile', () => {
 						);
 					}
 				}
+
+				// Track keywords coverage
+				if (data.keywords.length > 0) {
+					hasKeywordsFixture = true;
+				}
 			}
+
+			// Ensure optional fields are tested by at least one fixture
+			assert.ok(
+				hasScreenshotsFixture,
+				'at least one fixture should have screenshots',
+			);
+			assert.ok(
+				hasKeywordsFixture,
+				'at least one fixture should have keywords',
+			);
 		});
 	});
 
