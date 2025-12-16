@@ -5,7 +5,7 @@
  * with support for plugins and themes for WordPress.
  */
 
-import { readFile } from 'node:fs/promises';
+import { readFile, realpath } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { basename, dirname, join } from 'node:path';
 import * as uint8arrays from 'uint8arrays';
@@ -172,6 +172,7 @@ export function parsePackageJson(content) {
  *   type: string, // e.g., 'wp-plugin' or 'wp-theme'
  *   name: string,
  *   slug: string,
+ *   filename: string, // e.g., 'query-monitor/query-monitor.php'
  *   description: string,
  *   authors: Array<{name: string, url?: string, email?: string}>,
  *   license: string, // e.g., 'GPL-2.0-or-later'
@@ -188,6 +189,7 @@ export function createMetadataDocument(options) {
 		type,
 		name,
 		slug,
+		filename,
 		description,
 		authors,
 		license,
@@ -203,6 +205,7 @@ export function createMetadataDocument(options) {
 		type,
 		name,
 		slug,
+		filename,
 		description,
 		authors,
 		license,
@@ -320,6 +323,7 @@ function formatSecurityContact(value) {
  *   did: string, // did:plc:...
  *   name: string,
  *   slug: string,
+ *   filename: string, // e.g., 'query-monitor/query-monitor.php'
  *   description: string,
  *   author: {name: string, url?: string},
  *   license: string,
@@ -343,7 +347,7 @@ export async function buildMetadataFromContent(options) {
 		did,
 		name,
 		slug,
-		// filename
+		filename,
 		description,
 		author,
 		license,
@@ -406,6 +410,7 @@ export async function buildMetadataFromContent(options) {
 		type: 'wp-plugin',
 		name,
 		slug,
+		filename,
 		description,
 		authors,
 		license,
@@ -441,12 +446,15 @@ export async function buildMetadata(options) {
 		existingReleases = [],
 	} = options;
 
-	// Determine slug from directory or filename
-	const pluginDir = dirname(pluginFile);
-	const slug =
-		basename(pluginDir) !== '.'
-			? basename(pluginDir)
-			: basename(pluginFile, '.php');
+	// Resolve to absolute path to handle relative paths like "plugin.php"
+	const resolvedPluginFile = await realpath(pluginFile);
+
+	// Determine slug and filename from resolved path
+	const pluginDir = dirname(resolvedPluginFile);
+	const pluginBasename = basename(resolvedPluginFile);
+	const dirBasename = basename(pluginDir);
+	const slug = dirBasename;
+	const filename = `${dirBasename}/${pluginBasename}`;
 
 	// Parse all source files
 	const pluginContent = await readFile(pluginFile, 'utf-8');
@@ -525,7 +533,7 @@ export async function buildMetadata(options) {
 		did,
 		name: pluginData.name,
 		slug,
-		// filename
+		filename,
 		description,
 		author,
 		license,

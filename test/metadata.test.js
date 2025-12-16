@@ -20,6 +20,7 @@ describe('buildMetadataFromContent', () => {
 				did: 'did:plc:test123',
 				keypair,
 				slug: 'test-plugin',
+				filename: 'test-plugin/test-plugin.php',
 				zipData: Buffer.from('fake zip'),
 				downloadUrl: 'https://example.com/test.zip',
 			}),
@@ -36,6 +37,7 @@ describe('buildMetadataFromContent', () => {
 			did: 'did:plc:validtest123',
 			keypair,
 			slug: 'valid-plugin',
+			filename: 'valid-plugin/valid-plugin.php',
 			version: '2.0.0',
 			name: 'Valid Test Plugin',
 			description: 'A valid test plugin',
@@ -47,6 +49,7 @@ describe('buildMetadataFromContent', () => {
 		assert.strictEqual(metadata.id, 'did:plc:validtest123');
 		assert.strictEqual(metadata.name, 'Valid Test Plugin');
 		assert.strictEqual(metadata.slug, 'valid-plugin');
+		assert.strictEqual(metadata.filename, 'valid-plugin/valid-plugin.php');
 		assert.strictEqual(metadata.releases[0].version, '2.0.0');
 		assert.strictEqual(metadata.description, 'A valid test plugin');
 		assert.strictEqual(metadata.authors[0].name, 'Test Author');
@@ -59,6 +62,7 @@ describe('buildMetadataFromContent', () => {
 			did: 'did:plc:test123',
 			keypair,
 			slug: 'test-plugin',
+			filename: 'test-plugin/test-plugin.php',
 			version: '1.0.0',
 			keywords: ['tag1', 'tag2', 'tag3'],
 			description: 'This is the short description.',
@@ -79,6 +83,7 @@ describe('buildMetadataFromContent', () => {
 			did: 'did:plc:test123',
 			keypair,
 			slug: 'test-plugin',
+			filename: 'test-plugin/test-plugin.php',
 			version: '1.0.0',
 			license: 'MIT',
 			zipData: Buffer.from('fake zip'),
@@ -95,6 +100,7 @@ describe('buildMetadataFromContent', () => {
 			did: 'did:plc:test123',
 			keypair,
 			slug: 'test-plugin',
+			filename: 'test-plugin/test-plugin.php',
 			version: '1.0.0',
 			requiresWp: '6.0',
 			requiresPhp: '8.1',
@@ -115,6 +121,7 @@ describe('buildMetadataFromContent', () => {
 			did: 'did:plc:test123',
 			keypair,
 			slug: 'test-plugin',
+			filename: 'test-plugin/test-plugin.php',
 			version: '1.0.0',
 			securityContact: 'https://example.com/security',
 			zipData: Buffer.from('fake zip'),
@@ -133,6 +140,7 @@ describe('buildMetadataFromContent', () => {
 			did: 'did:plc:test123',
 			keypair,
 			slug: 'test-plugin',
+			filename: 'test-plugin/test-plugin.php',
 			version: '1.0.0',
 			zipData: Buffer.from('fake zip'),
 			downloadUrl: 'https://example.com/test.zip',
@@ -148,6 +156,7 @@ describe('buildMetadataFromContent', () => {
 			did: 'did:plc:test123',
 			keypair,
 			slug: 'test-plugin',
+			filename: 'test-plugin/test-plugin.php',
 			version: '1.0.0',
 			securityContact: 'security@example.com',
 			zipData: Buffer.from('fake zip'),
@@ -166,6 +175,7 @@ describe('buildMetadataFromContent', () => {
 			did: 'did:plc:test123',
 			keypair,
 			slug: 'test-plugin',
+			filename: 'test-plugin/test-plugin.php',
 			version: '1.0.0',
 			securityContact: 'https://example.com/security-policy',
 			zipData: Buffer.from('fake zip'),
@@ -184,6 +194,7 @@ describe('buildMetadataFromContent', () => {
 			did: 'did:plc:test123',
 			keypair,
 			slug: 'test-plugin',
+			filename: 'test-plugin/test-plugin.php',
 			version: '1.0.0',
 			securityContact: 'mailto:security@example.com',
 			zipData: Buffer.from('fake zip'),
@@ -570,6 +581,7 @@ describe('buildMetadataFromContent artifact content-type', () => {
 			did: 'did:plc:test123',
 			keypair,
 			slug: 'test-plugin',
+			filename: 'test-plugin/test-plugin.php',
 			version: '1.0.0',
 			zipData: Buffer.from('fake zip'),
 			downloadUrl: 'https://example.com/test.zip',
