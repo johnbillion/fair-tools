@@ -6,9 +6,11 @@
  */
 
 import { readFile, readdir, realpath } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { basename, dirname, join } from 'node:path';
 import * as uint8arrays from 'uint8arrays';
+import { imageSize } from 'image-size';
 import { verifyWithVerificationKey } from './keys.js';
 import { parseReadmeFile } from './readme-parser.js';
 
@@ -406,6 +408,12 @@ const ASSET_PATTERNS = [
 ];
 
 /**
+ * Pattern for screenshot files: screenshot-{n}.(png|jpg)
+ * Captures the screenshot number for sorting.
+ */
+const SCREENSHOT_PATTERN = /^screenshot-(\d+)\.(png|jpe?g)$/i;
+
+/**
  * Maps file extensions to MIME types for assets.
  *
  * @param {string} filename
@@ -431,19 +439,19 @@ function getAssetContentType(filename) {
 /**
  * Matches filenames against asset patterns and constructs artifact entries.
  *
- * Pure function that processes a list of filenames and returns categorized
+ * Pure function that processes a map of files and returns categorized
  * asset artifacts ready for inclusion in release documents.
  *
- * @param {string[]} filenames - Array of filenames to match
+ * @param {Object<string, {width: number, height: number}|null>} files - Map of filename to dimensions (or null if unknown)
  * @param {string} baseUrl - Base URL for assets (must end with /)
- * @returns {{banners: AssetArtifact[], icons: AssetArtifact[]}}
+ * @returns {{banners: AssetArtifact[], icons: AssetArtifact[], screenshots: AssetArtifact[]}}
  */
-export function matchAssetFiles(filenames, baseUrl) {
+export function matchAssetFiles(files, baseUrl) {
+	const filenames = Object.keys(files);
 	const banners = [];
 	const icons = [];
 
-	// Iterate patterns and find matching files (more efficient than checking
-	// every file against every pattern)
+	// Iterate patterns and find matching files for banners and icons
 	for (const assetPattern of ASSET_PATTERNS) {
 		const file = filenames.find((f) => assetPattern.pattern.test(f));
 		if (file) {
@@ -462,28 +470,47 @@ export function matchAssetFiles(filenames, baseUrl) {
 		}
 	}
 
-	return { banners, icons };
+	// Screenshots: find all matches and sort by number
+	const screenshotMatches = [];
+	for (const file of filenames) {
+		const match = SCREENSHOT_PATTERN.exec(file);
+		if (match) {
+			screenshotMatches.push({ file, number: parseInt(match[1], 10) });
+		}
+	}
+	screenshotMatches.sort((a, b) => a.number - b.number);
+	const screenshots = screenshotMatches.map(({ file }) => {
+		const dim = files[file];
+		return {
+			url: `${baseUrl}${file}`,
+			'content-type': getAssetContentType(file),
+			height: dim?.height ?? null,
+			width: dim?.width ?? null,
+		};
+	});
+
+	return { banners, icons, screenshots };
 }
 
 /**
  * Discovers asset files in a directory and constructs artifact entries.
  *
- * Scans for WordPress plugin asset files (banners and icons) and returns
+ * Scans for WordPress plugin asset files (banners, icons, and screenshots) and returns
  * arrays of artifact objects ready for inclusion in release documents.
  *
  * @param {{
  *   assetsDir: string,
  *   assetsUrl: string
  * }} options
- * @returns {Promise<{banners: AssetArtifact[], icons: AssetArtifact[]}>}
+ * @returns {Promise<{banners: AssetArtifact[], icons: AssetArtifact[], screenshots: AssetArtifact[]}>}
  * @throws {Error} If directory doesn't exist or no assets found
  */
 export async function discoverAssets(options) {
 	const { assetsDir, assetsUrl } = options;
 
-	let files;
+	let filenames;
 	try {
-		files = await readdir(assetsDir);
+		filenames = await readdir(assetsDir);
 	} catch {
 		throw new Error(`Assets directory not found: ${assetsDir}`);
 	}
@@ -491,13 +518,34 @@ export async function discoverAssets(options) {
 	// Ensure assetsUrl ends with /
 	const baseUrl = assetsUrl.endsWith('/') ? assetsUrl : `${assetsUrl}/`;
 
-	const { banners, icons } = matchAssetFiles(files, baseUrl);
+	// Build files map with dimensions for screenshots
+	const files = {};
+	for (const file of filenames) {
+		if (SCREENSHOT_PATTERN.test(file)) {
+			try {
+				const buffer = readFileSync(join(assetsDir, file));
+				const result = imageSize(buffer);
+				if (result.width && result.height) {
+					files[file] = { width: result.width, height: result.height };
+				} else {
+					files[file] = null;
+				}
+			} catch {
+				// Ignore errors reading dimensions, will use null
+				files[file] = null;
+			}
+		} else {
+			files[file] = null;
+		}
+	}
 
-	if (banners.length === 0 && icons.length === 0) {
+	const { banners, icons, screenshots } = matchAssetFiles(files, baseUrl);
+
+	if (banners.length === 0 && icons.length === 0 && screenshots.length === 0) {
 		throw new Error(`No asset files found in directory: ${assetsDir}`);
 	}
 
-	return { banners, icons };
+	return { banners, icons, screenshots };
 }
 
 /**
@@ -526,7 +574,8 @@ export async function discoverAssets(options) {
  *   zipData: Buffer|Uint8Array,
  *   downloadUrl: string,
  *   banners?: AssetArtifact[],
- *   icons?: AssetArtifact[]
+ *   icons?: AssetArtifact[],
+ *   screenshots?: AssetArtifact[]
  * }} options
  * @returns {Promise<{metadata: object, overwrittenVersion: string|null}>} Complete metadata document with release and overwrite info
  */
@@ -561,6 +610,7 @@ export async function buildMetadataFromContent(options) {
 		// Assets
 		banners = [],
 		icons = [],
+		screenshots = [],
 	} = options;
 
 	// Validate required fields
@@ -595,13 +645,16 @@ export async function buildMetadataFromContent(options) {
 		suggests['env:wp'] = `>=${suggestedWp}`;
 	}
 
-	// Build artifacts object (order: banner, icon, package)
+	// Build artifacts object (order: banner, icon, screenshot, package)
 	const artifacts = {};
 	if (banners.length > 0) {
 		artifacts.banner = banners;
 	}
 	if (icons.length > 0) {
 		artifacts.icon = icons;
+	}
+	if (screenshots.length > 0) {
+		artifacts.screenshot = screenshots;
 	}
 	artifacts.package = [artifact];
 
@@ -761,8 +814,12 @@ export async function buildMetadata(options) {
 	// Discover assets if directory provided
 	let banners = [];
 	let icons = [];
+	let screenshots = [];
 	if (assetsDir && assetsUrl) {
-		({ banners, icons } = await discoverAssets({ assetsDir, assetsUrl }));
+		({ banners, icons, screenshots } = await discoverAssets({
+			assetsDir,
+			assetsUrl,
+		}));
 	}
 
 	return buildMetadataFromContent({
@@ -795,5 +852,6 @@ export async function buildMetadata(options) {
 		// Assets
 		banners,
 		icons,
+		screenshots,
 	});
 }

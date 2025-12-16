@@ -940,18 +940,19 @@ describe('discoverAssets', () => {
 
 describe('matchAssetFiles', () => {
 	it('returns empty arrays for no matching files', () => {
-		const { banners, icons } = matchAssetFiles(
-			['readme.txt', 'screenshot-1.png', 'random.jpg'],
+		const { banners, icons, screenshots } = matchAssetFiles(
+			{ 'readme.txt': null, 'random.jpg': null },
 			'https://example.com/assets/',
 		);
 
 		assert.deepStrictEqual(banners, []);
 		assert.deepStrictEqual(icons, []);
+		assert.deepStrictEqual(screenshots, []);
 	});
 
 	it('matches standard banner file', () => {
 		const { banners } = matchAssetFiles(
-			['banner-772x250.png'],
+			{ 'banner-772x250.png': null },
 			'https://example.com/assets/',
 		);
 
@@ -966,7 +967,7 @@ describe('matchAssetFiles', () => {
 
 	it('matches retina banner file', () => {
 		const { banners } = matchAssetFiles(
-			['banner-1544x500.jpg'],
+			{ 'banner-1544x500.jpg': null },
 			'https://example.com/assets/',
 		);
 
@@ -981,7 +982,7 @@ describe('matchAssetFiles', () => {
 
 	it('matches SVG icon file', () => {
 		const { icons } = matchAssetFiles(
-			['icon.svg'],
+			{ 'icon.svg': null },
 			'https://example.com/assets/',
 		);
 
@@ -996,7 +997,7 @@ describe('matchAssetFiles', () => {
 
 	it('matches standard icon file', () => {
 		const { icons } = matchAssetFiles(
-			['icon-128x128.png'],
+			{ 'icon-128x128.png': null },
 			'https://example.com/assets/',
 		);
 
@@ -1011,7 +1012,7 @@ describe('matchAssetFiles', () => {
 
 	it('matches retina icon file', () => {
 		const { icons } = matchAssetFiles(
-			['icon-256x256.gif'],
+			{ 'icon-256x256.gif': null },
 			'https://example.com/assets/',
 		);
 
@@ -1026,13 +1027,13 @@ describe('matchAssetFiles', () => {
 
 	it('matches multiple banner and icon files', () => {
 		const { banners, icons } = matchAssetFiles(
-			[
-				'banner-772x250.png',
-				'banner-1544x500.jpg',
-				'icon.svg',
-				'icon-128x128.png',
-				'icon-256x256.png',
-			],
+			{
+				'banner-772x250.png': null,
+				'banner-1544x500.jpg': null,
+				'icon.svg': null,
+				'icon-128x128.png': null,
+				'icon-256x256.png': null,
+			},
 			'https://example.com/assets/',
 		);
 
@@ -1042,7 +1043,7 @@ describe('matchAssetFiles', () => {
 
 	it('handles jpeg extension', () => {
 		const { banners } = matchAssetFiles(
-			['banner-772x250.jpeg'],
+			{ 'banner-772x250.jpeg': null },
 			'https://example.com/assets/',
 		);
 
@@ -1051,23 +1052,23 @@ describe('matchAssetFiles', () => {
 	});
 
 	it('ignores files that do not match patterns', () => {
-		const { banners, icons } = matchAssetFiles(
-			[
-				'icon.svg',
-				'banner-wrong-size.png',
-				'icon-64x64.png',
-				'screenshot-1.png',
-			],
+		const { banners, icons, screenshots } = matchAssetFiles(
+			{
+				'icon.svg': null,
+				'banner-wrong-size.png': null,
+				'icon-64x64.png': null,
+			},
 			'https://example.com/assets/',
 		);
 
 		assert.strictEqual(banners.length, 0);
 		assert.strictEqual(icons.length, 1);
+		assert.strictEqual(screenshots.length, 0);
 	});
 
 	it('constructs URLs correctly with base URL', () => {
 		const { icons } = matchAssetFiles(
-			['icon.svg'],
+			{ 'icon.svg': null },
 			'https://ps.w.org/my-plugin/assets/',
 		);
 
@@ -1075,6 +1076,96 @@ describe('matchAssetFiles', () => {
 			icons[0].url,
 			'https://ps.w.org/my-plugin/assets/icon.svg',
 		);
+	});
+
+	it('matches screenshot files', () => {
+		const { screenshots } = matchAssetFiles(
+			{ 'screenshot-1.png': null, 'screenshot-2.jpg': null },
+			'https://example.com/assets/',
+		);
+
+		assert.strictEqual(screenshots.length, 2);
+		assert.deepStrictEqual(screenshots[0], {
+			url: 'https://example.com/assets/screenshot-1.png',
+			'content-type': 'image/png',
+			height: null,
+			width: null,
+		});
+		assert.deepStrictEqual(screenshots[1], {
+			url: 'https://example.com/assets/screenshot-2.jpg',
+			'content-type': 'image/jpeg',
+			height: null,
+			width: null,
+		});
+	});
+
+	it('sorts screenshots by number', () => {
+		const { screenshots } = matchAssetFiles(
+			{
+				'screenshot-3.png': null,
+				'screenshot-1.png': null,
+				'screenshot-10.png': null,
+				'screenshot-2.png': null,
+			},
+			'https://example.com/assets/',
+		);
+
+		assert.strictEqual(screenshots.length, 4);
+		assert.ok(screenshots[0].url.includes('screenshot-1.png'));
+		assert.ok(screenshots[1].url.includes('screenshot-2.png'));
+		assert.ok(screenshots[2].url.includes('screenshot-3.png'));
+		assert.ok(screenshots[3].url.includes('screenshot-10.png'));
+	});
+
+	it('matches jpeg extension for screenshots', () => {
+		const { screenshots } = matchAssetFiles(
+			{ 'screenshot-1.jpeg': null },
+			'https://example.com/assets/',
+		);
+
+		assert.strictEqual(screenshots.length, 1);
+		assert.strictEqual(screenshots[0]['content-type'], 'image/jpeg');
+	});
+
+	it('does not match gif screenshots', () => {
+		const { screenshots } = matchAssetFiles(
+			{ 'screenshot-1.gif': null },
+			'https://example.com/assets/',
+		);
+
+		assert.strictEqual(screenshots.length, 0);
+	});
+
+	it('uses dimensions from files map', () => {
+		const { screenshots } = matchAssetFiles(
+			{
+				'screenshot-1.png': { width: 1280, height: 720 },
+				'screenshot-2.jpg': { width: 800, height: 600 },
+			},
+			'https://example.com/assets/',
+		);
+
+		assert.strictEqual(screenshots.length, 2);
+		assert.strictEqual(screenshots[0].width, 1280);
+		assert.strictEqual(screenshots[0].height, 720);
+		assert.strictEqual(screenshots[1].width, 800);
+		assert.strictEqual(screenshots[1].height, 600);
+	});
+
+	it('uses null for screenshots with null dimensions', () => {
+		const { screenshots } = matchAssetFiles(
+			{
+				'screenshot-1.png': { width: 1280, height: 720 },
+				'screenshot-2.jpg': null,
+			},
+			'https://example.com/assets/',
+		);
+
+		assert.strictEqual(screenshots.length, 2);
+		assert.strictEqual(screenshots[0].width, 1280);
+		assert.strictEqual(screenshots[0].height, 720);
+		assert.strictEqual(screenshots[1].width, null);
+		assert.strictEqual(screenshots[1].height, null);
 	});
 });
 

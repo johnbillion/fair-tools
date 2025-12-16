@@ -35,6 +35,7 @@
 		"@atproto/crypto": "^0.4.5",
 		"@did-plc/lib": "^0.0.4",
 		"@noble/curves": "^1.9.7",
+		"image-size": "^2.0.2",
 		"marked": "^15.0.12",
 		"multiformats": "^9.9.0",
 		"uint8arrays": "^3.0.0"
