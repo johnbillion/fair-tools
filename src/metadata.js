@@ -263,7 +263,7 @@ export function createMetadataDocument(options) {
  *   version: string,
  *   artifacts: object,
  *   requires?: object,
- *   suggests?: object,
+ *   suggests: object,
  *   provides?: object
  * }} Release document
  */
@@ -273,12 +273,11 @@ export function createReleaseDocument(options) {
 	const doc = {
 		version,
 		artifacts,
+		suggests: suggests || {},
 	};
 
 	// Optional properties - only include if non-empty
 	if (requires && Object.keys(requires).length > 0) doc.requires = requires;
-	// suggests is always included (empty object if no value)
-	doc.suggests = suggests || {};
 	if (provides && Object.keys(provides).length > 0) doc.provides = provides;
 
 	return doc;
