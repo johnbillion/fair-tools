@@ -261,6 +261,47 @@ describe('buildMetadataFromContent', () => {
 		]);
 	});
 
+	it('includes sections from options', async () => {
+		const { keypair } = await generateVerificationKeyPair();
+
+		const { metadata } = await buildMetadataFromContent({
+			did: 'did:plc:test123',
+			keypair,
+			slug: 'test-plugin',
+			filename: 'test-plugin/test-plugin.php',
+			version: '1.0.0',
+			sections: {
+				description: '<p>This is the description.</p>',
+				installation: '<p>Upload the plugin.</p>',
+				faq: '<h4>Question?</h4><p>Answer.</p>',
+			},
+			zipData: Buffer.from('fake zip'),
+			downloadUrl: 'https://example.com/test.zip',
+		});
+
+		assert.deepStrictEqual(metadata.sections, {
+			description: '<p>This is the description.</p>',
+			installation: '<p>Upload the plugin.</p>',
+			faq: '<h4>Question?</h4><p>Answer.</p>',
+		});
+	});
+
+	it('defaults sections to empty object when not provided', async () => {
+		const { keypair } = await generateVerificationKeyPair();
+
+		const { metadata } = await buildMetadataFromContent({
+			did: 'did:plc:test123',
+			keypair,
+			slug: 'test-plugin',
+			filename: 'test-plugin/test-plugin.php',
+			version: '1.0.0',
+			zipData: Buffer.from('fake zip'),
+			downloadUrl: 'https://example.com/test.zip',
+		});
+
+		assert.deepStrictEqual(metadata.sections, {});
+	});
+
 	it('returns overwrittenVersion as null when no matching version exists', async () => {
 		const { keypair } = await generateVerificationKeyPair();
 

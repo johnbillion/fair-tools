@@ -10,6 +10,21 @@
 import { marked } from 'marked';
 
 /**
+ * Readme sections structure.
+ *
+ * @typedef {{
+ *   description?: string,
+ *   installation?: string,
+ *   changelog?: string,
+ *   faq?: string,
+ *   screenshots?: string,
+ *   security?: string,
+ *   otherNotes?: string,
+ *   upgradeNotice?: string
+ * }} ReadmeSections
+ */
+
+/**
  * Normalizes a section name to camelCase.
  *
  * - "frequently asked questions" -> "faq"
@@ -182,7 +197,7 @@ function parseScreenshotsSection(content) {
  *   requiresPhp: string | undefined,
  *   stableTag: string | undefined,
  *   donateLink: string | undefined,
- *   sections: Record<string, string>,
+ *   sections: ReadmeSections,
  *   screenshots?: Array<{ description: string }>
  * }}
  */

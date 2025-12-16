@@ -14,6 +14,7 @@ import { parseReadmeFile } from './readme-parser.js';
 
 /**
  * @typedef {import('./Ed25519Keypair.js').Ed25519Keypair} Ed25519Keypair
+ * @typedef {import('./readme-parser.js').ReadmeSections} ReadmeSections
  */
 
 /**
@@ -194,7 +195,7 @@ export function parsePackageJson(content) {
  *   license: string, // e.g., 'GPL-2.0-or-later'
  *   security?: Array,
  *   keywords?: Array<string>, // max 5
- *   sections?: object,
+ *   sections?: ReadmeSections,
  *   releases?: Array
  * }} options
  * @returns {{
@@ -209,7 +210,7 @@ export function parsePackageJson(content) {
  *   license: string,
  *   security: Array,
  *   keywords: Array<string>,
- *   sections: object,
+ *   sections: ReadmeSections,
  *   releases: Array
  * }} Metadata document
  */
@@ -371,6 +372,7 @@ function formatSecurityContact(value) {
  *   license: string,
  *   securityContact?: string, // email or URL
  *   keywords?: Array<string>,
+ *   sections?: ReadmeSections,
  *   existingReleases?: Array,
  *   version: string,
  *   requiresWp?: string,
@@ -396,6 +398,7 @@ export async function buildMetadataFromContent(options) {
 		license,
 		securityContact,
 		keywords,
+		sections,
 
 		// Existing releases
 		existingReleases = [],
@@ -479,6 +482,7 @@ export async function buildMetadataFromContent(options) {
 		license,
 		security,
 		keywords: (keywords || []).slice(0, 5),
+		sections,
 		releases: [release, ...filteredReleases],
 	});
 
@@ -605,6 +609,7 @@ export async function buildMetadata(options) {
 		license,
 		securityContact,
 		keywords: readmeData.keywords,
+		sections: readmeData.sections,
 
 		// Existing releases
 		existingReleases,
