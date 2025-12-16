@@ -114,6 +114,61 @@ describe('buildMetadataFromContent', () => {
 		});
 	});
 
+	it('includes suggests with testedUpTo when provided', async () => {
+		const { keypair } = await generateVerificationKeyPair();
+
+		const { metadata } = await buildMetadataFromContent({
+			did: 'did:plc:test123',
+			keypair,
+			slug: 'test-plugin',
+			filename: 'test-plugin/test-plugin.php',
+			version: '1.0.0',
+			requiresWp: '6.0',
+			testedUpTo: '6.4',
+			zipData: Buffer.from('fake zip'),
+			downloadUrl: 'https://example.com/test.zip',
+		});
+
+		assert.deepStrictEqual(metadata.releases[0].suggests, {
+			'env:wp': '>=6.4',
+		});
+	});
+
+	it('falls back to requiresWp for suggests when testedUpTo is not provided', async () => {
+		const { keypair } = await generateVerificationKeyPair();
+
+		const { metadata } = await buildMetadataFromContent({
+			did: 'did:plc:test123',
+			keypair,
+			slug: 'test-plugin',
+			filename: 'test-plugin/test-plugin.php',
+			version: '1.0.0',
+			requiresWp: '6.0',
+			zipData: Buffer.from('fake zip'),
+			downloadUrl: 'https://example.com/test.zip',
+		});
+
+		assert.deepStrictEqual(metadata.releases[0].suggests, {
+			'env:wp': '>=6.0',
+		});
+	});
+
+	it('sets suggests to empty object when neither testedUpTo nor requiresWp is provided', async () => {
+		const { keypair } = await generateVerificationKeyPair();
+
+		const { metadata } = await buildMetadataFromContent({
+			did: 'did:plc:test123',
+			keypair,
+			slug: 'test-plugin',
+			filename: 'test-plugin/test-plugin.php',
+			version: '1.0.0',
+			zipData: Buffer.from('fake zip'),
+			downloadUrl: 'https://example.com/test.zip',
+		});
+
+		assert.deepStrictEqual(metadata.releases[0].suggests, {});
+	});
+
 	it('includes security contact from securityContact option', async () => {
 		const { keypair } = await generateVerificationKeyPair();
 

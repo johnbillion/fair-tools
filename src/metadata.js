@@ -228,7 +228,13 @@ export function createMetadataDocument(options) {
  *   suggests?: object,
  *   provides?: object
  * }} options
- * @returns {object} Release document
+ * @returns {{
+ *   version: string,
+ *   artifacts: object,
+ *   requires?: object,
+ *   suggests?: object,
+ *   provides?: object
+ * }} Release document
  */
 export function createReleaseDocument(options) {
 	const { version, artifacts, requires, suggests, provides } = options;
@@ -240,7 +246,8 @@ export function createReleaseDocument(options) {
 
 	// Optional properties - only include if non-empty
 	if (requires && Object.keys(requires).length > 0) doc.requires = requires;
-	if (suggests && Object.keys(suggests).length > 0) doc.suggests = suggests;
+	// suggests is always included (empty object if no value)
+	doc.suggests = suggests || {};
 	if (provides && Object.keys(provides).length > 0) doc.provides = provides;
 
 	return doc;
@@ -333,6 +340,7 @@ function formatSecurityContact(value) {
  *   version: string,
  *   requiresWp?: string,
  *   requiresPhp?: string,
+ *   testedUpTo?: string, // WordPress version tested up to (from readme)
  *   zipData: Buffer|Uint8Array,
  *   downloadUrl: string
  * }} options
@@ -361,6 +369,7 @@ export async function buildMetadataFromContent(options) {
 		version,
 		requiresWp,
 		requiresPhp,
+		testedUpTo,
 		zipData,
 		downloadUrl,
 	} = options;
@@ -390,6 +399,13 @@ export async function buildMetadataFromContent(options) {
 		requires['env:php'] = `>=${requiresPhp}`;
 	}
 
+	// Build suggests (testedUpTo takes priority, fallback to requiresWp)
+	const suggests = {};
+	const suggestedWp = testedUpTo || requiresWp;
+	if (suggestedWp) {
+		suggests['env:wp'] = `>=${suggestedWp}`;
+	}
+
 	// Create release
 	const release = createReleaseDocument({
 		version,
@@ -397,6 +413,7 @@ export async function buildMetadataFromContent(options) {
 			package: [artifact],
 		},
 		requires,
+		suggests,
 	});
 
 	// Build security contacts array
@@ -560,6 +577,7 @@ export async function buildMetadata(options) {
 		version: pluginData.version,
 		requiresWp: pluginData.requiresWp,
 		requiresPhp: pluginData.requiresPhp,
+		testedUpTo: readmeData.testedUpTo,
 		zipData,
 		downloadUrl,
 	});
