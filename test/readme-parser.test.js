@@ -68,10 +68,20 @@ describe('parseReadmeFile', () => {
 					`${name}: keywords should be array`,
 				);
 
-				// Every fixture should have sections object (even if empty)
+				// Every fixture should have a description section
 				assert.ok(
-					typeof data.sections === 'object',
-					`${name}: sections should be object`,
+					typeof data.sections.description === 'string',
+					`${name}: sections.description should be string`,
+				);
+
+				// Description should not contain unparsed section markers
+				assert.ok(
+					!/^==(?!=).+==(?!=)\s*$/m.test(data.sections.description),
+					`${name}: description should not contain unparsed == markers`,
+				);
+				assert.ok(
+					!/^##\s+.+$/m.test(data.sections.description),
+					`${name}: description should not contain unparsed ## markers`,
 				);
 
 				// Fixtures should have a name
@@ -80,13 +90,11 @@ describe('parseReadmeFile', () => {
 					`${name}: name should be string`,
 				);
 
-				// If stableTag exists, it should be a string
-				if (data.stableTag) {
-					assert.ok(
-						typeof data.stableTag === 'string',
-						`${name}: stableTag should be string`,
-					);
-				}
+				// Every fixture should have a stableTag
+				assert.ok(
+					typeof data.stableTag === 'string',
+					`${name}: stableTag should be string`,
+				);
 
 				// If faq exists, it should be an array of objects with question/answer
 				if (data.faq) {
