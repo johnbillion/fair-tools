@@ -136,18 +136,25 @@ if (values['metadata-file']) {
 
 // Build the metadata
 let metadata;
+let overwrittenVersion;
 try {
-	metadata = await buildMetadata({
+	({ metadata, overwrittenVersion } = await buildMetadata({
 		did: values.did,
 		keypair,
 		pluginFile: values['plugin-file'],
 		zipFile: values['zip-file'],
 		downloadUrl: values.url,
 		existingReleases,
-	});
+	}));
 } catch (err) {
 	console.error(`Error building metadata: ${err.message}`);
 	process.exit(1);
+}
+
+if (overwrittenVersion) {
+	console.warn(
+		`Warning: Overwriting existing release version ${overwrittenVersion}`,
+	);
 }
 
 const output = JSON.stringify(metadata, null, 2);

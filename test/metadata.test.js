@@ -33,7 +33,7 @@ describe('buildMetadataFromContent', () => {
 	it('succeeds with valid did and version', async () => {
 		const { keypair } = await generateVerificationKeyPair();
 
-		const metadata = await buildMetadataFromContent({
+		const { metadata } = await buildMetadataFromContent({
 			did: 'did:plc:validtest123',
 			keypair,
 			slug: 'valid-plugin',
@@ -58,7 +58,7 @@ describe('buildMetadataFromContent', () => {
 	it('includes keywords from options', async () => {
 		const { keypair } = await generateVerificationKeyPair();
 
-		const metadata = await buildMetadataFromContent({
+		const { metadata } = await buildMetadataFromContent({
 			did: 'did:plc:test123',
 			keypair,
 			slug: 'test-plugin',
@@ -79,7 +79,7 @@ describe('buildMetadataFromContent', () => {
 	it('uses provided license', async () => {
 		const { keypair } = await generateVerificationKeyPair();
 
-		const metadata = await buildMetadataFromContent({
+		const { metadata } = await buildMetadataFromContent({
 			did: 'did:plc:test123',
 			keypair,
 			slug: 'test-plugin',
@@ -96,7 +96,7 @@ describe('buildMetadataFromContent', () => {
 	it('includes requirements from options', async () => {
 		const { keypair } = await generateVerificationKeyPair();
 
-		const metadata = await buildMetadataFromContent({
+		const { metadata } = await buildMetadataFromContent({
 			did: 'did:plc:test123',
 			keypair,
 			slug: 'test-plugin',
@@ -117,7 +117,7 @@ describe('buildMetadataFromContent', () => {
 	it('includes security contact from securityContact option', async () => {
 		const { keypair } = await generateVerificationKeyPair();
 
-		const metadata = await buildMetadataFromContent({
+		const { metadata } = await buildMetadataFromContent({
 			did: 'did:plc:test123',
 			keypair,
 			slug: 'test-plugin',
@@ -136,7 +136,7 @@ describe('buildMetadataFromContent', () => {
 	it('has empty security array when no securityContact provided', async () => {
 		const { keypair } = await generateVerificationKeyPair();
 
-		const metadata = await buildMetadataFromContent({
+		const { metadata } = await buildMetadataFromContent({
 			did: 'did:plc:test123',
 			keypair,
 			slug: 'test-plugin',
@@ -152,7 +152,7 @@ describe('buildMetadataFromContent', () => {
 	it('formats email security contact correctly', async () => {
 		const { keypair } = await generateVerificationKeyPair();
 
-		const metadata = await buildMetadataFromContent({
+		const { metadata } = await buildMetadataFromContent({
 			did: 'did:plc:test123',
 			keypair,
 			slug: 'test-plugin',
@@ -171,7 +171,7 @@ describe('buildMetadataFromContent', () => {
 	it('formats URL security contact correctly', async () => {
 		const { keypair } = await generateVerificationKeyPair();
 
-		const metadata = await buildMetadataFromContent({
+		const { metadata } = await buildMetadataFromContent({
 			did: 'did:plc:test123',
 			keypair,
 			slug: 'test-plugin',
@@ -190,7 +190,7 @@ describe('buildMetadataFromContent', () => {
 	it('treats mailto: URLs as URLs not emails', async () => {
 		const { keypair } = await generateVerificationKeyPair();
 
-		const metadata = await buildMetadataFromContent({
+		const { metadata } = await buildMetadataFromContent({
 			did: 'did:plc:test123',
 			keypair,
 			slug: 'test-plugin',
@@ -204,6 +204,79 @@ describe('buildMetadataFromContent', () => {
 		assert.deepStrictEqual(metadata.security, [
 			{ url: 'mailto:security@example.com' },
 		]);
+	});
+
+	it('returns overwrittenVersion as null when no matching version exists', async () => {
+		const { keypair } = await generateVerificationKeyPair();
+
+		const { metadata, overwrittenVersion } = await buildMetadataFromContent({
+			did: 'did:plc:test123',
+			keypair,
+			slug: 'test-plugin',
+			filename: 'test-plugin/test-plugin.php',
+			version: '1.0.0',
+			existingReleases: [{ version: '0.9.0' }],
+			zipData: Buffer.from('fake zip'),
+			downloadUrl: 'https://example.com/test.zip',
+		});
+
+		assert.strictEqual(overwrittenVersion, null);
+		assert.strictEqual(metadata.releases.length, 2);
+		assert.strictEqual(metadata.releases[0].version, '1.0.0');
+		assert.strictEqual(metadata.releases[1].version, '0.9.0');
+	});
+
+	it('returns overwrittenVersion when matching version exists in existingReleases', async () => {
+		const { keypair } = await generateVerificationKeyPair();
+
+		const { metadata, overwrittenVersion } = await buildMetadataFromContent({
+			did: 'did:plc:test123',
+			keypair,
+			slug: 'test-plugin',
+			filename: 'test-plugin/test-plugin.php',
+			version: '1.0.0',
+			existingReleases: [
+				{ version: '1.0.0', artifacts: { package: [{ url: 'old' }] } },
+				{ version: '0.9.0' },
+			],
+			zipData: Buffer.from('fake zip'),
+			downloadUrl: 'https://example.com/test.zip',
+		});
+
+		assert.strictEqual(overwrittenVersion, '1.0.0');
+		assert.strictEqual(metadata.releases.length, 2);
+		assert.strictEqual(metadata.releases[0].version, '1.0.0');
+		assert.strictEqual(metadata.releases[1].version, '0.9.0');
+		// Verify the new release replaced the old one (different URL)
+		assert.strictEqual(
+			metadata.releases[0].artifacts.package[0].url,
+			'https://example.com/test.zip',
+		);
+	});
+
+	it('preserves other releases when overwriting a version', async () => {
+		const { keypair } = await generateVerificationKeyPair();
+
+		const { metadata, overwrittenVersion } = await buildMetadataFromContent({
+			did: 'did:plc:test123',
+			keypair,
+			slug: 'test-plugin',
+			filename: 'test-plugin/test-plugin.php',
+			version: '1.1.0',
+			existingReleases: [
+				{ version: '1.1.0' },
+				{ version: '1.0.0' },
+				{ version: '0.9.0' },
+			],
+			zipData: Buffer.from('fake zip'),
+			downloadUrl: 'https://example.com/test.zip',
+		});
+
+		assert.strictEqual(overwrittenVersion, '1.1.0');
+		assert.strictEqual(metadata.releases.length, 3);
+		assert.strictEqual(metadata.releases[0].version, '1.1.0');
+		assert.strictEqual(metadata.releases[1].version, '1.0.0');
+		assert.strictEqual(metadata.releases[2].version, '0.9.0');
 	});
 });
 
@@ -577,7 +650,7 @@ describe('buildMetadataFromContent artifact content-type', () => {
 	it('includes application/zip content-type in artifact', async () => {
 		const { keypair } = await generateVerificationKeyPair();
 
-		const metadata = await buildMetadataFromContent({
+		const { metadata } = await buildMetadataFromContent({
 			did: 'did:plc:test123',
 			keypair,
 			slug: 'test-plugin',

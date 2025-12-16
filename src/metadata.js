@@ -336,7 +336,7 @@ function formatSecurityContact(value) {
  *   zipData: Buffer|Uint8Array,
  *   downloadUrl: string
  * }} options
- * @returns {Promise<object>} Complete metadata document with release
+ * @returns {Promise<{metadata: object, overwrittenVersion: string|null}>} Complete metadata document with release and overwrite info
  */
 export async function buildMetadataFromContent(options) {
 	const {
@@ -404,8 +404,19 @@ export async function buildMetadataFromContent(options) {
 		? [formatSecurityContact(securityContact)]
 		: [];
 
+	// Check if this version already exists in existing releases
+	const existingVersionIndex = existingReleases.findIndex(
+		(r) => r.version === version,
+	);
+	const overwrittenVersion = existingVersionIndex !== -1 ? version : null;
+
+	// Filter out any existing release with the same version
+	const filteredReleases = existingReleases.filter(
+		(r) => r.version !== version,
+	);
+
 	// Create metadata document with new release prepended to existing ones
-	return createMetadataDocument({
+	const metadata = createMetadataDocument({
 		id: did,
 		type: 'wp-plugin',
 		name,
@@ -416,8 +427,10 @@ export async function buildMetadataFromContent(options) {
 		license,
 		security,
 		keywords: (keywords || []).slice(0, 5),
-		releases: [release, ...existingReleases],
+		releases: [release, ...filteredReleases],
 	});
+
+	return { metadata, overwrittenVersion };
 }
 
 /**
@@ -434,7 +447,7 @@ export async function buildMetadataFromContent(options) {
  *   downloadUrl: string,
  *   existingReleases?: Array
  * }} options
- * @returns {Promise<object>} Complete metadata document with release
+ * @returns {Promise<{metadata: object, overwrittenVersion: string|null}>} Complete metadata document with release and overwrite info
  */
 export async function buildMetadata(options) {
 	const {
