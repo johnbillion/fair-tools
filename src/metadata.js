@@ -11,6 +11,7 @@ import { createHash } from 'node:crypto';
 import { basename, dirname, join } from 'node:path';
 import * as uint8arrays from 'uint8arrays';
 import { imageSize } from 'image-size';
+import { marked } from 'marked';
 import { verifyWithVerificationKey } from './keys.js';
 import { parseReadmeFile } from './readme-parser.js';
 
@@ -831,7 +832,8 @@ export async function buildMetadata(options) {
 			.map((screenshot, index) => {
 				const desc = screenshotDescriptions[index]?.description || '';
 				const alt = desc ? desc.replace(/"/g, '&quot;') : '';
-				return `<li><img src="${screenshot.url}" alt="${alt}"></li>`;
+				const caption = desc ? marked.parse(desc) : '';
+				return `<li><a href="${screenshot.url}"><img src="${screenshot.url}" alt="${alt}"></a>${caption}</li>`;
 			})
 			.join('\n');
 		sections.screenshots = `<ol>\n${items}\n</ol>\n`;
