@@ -822,6 +822,21 @@ export async function buildMetadata(options) {
 		}));
 	}
 
+	// Reconstruct screenshots section HTML using discovered screenshot assets
+	// and descriptions from readme.txt
+	const sections = { ...readmeData.sections };
+	if (screenshots.length > 0) {
+		const screenshotDescriptions = readmeData.screenshots || [];
+		const items = screenshots
+			.map((screenshot, index) => {
+				const desc = screenshotDescriptions[index]?.description || '';
+				const alt = desc ? desc.replace(/"/g, '&quot;') : '';
+				return `<li><img src="${screenshot.url}" alt="${alt}"></li>`;
+			})
+			.join('\n');
+		sections.screenshots = `<ol>\n${items}\n</ol>\n`;
+	}
+
 	return buildMetadataFromContent({
 		// Keys
 		keypair,
@@ -836,7 +851,7 @@ export async function buildMetadata(options) {
 		license,
 		securityContact,
 		keywords: readmeData.keywords,
-		sections: readmeData.sections,
+		sections,
 
 		// Existing releases
 		existingReleases,
