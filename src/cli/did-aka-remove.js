@@ -12,23 +12,18 @@ const { values } = parseArgs({
 	options: {
 		did: {
 			type: 'string',
-			short: 'd',
 		},
 		url: {
 			type: 'string',
-			short: 'u',
 		},
 		'signing-file': {
 			type: 'string',
-			short: 'f',
 		},
 		'signing-key': {
 			type: 'string',
-			short: 'k',
 		},
 		help: {
 			type: 'boolean',
-			short: 'h',
 		},
 	},
 });
@@ -39,13 +34,13 @@ if (values.help) {
 Remove a URL from the alsoKnownAs field of a DID.
 
 Required options:
-  -d, --did <did>         The DID to update (did:plc:...)
-  -u, --url <url>         The URL to remove from alsoKnownAs
+  --did <did>  The DID to update (did:plc:...)
+  --url <url>  The URL to remove from alsoKnownAs
 
 ${rotationKeyHelp()}
 
 Optional:
-  -h, --help              Show this help message`);
+  --help       Show this help message`);
 	process.exit(0);
 }
 

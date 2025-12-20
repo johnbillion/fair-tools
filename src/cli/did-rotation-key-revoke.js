@@ -18,26 +18,21 @@ const { values } = parseArgs({
 	options: {
 		did: {
 			type: 'string',
-			short: 'd',
 		},
 		revoke: {
 			type: 'string',
-			short: 'r',
 		},
 		'signing-file': {
 			type: 'string',
-			short: 'f',
 		},
 		'signing-key': {
 			type: 'string',
-			short: 'k',
 		},
 		cleanup: {
 			type: 'boolean',
 		},
 		help: {
 			type: 'boolean',
-			short: 'h',
 		},
 	},
 });
@@ -48,14 +43,14 @@ if (values.help) {
 Revoke a rotation key from an existing DID.
 
 Required:
-  -d, --did <did>           The DID to update (did:plc:...)
-  -r, --revoke <key>        The rotation key to revoke (did:key:...)
+  --did <did>      The DID to update (did:plc:...)
+  --revoke <key>   The rotation key to revoke (did:key:...)
 
 ${rotationKeyHelp({ signingKeyDefault: 'first available' })}
 
 Optional:
-  --cleanup                 Remove revoked key from key file after success
-  -h, --help                Show this help message
+  --cleanup        Remove revoked key from key file after success
+  --help           Show this help message
 
 You cannot revoke the rotation key used to sign this operation.
 At least one rotation key must remain.`);

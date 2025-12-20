@@ -13,11 +13,9 @@ const { values } = parseArgs({
 	options: {
 		did: {
 			type: 'string',
-			short: 'd',
 		},
 		help: {
 			type: 'boolean',
-			short: 'h',
 		},
 	},
 });
@@ -32,10 +30,10 @@ the alsoKnownAs field, and verifies it by checking the corresponding
 DNS TXT record.
 
 Required options:
-  -d, --did <did>         The DID to verify the alias for (did:plc:...)
+  --did <did>  The DID to verify the alias for (did:plc:...)
 
 Optional:
-  -h, --help              Show this help message
+  --help       Show this help message
 
 DNS Record Setup:
   The fair:// alias requires a TXT record at _fairpm.<domain> with the value:

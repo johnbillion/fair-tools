@@ -13,23 +13,18 @@ const { values } = parseArgs({
 	options: {
 		did: {
 			type: 'string',
-			short: 'd',
 		},
 		'signing-file': {
 			type: 'string',
-			short: 'f',
 		},
 		'signing-key': {
 			type: 'string',
-			short: 'k',
 		},
 		'output-file': {
 			type: 'string',
-			short: 'o',
 		},
 		help: {
 			type: 'boolean',
-			short: 'h',
 		},
 	},
 });
@@ -40,14 +35,14 @@ if (values.help) {
 Generate a new verification key and add it to an existing DID.
 
 Required:
-  -d, --did <did>             The DID to update (did:plc:...)
+  --did <did>          The DID to update (did:plc:...)
 
 ${rotationKeyHelp()}
 
 Optional:
-  -o, --output-file <file>    Write new key to this file instead of --signing-file
-                              If file exists, appends to verificationKeys. Otherwise writes PEM.
-  -h, --help                  Show this help message
+  --output-file <file> Write new key to this file instead of --signing-file
+                       If file exists, appends to verificationKeys. Otherwise writes PEM.
+  --help               Show this help message
 
 The new verification key will be appended to --signing-file unless --output-file is specified.`);
 	process.exit(0);

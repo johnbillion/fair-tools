@@ -19,23 +19,21 @@ const { values } = parseArgs({
 	options: {
 		directory: {
 			type: 'string',
-			short: 'd',
 		},
 		help: {
 			type: 'boolean',
-			short: 'h',
 		},
 	},
 });
 
 if (values.help) {
-	console.log(`Usage: fair-tools did create -d <directory>
+	console.log(`Usage: fair-tools did create --directory <directory>
 
 Create a new DID and publish it to plc.directory.
 
 Options:
-  -d, --directory <dir>     Write keys to <dir>/<did>.json
-  -h, --help                Show this help message
+  --directory <dir>  Write keys to <dir>/<did>.json
+  --help             Show this help message
 
 The output file will contain a JSON object with the rotation and verification
 keys needed to manage this DID. Files are saved with 0600 permissions.`);
@@ -43,7 +41,7 @@ keys needed to manage this DID. Files are saved with 0600 permissions.`);
 }
 
 if (!values.directory) {
-	console.error('Error: -d <directory> is required');
+	console.error('Error: --directory is required');
 	process.exit(1);
 }
 

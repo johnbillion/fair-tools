@@ -18,26 +18,21 @@ const { values } = parseArgs({
 	options: {
 		did: {
 			type: 'string',
-			short: 'd',
 		},
 		revoke: {
 			type: 'string',
-			short: 'r',
 		},
 		'signing-file': {
 			type: 'string',
-			short: 'f',
 		},
 		'signing-key': {
 			type: 'string',
-			short: 'k',
 		},
 		cleanup: {
 			type: 'boolean',
 		},
 		help: {
 			type: 'boolean',
-			short: 'h',
 		},
 	},
 });
@@ -48,14 +43,14 @@ if (values.help) {
 Revoke a verification key from an existing DID.
 
 Required:
-  -d, --did <did>           The DID to update (did:plc:...)
-  -r, --revoke <key>        The verification key to revoke (did:key:z6Mk...)
+  --did <did>      The DID to update (did:plc:...)
+  --revoke <key>   The verification key to revoke (did:key:z6Mk...)
 
 ${rotationKeyHelp()}
 
 Optional:
-  --cleanup                 Remove revoked key from key file after success
-  -h, --help                Show this help message`);
+  --cleanup        Remove revoked key from key file after success
+  --help           Show this help message`);
 	process.exit(0);
 }
 

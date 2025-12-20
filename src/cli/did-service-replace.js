@@ -12,27 +12,21 @@ const { values } = parseArgs({
 	options: {
 		did: {
 			type: 'string',
-			short: 'd',
 		},
 		'old-url': {
 			type: 'string',
-			short: 'o',
 		},
 		'new-url': {
 			type: 'string',
-			short: 'n',
 		},
 		'signing-file': {
 			type: 'string',
-			short: 'f',
 		},
 		'signing-key': {
 			type: 'string',
-			short: 'k',
 		},
 		help: {
 			type: 'boolean',
-			short: 'h',
 		},
 	},
 });
@@ -43,14 +37,14 @@ if (values.help) {
 Replace the FAIR service URL for a DID.
 
 Required options:
-  -d, --did <did>         The DID to update (did:plc:...)
-  -o, --old-url <url>     The current FAIR service URL
-  -n, --new-url <url>     The new FAIR service URL
+  --did <did>      The DID to update (did:plc:...)
+  --old-url <url>  The current FAIR service URL
+  --new-url <url>  The new FAIR service URL
 
 ${rotationKeyHelp()}
 
 Optional:
-  -h, --help              Show this help message`);
+  --help           Show this help message`);
 	process.exit(0);
 }
 

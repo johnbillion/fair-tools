@@ -12,35 +12,27 @@ const { values } = parseArgs({
 	options: {
 		'plugin-file': {
 			type: 'string',
-			short: 'p',
 		},
 		'zip-file': {
 			type: 'string',
-			short: 'z',
 		},
 		url: {
 			type: 'string',
-			short: 'u',
 		},
 		did: {
 			type: 'string',
-			short: 'd',
 		},
 		'signing-file': {
 			type: 'string',
-			short: 'f',
 		},
 		'signing-key': {
 			type: 'string',
-			short: 'k',
 		},
 		'metadata-file': {
 			type: 'string',
-			short: 'm',
 		},
 		'output-file': {
 			type: 'string',
-			short: 'o',
 		},
 		'assets-dir': {
 			type: 'string',
@@ -50,7 +42,6 @@ const { values } = parseArgs({
 		},
 		help: {
 			type: 'boolean',
-			short: 'h',
 		},
 	},
 });
@@ -61,19 +52,19 @@ if (values.help) {
 Build a FAIR metadata document for a release of a plugin for WordPress.
 
 Required options:
-  -p, --plugin-file <file>  Path to main plugin PHP file
-  -z, --zip-file <file>     Path to plugin zip file
-  -u, --url <url>           Public download URL for the zip
-  -d, --did <did>           Package DID (did:plc:...)
+  --plugin-file <file>    Path to main plugin PHP file
+  --zip-file <file>       Path to plugin zip file
+  --url <url>             Public download URL for the zip
+  --did <did>             Package DID (did:plc:...)
 
 ${verificationKeyHelp()}
 
 Optional:
-  -m, --metadata-file <file>  Path to existing metadata.json to preserve previous releases
-  -o, --output-file <file>    Write metadata to file (default: stdout)
-      --assets-dir <dir>      Local assets directory (e.g., .wordpress-org)
-      --assets-url <url>      Base URL for assets (required with --assets-dir)
-  -h, --help                  Show this help message
+  --metadata-file <file>  Path to existing metadata.json to preserve previous releases
+  --output-file <file>    Write metadata to file (default: stdout)
+  --assets-dir <dir>      Local assets directory (e.g., .wordpress-org)
+  --assets-url <url>      Base URL for assets (required with --assets-dir)
+  --help                  Show this help message
 
 Examples:
   # Local usage with key file

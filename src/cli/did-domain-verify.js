@@ -12,15 +12,12 @@ const { values } = parseArgs({
 	options: {
 		domain: {
 			type: 'string',
-			short: 'd',
 		},
 		did: {
 			type: 'string',
-			short: 'i',
 		},
 		help: {
 			type: 'boolean',
-			short: 'h',
 		},
 	},
 });
@@ -32,11 +29,11 @@ Verify the DID DNS record of a domain. Use this to check DNS propagation
 before adding a domain alias to a DID's alsoKnownAs field.
 
 Required options:
-  -d, --domain <domain>   The domain to verify (e.g., example.com)
-  -i, --did <did>         The DID that should own this domain (did:plc:...)
+  --domain <domain>  The domain to verify (e.g., example.com)
+  --did <did>        The DID that should own this domain (did:plc:...)
 
 Optional:
-  -h, --help              Show this help message
+  --help             Show this help message
 
 DNS Record Setup:
   To verify a domain, add a TXT record at _fairpm.<domain> with the value:
