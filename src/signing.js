@@ -6,29 +6,26 @@ import { base58btc } from 'multiformats/bases/base58';
  * Multicodec prefix for secp256k1 private keys (rotation keys).
  * Used when reading multibase-encoded keys for interoperability with FAIR Beacon.
  */
-const SECP256K1_PRIV_PREFIX = new Uint8Array([0x81, 0x26]);
+export const SECP256K1_PRIV_PREFIX = new Uint8Array([0x81, 0x26]);
 
 /**
  * Multicodec prefix for ed25519 private keys (verification keys).
  * Used when reading multibase-encoded keys for interoperability with FAIR Beacon.
  */
-const ED25519_PRIV_PREFIX = new Uint8Array([0x80, 0x26]);
+export const ED25519_PRIV_PREFIX = new Uint8Array([0x80, 0x26]);
 
-const SECP256K1_PRIV_PREFIX_HEX = Buffer.from(SECP256K1_PRIV_PREFIX).toString(
-	'hex',
-);
-const ED25519_PRIV_PREFIX_HEX =
-	Buffer.from(ED25519_PRIV_PREFIX).toString('hex');
+export const SECP256K1_PRIV_PREFIX_HEX = Buffer.from(SECP256K1_PRIV_PREFIX).toString('hex');
+export const ED25519_PRIV_PREFIX_HEX = Buffer.from(ED25519_PRIV_PREFIX).toString('hex');
 
 /**
  * PEM header for EC private keys (SEC1 format, used for secp256k1 rotation keys).
  */
-const EC_PRIVATE_KEY_HEADER = '-----BEGIN EC PRIVATE KEY-----';
+export const EC_PRIVATE_KEY_HEADER = '-----BEGIN EC PRIVATE KEY-----';
 
 /**
  * PEM header for PKCS#8 private keys (used for Ed25519 verification keys).
  */
-const PKCS8_PRIVATE_KEY_HEADER = '-----BEGIN PRIVATE KEY-----';
+export const PKCS8_PRIVATE_KEY_HEADER = '-----BEGIN PRIVATE KEY-----';
 
 export class SigningKeyError extends Error {}
 
@@ -39,7 +36,7 @@ export class SigningKeyError extends Error {}
  * @returns {Uint8Array} - The 32-byte private key
  * @throws {SigningKeyError} If the key format is invalid
  */
-function decodeMultibaseRotationKey(key) {
+export function decodeMultibaseRotationKey(key) {
 	let decoded;
 	try {
 		decoded = base58btc.decode(key);
@@ -82,7 +79,7 @@ function decodeMultibaseRotationKey(key) {
  * @returns {Uint8Array} - The 32-byte private key seed
  * @throws {SigningKeyError} If the key format is invalid
  */
-function decodeMultibaseVerificationKey(key) {
+export function decodeMultibaseVerificationKey(key) {
 	let decoded;
 	try {
 		decoded = base58btc.decode(key);
@@ -192,7 +189,7 @@ function decodePKCS8PrivateKeyPEM(key) {
  * @param {string} content - The content to check
  * @returns {boolean}
  */
-function isECPrivateKeyPEM(content) {
+export function isECPrivateKeyPEM(content) {
 	return content.startsWith(EC_PRIVATE_KEY_HEADER);
 }
 
@@ -202,7 +199,7 @@ function isECPrivateKeyPEM(content) {
  * @param {string} content - The content to check
  * @returns {boolean}
  */
-function isPKCS8PrivateKeyPEM(content) {
+export function isPKCS8PrivateKeyPEM(content) {
 	return content.startsWith(PKCS8_PRIVATE_KEY_HEADER);
 }
 
@@ -212,8 +209,52 @@ function isPKCS8PrivateKeyPEM(content) {
  * @param {string} content - The content to check
  * @returns {boolean}
  */
-function isHexPrivateKey(content) {
+export function isHexPrivateKey(content) {
 	return /^[a-f0-9]{64}$/i.test(content);
+}
+
+/**
+ * Check if content looks like a multibase-encoded rotation key (secp256k1).
+ *
+ * @param {string} content - The content to check
+ * @returns {boolean}
+ */
+export function isMultibaseRotationKey(content) {
+	if (!content.startsWith('z')) {
+		return false;
+	}
+	try {
+		const decoded = base58btc.decode(content);
+		if (decoded.length < 2) {
+			return false;
+		}
+		const prefixHex = Buffer.from(decoded.slice(0, 2)).toString('hex');
+		return prefixHex === SECP256K1_PRIV_PREFIX_HEX;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Check if content looks like a multibase-encoded verification key (Ed25519).
+ *
+ * @param {string} content - The content to check
+ * @returns {boolean}
+ */
+export function isMultibaseVerificationKey(content) {
+	if (!content.startsWith('z')) {
+		return false;
+	}
+	try {
+		const decoded = base58btc.decode(content);
+		if (decoded.length < 2) {
+			return false;
+		}
+		const prefixHex = Buffer.from(decoded.slice(0, 2)).toString('hex');
+		return prefixHex === ED25519_PRIV_PREFIX_HEX;
+	} catch {
+		return false;
+	}
 }
 
 /**

@@ -13,7 +13,12 @@ import {
 	SaveKeyError,
 	encodeRotationKey,
 	encodeVerificationKey,
+	convertRotationKeyToPEM,
+	convertVerificationKeyToPEM,
+	migrateKeysToPEM,
+	MigrateKeysError,
 } from '../src/keyfile.js';
+import { base58btc } from 'multiformats/bases/base58';
 
 // Sample 32-byte private keys for testing
 const sampleRotationKey = new Uint8Array(32).fill(0xaa);
@@ -454,5 +459,389 @@ describe('saveVerificationKeyToFile', () => {
 				return true;
 			},
 		);
+	});
+});
+
+// Multicodec prefixes for test data generation
+const SECP256K1_PRIV_PREFIX = new Uint8Array([0x81, 0x26]);
+const ED25519_PRIV_PREFIX = new Uint8Array([0x80, 0x26]);
+
+// Sample hex key (32 bytes)
+const sampleHexKey = 'aabbccdd112233445566778899aabbccddeeff00112233445566778899001122';
+const sampleKeyBytes = Buffer.from(sampleHexKey, 'hex');
+
+// Sample PEM keys (encoded from sampleKeyBytes)
+const samplePemRotationKey = encodeRotationKey(sampleKeyBytes);
+const samplePemVerificationKey = encodeVerificationKey(sampleKeyBytes);
+
+// Sample multibase keys (encoded from sampleKeyBytes with appropriate prefix)
+const sampleMultibaseRotationKey = base58btc.encode(Buffer.concat([SECP256K1_PRIV_PREFIX, sampleKeyBytes]));
+// Sodium format verification key: 64 bytes (32-byte seed + 32-byte public key)
+const sodiumPublicKeyPortion = Buffer.alloc(32, 0xff);
+const sampleMultibaseVerificationKey = base58btc.encode(
+	Buffer.concat([ED25519_PRIV_PREFIX, sampleKeyBytes, sodiumPublicKeyPortion]),
+);
+
+describe('convertRotationKeyToPEM', () => {
+	it('converts hex to PEM', () => {
+		const pem = convertRotationKeyToPEM(sampleHexKey);
+		assert(pem.startsWith('-----BEGIN EC PRIVATE KEY-----'), 'Should start with PEM header');
+		assert(pem.endsWith('-----END EC PRIVATE KEY-----'), 'Should end with PEM footer');
+
+		// Verify it round-trips correctly
+		const keyObject = crypto.createPrivateKey({ key: pem, format: 'pem' });
+		const jwk = keyObject.export({ format: 'jwk' });
+		const recovered = Buffer.from(jwk.d, 'base64url').toString('hex');
+		assert.strictEqual(recovered, sampleHexKey);
+	});
+
+	it('converts multibase to PEM', () => {
+		const pem = convertRotationKeyToPEM(sampleMultibaseRotationKey);
+		assert(pem.startsWith('-----BEGIN EC PRIVATE KEY-----'), 'Should start with PEM header');
+
+		// Verify it round-trips correctly
+		const keyObject = crypto.createPrivateKey({ key: pem, format: 'pem' });
+		const jwk = keyObject.export({ format: 'jwk' });
+		const recovered = Buffer.from(jwk.d, 'base64url').toString('hex');
+		assert.strictEqual(recovered, sampleHexKey);
+	});
+
+	it('throws for unrecognized format', () => {
+		assert.throws(() => convertRotationKeyToPEM('not a key'), /Unrecognized rotation key format/);
+	});
+});
+
+describe('convertVerificationKeyToPEM', () => {
+	it('converts hex to PEM', () => {
+		const pem = convertVerificationKeyToPEM(sampleHexKey);
+		assert(pem.startsWith('-----BEGIN PRIVATE KEY-----'), 'Should start with PEM header');
+		assert(pem.endsWith('-----END PRIVATE KEY-----'), 'Should end with PEM footer');
+
+		// Verify it round-trips correctly
+		const keyObject = crypto.createPrivateKey({ key: pem, format: 'pem' });
+		const jwk = keyObject.export({ format: 'jwk' });
+		const recovered = Buffer.from(jwk.d, 'base64url').toString('hex');
+		assert.strictEqual(recovered, sampleHexKey);
+	});
+
+	it('converts multibase to PEM', () => {
+		const pem = convertVerificationKeyToPEM(sampleMultibaseVerificationKey);
+		assert(pem.startsWith('-----BEGIN PRIVATE KEY-----'), 'Should start with PEM header');
+
+		// Verify it round-trips correctly
+		const keyObject = crypto.createPrivateKey({ key: pem, format: 'pem' });
+		const jwk = keyObject.export({ format: 'jwk' });
+		const recovered = Buffer.from(jwk.d, 'base64url').toString('hex');
+		assert.strictEqual(recovered, sampleHexKey);
+	});
+
+	it('throws for unrecognized format', () => {
+		assert.throws(() => convertVerificationKeyToPEM('not a key'), /Unrecognized verification key format/);
+	});
+});
+
+describe('migrateKeysToPEM', () => {
+	const testDir = join(tmpdir(), 'fair-tools-migrate-keys-test-' + Date.now());
+
+	beforeEach(async () => {
+		await mkdir(testDir, { recursive: true });
+	});
+
+	after(async () => {
+		await rm(testDir, { recursive: true, force: true });
+	});
+
+	it('migrates hex rotation keys to PEM', async () => {
+		const keyFile = join(testDir, 'hex-rotation.json');
+		const keyData = {
+			did: 'did:plc:test',
+			rotationKeys: {
+				'did:key:zQ3shTest': sampleHexKey,
+			},
+		};
+		await writeFile(keyFile, JSON.stringify(keyData, null, 2));
+
+		const result = await migrateKeysToPEM({ keyFile });
+
+		assert.strictEqual(result.rotationKeysMigrated, 1);
+		assert.strictEqual(result.verificationKeysMigrated, 0);
+		assert.strictEqual(result.rotationKeysAlreadyPEM, 0);
+		assert.strictEqual(result.verificationKeysAlreadyPEM, 0);
+		assert.strictEqual(result.backupPath, keyFile + '.bak');
+
+		// Verify backup was created
+		const backup = await readFile(keyFile + '.bak', 'utf-8');
+		const backupData = JSON.parse(backup);
+		assert.strictEqual(backupData.rotationKeys['did:key:zQ3shTest'], sampleHexKey);
+
+		// Verify file was updated
+		const updated = await readFile(keyFile, 'utf-8');
+		const updatedData = JSON.parse(updated);
+		assert(
+			updatedData.rotationKeys['did:key:zQ3shTest'].startsWith('-----BEGIN EC PRIVATE KEY-----'),
+			'Should be converted to PEM',
+		);
+	});
+
+	it('migrates multibase rotation keys to PEM', async () => {
+		const keyFile = join(testDir, 'multibase-rotation.json');
+		const keyData = {
+			did: 'did:plc:test',
+			rotationKeys: {
+				'did:key:zQ3shTest': sampleMultibaseRotationKey,
+			},
+		};
+		await writeFile(keyFile, JSON.stringify(keyData, null, 2));
+
+		const result = await migrateKeysToPEM({ keyFile });
+
+		assert.strictEqual(result.rotationKeysMigrated, 1);
+		assert.strictEqual(result.backupPath, keyFile + '.bak');
+
+		// Verify file was updated
+		const updated = await readFile(keyFile, 'utf-8');
+		const updatedData = JSON.parse(updated);
+		assert(
+			updatedData.rotationKeys['did:key:zQ3shTest'].startsWith('-----BEGIN EC PRIVATE KEY-----'),
+			'Should be converted to PEM',
+		);
+	});
+
+	it('migrates hex verification keys to PEM', async () => {
+		const keyFile = join(testDir, 'hex-verification.json');
+		const keyData = {
+			did: 'did:plc:test',
+			verificationKeys: {
+				'did:key:z6MkTest': sampleHexKey,
+			},
+		};
+		await writeFile(keyFile, JSON.stringify(keyData, null, 2));
+
+		const result = await migrateKeysToPEM({ keyFile });
+
+		assert.strictEqual(result.rotationKeysMigrated, 0);
+		assert.strictEqual(result.verificationKeysMigrated, 1);
+		assert.strictEqual(result.backupPath, keyFile + '.bak');
+
+		// Verify file was updated
+		const updated = await readFile(keyFile, 'utf-8');
+		const updatedData = JSON.parse(updated);
+		assert(
+			updatedData.verificationKeys['did:key:z6MkTest'].startsWith('-----BEGIN PRIVATE KEY-----'),
+			'Should be converted to PEM',
+		);
+	});
+
+	it('migrates multibase verification keys to PEM', async () => {
+		const keyFile = join(testDir, 'multibase-verification.json');
+		const keyData = {
+			did: 'did:plc:test',
+			verificationKeys: {
+				'did:key:z6MkTest': sampleMultibaseVerificationKey,
+			},
+		};
+		await writeFile(keyFile, JSON.stringify(keyData, null, 2));
+
+		const result = await migrateKeysToPEM({ keyFile });
+
+		assert.strictEqual(result.verificationKeysMigrated, 1);
+		assert.strictEqual(result.backupPath, keyFile + '.bak');
+
+		// Verify file was updated
+		const updated = await readFile(keyFile, 'utf-8');
+		const updatedData = JSON.parse(updated);
+		assert(
+			updatedData.verificationKeys['did:key:z6MkTest'].startsWith('-----BEGIN PRIVATE KEY-----'),
+			'Should be converted to PEM',
+		);
+	});
+
+	it('migrates mixed format keys', async () => {
+		const keyFile = join(testDir, 'mixed-formats.json');
+		const keyData = {
+			did: 'did:plc:test',
+			rotationKeys: {
+				'did:key:zQ3shHex': sampleHexKey,
+				'did:key:zQ3shMultibase': sampleMultibaseRotationKey,
+				'did:key:zQ3shPEM': samplePemRotationKey,
+			},
+			verificationKeys: {
+				'did:key:z6MkHex': sampleHexKey,
+				'did:key:z6MkPEM': samplePemVerificationKey,
+			},
+		};
+		await writeFile(keyFile, JSON.stringify(keyData, null, 2));
+
+		const result = await migrateKeysToPEM({ keyFile });
+
+		assert.strictEqual(result.rotationKeysMigrated, 2);
+		assert.strictEqual(result.verificationKeysMigrated, 1);
+		assert.strictEqual(result.rotationKeysAlreadyPEM, 1);
+		assert.strictEqual(result.verificationKeysAlreadyPEM, 1);
+	});
+
+	it('does not modify file when all keys are already PEM', async () => {
+		const keyFile = join(testDir, 'all-pem.json');
+		const keyData = {
+			did: 'did:plc:test',
+			rotationKeys: {
+				'did:key:zQ3shPEM': samplePemRotationKey,
+			},
+			verificationKeys: {
+				'did:key:z6MkPEM': samplePemVerificationKey,
+			},
+		};
+		await writeFile(keyFile, JSON.stringify(keyData, null, 2));
+
+		const result = await migrateKeysToPEM({ keyFile });
+
+		assert.strictEqual(result.rotationKeysMigrated, 0);
+		assert.strictEqual(result.verificationKeysMigrated, 0);
+		assert.strictEqual(result.rotationKeysAlreadyPEM, 1);
+		assert.strictEqual(result.verificationKeysAlreadyPEM, 1);
+		assert.strictEqual(result.backupPath, null);
+
+		// Verify no backup was created
+		await assert.rejects(readFile(keyFile + '.bak', 'utf-8'), {
+			code: 'ENOENT',
+		});
+	});
+
+	it('throws for non-existent file', async () => {
+		await assert.rejects(migrateKeysToPEM({ keyFile: '/nonexistent/file.json' }), (err) => {
+			assert(err instanceof MigrateKeysError);
+			assert.match(err.message, /Error reading key file/);
+			return true;
+		});
+	});
+
+	it('throws for unrecognized standalone file format', async () => {
+		const keyFile = join(testDir, 'not-json.txt');
+		await writeFile(keyFile, 'not valid json or key');
+
+		await assert.rejects(migrateKeysToPEM({ keyFile }), (err) => {
+			assert(err instanceof MigrateKeysError);
+			assert.match(err.message, /Key file must be valid JSON or a standalone key/);
+			return true;
+		});
+	});
+
+	it('migrates standalone multibase rotation key to PEM', async () => {
+		const keyFile = join(testDir, 'standalone-multibase-rotation.key');
+		await writeFile(keyFile, sampleMultibaseRotationKey);
+
+		const result = await migrateKeysToPEM({ keyFile });
+
+		assert.strictEqual(result.rotationKeysMigrated, 1);
+		assert.strictEqual(result.verificationKeysMigrated, 0);
+		assert.strictEqual(result.backupPath, keyFile + '.bak');
+
+		// Verify file was updated to PEM
+		const updated = await readFile(keyFile, 'utf-8');
+		assert(updated.startsWith('-----BEGIN EC PRIVATE KEY-----'));
+	});
+
+	it('migrates standalone multibase verification key to PEM', async () => {
+		const keyFile = join(testDir, 'standalone-multibase-verification.key');
+		await writeFile(keyFile, sampleMultibaseVerificationKey);
+
+		const result = await migrateKeysToPEM({ keyFile });
+
+		assert.strictEqual(result.rotationKeysMigrated, 0);
+		assert.strictEqual(result.verificationKeysMigrated, 1);
+		assert.strictEqual(result.backupPath, keyFile + '.bak');
+
+		// Verify file was updated to PEM
+		const updated = await readFile(keyFile, 'utf-8');
+		assert(updated.startsWith('-----BEGIN PRIVATE KEY-----'));
+	});
+
+	it('reports standalone PEM rotation key as already migrated', async () => {
+		const keyFile = join(testDir, 'standalone-pem-rotation.key');
+		await writeFile(keyFile, samplePemRotationKey);
+
+		const result = await migrateKeysToPEM({ keyFile });
+
+		assert.strictEqual(result.rotationKeysMigrated, 0);
+		assert.strictEqual(result.rotationKeysAlreadyPEM, 1);
+		assert.strictEqual(result.backupPath, null);
+	});
+
+	it('reports standalone PEM verification key as already migrated', async () => {
+		const keyFile = join(testDir, 'standalone-pem-verification.key');
+		await writeFile(keyFile, samplePemVerificationKey);
+
+		const result = await migrateKeysToPEM({ keyFile });
+
+		assert.strictEqual(result.verificationKeysMigrated, 0);
+		assert.strictEqual(result.verificationKeysAlreadyPEM, 1);
+		assert.strictEqual(result.backupPath, null);
+	});
+
+	it('throws for unrecognized key format', async () => {
+		const keyFile = join(testDir, 'bad-format.json');
+		const keyData = {
+			did: 'did:plc:test',
+			rotationKeys: {
+				'did:key:zQ3shTest': 'not a valid key format',
+			},
+		};
+		await writeFile(keyFile, JSON.stringify(keyData, null, 2));
+
+		await assert.rejects(migrateKeysToPEM({ keyFile }), (err) => {
+			assert(err instanceof MigrateKeysError);
+			assert.match(err.message, /Failed to convert rotation key.*Unrecognized rotation key format/);
+			return true;
+		});
+	});
+
+	it('handles empty rotationKeys and verificationKeys', async () => {
+		const keyFile = join(testDir, 'empty-keys.json');
+		const keyData = {
+			did: 'did:plc:test',
+			rotationKeys: {},
+			verificationKeys: {},
+		};
+		await writeFile(keyFile, JSON.stringify(keyData, null, 2));
+
+		const result = await migrateKeysToPEM({ keyFile });
+
+		assert.strictEqual(result.rotationKeysMigrated, 0);
+		assert.strictEqual(result.verificationKeysMigrated, 0);
+		assert.strictEqual(result.backupPath, null);
+	});
+
+	it('handles file with only did field', async () => {
+		const keyFile = join(testDir, 'only-did.json');
+		const keyData = {
+			did: 'did:plc:test',
+		};
+		await writeFile(keyFile, JSON.stringify(keyData, null, 2));
+
+		const result = await migrateKeysToPEM({ keyFile });
+
+		assert.strictEqual(result.rotationKeysMigrated, 0);
+		assert.strictEqual(result.verificationKeysMigrated, 0);
+		assert.strictEqual(result.backupPath, null);
+	});
+
+	it('preserves other properties in the file', async () => {
+		const keyFile = join(testDir, 'preserve-props.json');
+		const keyData = {
+			did: 'did:plc:test',
+			rotationKeys: {
+				'did:key:zQ3shTest': sampleHexKey,
+			},
+			customField: 'should be preserved',
+			anotherField: { nested: true },
+		};
+		await writeFile(keyFile, JSON.stringify(keyData, null, 2));
+
+		await migrateKeysToPEM({ keyFile });
+
+		const updated = await readFile(keyFile, 'utf-8');
+		const updatedData = JSON.parse(updated);
+		assert.strictEqual(updatedData.customField, 'should be preserved');
+		assert.deepStrictEqual(updatedData.anotherField, { nested: true });
 	});
 });

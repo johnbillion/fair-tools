@@ -40,6 +40,12 @@ const commands = {
 				load: () => import('./did-rotation-key-revoke.js'),
 			},
 		},
+		keys: {
+			migrate: {
+				description: 'Migrate keys from hex/multibase to PEM format',
+				load: () => import('./did-keys-migrate.js'),
+			},
+		},
 		aka: {
 			add: {
 				description: 'Add a URL to the alsoKnownAs field',

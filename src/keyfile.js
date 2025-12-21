@@ -6,10 +6,19 @@
  */
 
 import crypto from 'node:crypto';
-import { readFile, writeFile } from 'node:fs/promises';
+import { chmod, copyFile, readFile, writeFile, constants } from 'node:fs/promises';
 import { join } from 'node:path';
 import { secp256k1 } from '@noble/curves/secp256k1';
 import { ed25519 } from '@noble/curves/ed25519';
+import {
+	isECPrivateKeyPEM,
+	isPKCS8PrivateKeyPEM,
+	isHexPrivateKey,
+	isMultibaseRotationKey,
+	isMultibaseVerificationKey,
+	decodeMultibaseRotationKey,
+	decodeMultibaseVerificationKey,
+} from './signing.js';
 
 /**
  * Error thrown when saving a key to a file fails.
@@ -275,4 +284,276 @@ export async function saveVerificationKeyToFile({ outputFile, key }) {
 		}
 		throw new SaveKeyError(`Error writing output file: ${err.message}`);
 	}
+}
+
+/**
+ * Convert a rotation key from hex or multibase format to PEM.
+ *
+ * @param {string} value - The key value (hex or multibase)
+ * @returns {string} The PEM-encoded key
+ * @throws {Error} If the format is unrecognized
+ */
+export function convertRotationKeyToPEM(value) {
+	const trimmed = value.trim();
+
+	if (isMultibaseRotationKey(trimmed)) {
+		return encodeRotationKey(decodeMultibaseRotationKey(trimmed));
+	}
+	if (isHexPrivateKey(trimmed)) {
+		return encodeRotationKey(Buffer.from(trimmed, 'hex'));
+	}
+
+	throw new Error('Unrecognized rotation key format');
+}
+
+/**
+ * Convert a verification key from hex or multibase format to PEM.
+ *
+ * @param {string} value - The key value (hex or multibase)
+ * @returns {string} The PEM-encoded key
+ * @throws {Error} If the format is unrecognized
+ */
+export function convertVerificationKeyToPEM(value) {
+	const trimmed = value.trim();
+
+	if (isMultibaseVerificationKey(trimmed)) {
+		return encodeVerificationKey(decodeMultibaseVerificationKey(trimmed));
+	}
+	if (isHexPrivateKey(trimmed)) {
+		return encodeVerificationKey(Buffer.from(trimmed, 'hex'));
+	}
+
+	throw new Error('Unrecognized verification key format');
+}
+
+/**
+ * Error thrown when migrating keys fails.
+ */
+export class MigrateKeysError extends Error {}
+
+/**
+ * Result of a key migration operation.
+ * @typedef {{
+ *   rotationKeysMigrated: number,
+ *   verificationKeysMigrated: number,
+ *   rotationKeysAlreadyPEM: number,
+ *   verificationKeysAlreadyPEM: number,
+ *   backupPath: string | null
+ * }} MigrateKeysResult
+ */
+
+/**
+ * Migrate a standalone multibase rotation key file to PEM.
+ *
+ * @param {string} keyFile - Path to the key file
+ * @param {string} content - The key content (trimmed)
+ * @returns {Promise<MigrateKeysResult>}
+ */
+async function migrateStandaloneRotationKey(keyFile, content) {
+	const backupPath = keyFile + '.bak';
+	try {
+		await copyFile(keyFile, backupPath, constants.COPYFILE_EXCL);
+		await chmod(backupPath, KEY_FILE_MODE);
+	} catch (err) {
+		throw new MigrateKeysError(`Error creating backup: ${err.message}`);
+	}
+
+	let pemKey;
+	try {
+		pemKey = convertRotationKeyToPEM(content);
+	} catch (err) {
+		throw new MigrateKeysError(`Failed to convert key: ${err.message}`);
+	}
+
+	try {
+		await writeFile(keyFile, pemKey + '\n');
+		await chmod(keyFile, KEY_FILE_MODE);
+	} catch (err) {
+		throw new MigrateKeysError(`Error writing migrated file: ${err.message}`);
+	}
+
+	return {
+		rotationKeysMigrated: 1,
+		verificationKeysMigrated: 0,
+		rotationKeysAlreadyPEM: 0,
+		verificationKeysAlreadyPEM: 0,
+		backupPath,
+	};
+}
+
+/**
+ * Migrate a standalone multibase verification key file to PEM.
+ *
+ * @param {string} keyFile - Path to the key file
+ * @param {string} content - The key content (trimmed)
+ * @returns {Promise<MigrateKeysResult>}
+ */
+async function migrateStandaloneVerificationKey(keyFile, content) {
+	const backupPath = keyFile + '.bak';
+	try {
+		await copyFile(keyFile, backupPath, constants.COPYFILE_EXCL);
+		await chmod(backupPath, KEY_FILE_MODE);
+	} catch (err) {
+		throw new MigrateKeysError(`Error creating backup: ${err.message}`);
+	}
+
+	let pemKey;
+	try {
+		pemKey = convertVerificationKeyToPEM(content);
+	} catch (err) {
+		throw new MigrateKeysError(`Failed to convert key: ${err.message}`);
+	}
+
+	try {
+		await writeFile(keyFile, pemKey + '\n');
+		await chmod(keyFile, KEY_FILE_MODE);
+	} catch (err) {
+		throw new MigrateKeysError(`Error writing migrated file: ${err.message}`);
+	}
+
+	return {
+		rotationKeysMigrated: 0,
+		verificationKeysMigrated: 1,
+		rotationKeysAlreadyPEM: 0,
+		verificationKeysAlreadyPEM: 0,
+		backupPath,
+	};
+}
+
+/**
+ * Migrate a JSON key file from hex or multibase format to PEM.
+ *
+ * @param {string} keyFile - Path to the key file
+ * @param {object} keyData - The parsed JSON data
+ * @returns {Promise<MigrateKeysResult>}
+ */
+async function migrateJsonKeyFile(keyFile, keyData) {
+	const rotationKeys = keyData.rotationKeys || {};
+	const verificationKeys = keyData.verificationKeys || {};
+
+	let rotationKeysMigrated = 0;
+	let verificationKeysMigrated = 0;
+	let rotationKeysAlreadyPEM = 0;
+	let verificationKeysAlreadyPEM = 0;
+
+	// Process rotation keys
+	for (const [publicKey, privateKey] of Object.entries(rotationKeys)) {
+		if (isECPrivateKeyPEM(privateKey)) {
+			rotationKeysAlreadyPEM++;
+		} else {
+			try {
+				keyData.rotationKeys[publicKey] = convertRotationKeyToPEM(privateKey);
+				rotationKeysMigrated++;
+			} catch (err) {
+				throw new MigrateKeysError(`Failed to convert rotation key ${publicKey}: ${err.message}`);
+			}
+		}
+	}
+
+	// Process verification keys
+	for (const [publicKey, privateKey] of Object.entries(verificationKeys)) {
+		if (isPKCS8PrivateKeyPEM(privateKey)) {
+			verificationKeysAlreadyPEM++;
+		} else {
+			try {
+				keyData.verificationKeys[publicKey] = convertVerificationKeyToPEM(privateKey);
+				verificationKeysMigrated++;
+			} catch (err) {
+				throw new MigrateKeysError(`Failed to convert verification key ${publicKey}: ${err.message}`);
+			}
+		}
+	}
+
+	const totalMigrated = rotationKeysMigrated + verificationKeysMigrated;
+	let backupPath = null;
+
+	if (totalMigrated > 0) {
+		backupPath = keyFile + '.bak';
+		try {
+			await copyFile(keyFile, backupPath, constants.COPYFILE_EXCL);
+			await chmod(backupPath, KEY_FILE_MODE);
+		} catch (err) {
+			throw new MigrateKeysError(`Error creating backup: ${err.message}`);
+		}
+
+		try {
+			await writeFile(keyFile, JSON.stringify(keyData, null, 2) + '\n');
+			await chmod(keyFile, KEY_FILE_MODE);
+		} catch (err) {
+			throw new MigrateKeysError(`Error writing migrated file: ${err.message}`);
+		}
+	}
+
+	return {
+		rotationKeysMigrated,
+		verificationKeysMigrated,
+		rotationKeysAlreadyPEM,
+		verificationKeysAlreadyPEM,
+		backupPath,
+	};
+}
+
+/**
+ * Migrate keys in a key file from hex or multibase format to PEM format.
+ *
+ * Supports JSON key files with rotationKeys/verificationKeys objects,
+ * as well as standalone key files containing a single key.
+ *
+ * Creates a backup of the original file before modifying it.
+ *
+ * @param {{
+ *   keyFile: string,
+ * }} opts
+ * @returns {Promise<MigrateKeysResult>}
+ * @throws {MigrateKeysError} If migration fails
+ */
+export async function migrateKeysToPEM({ keyFile }) {
+	let keyContent;
+	try {
+		keyContent = await readFile(keyFile, 'utf-8');
+	} catch (err) {
+		throw new MigrateKeysError(`Error reading key file: ${err.message}`);
+	}
+
+	const trimmedContent = keyContent.trim();
+
+	// Try to parse as JSON first
+	try {
+		const keyData = JSON.parse(trimmedContent);
+		return migrateJsonKeyFile(keyFile, keyData);
+	} catch {
+		// Not JSON - check if it's a standalone key file
+	}
+
+	// Check for standalone multibase rotation key
+	if (isMultibaseRotationKey(trimmedContent)) {
+		return migrateStandaloneRotationKey(keyFile, trimmedContent);
+	}
+
+	// Check for standalone multibase verification key
+	if (isMultibaseVerificationKey(trimmedContent)) {
+		return migrateStandaloneVerificationKey(keyFile, trimmedContent);
+	}
+
+	// Check for standalone PEM keys (already migrated)
+	if (isECPrivateKeyPEM(trimmedContent)) {
+		return {
+			rotationKeysMigrated: 0,
+			verificationKeysMigrated: 0,
+			rotationKeysAlreadyPEM: 1,
+			verificationKeysAlreadyPEM: 0,
+			backupPath: null,
+		};
+	}
+	if (isPKCS8PrivateKeyPEM(trimmedContent)) {
+		return {
+			rotationKeysMigrated: 0,
+			verificationKeysMigrated: 0,
+			rotationKeysAlreadyPEM: 0,
+			verificationKeysAlreadyPEM: 1,
+			backupPath: null,
+		};
+	}
+
+	throw new MigrateKeysError('Key file must be valid JSON or a standalone multibase-encoded key.');
 }
