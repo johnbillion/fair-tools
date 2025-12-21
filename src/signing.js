@@ -14,11 +14,8 @@ const SECP256K1_PRIV_PREFIX = new Uint8Array([0x81, 0x26]);
  */
 const ED25519_PRIV_PREFIX = new Uint8Array([0x80, 0x26]);
 
-const SECP256K1_PRIV_PREFIX_HEX = Buffer.from(SECP256K1_PRIV_PREFIX).toString(
-	'hex',
-);
-const ED25519_PRIV_PREFIX_HEX =
-	Buffer.from(ED25519_PRIV_PREFIX).toString('hex');
+const SECP256K1_PRIV_PREFIX_HEX = Buffer.from(SECP256K1_PRIV_PREFIX).toString('hex');
+const ED25519_PRIV_PREFIX_HEX = Buffer.from(ED25519_PRIV_PREFIX).toString('hex');
 
 /**
  * PEM header for EC private keys (SEC1 format, used for secp256k1 rotation keys).
