@@ -38,19 +38,8 @@ describe('validateDomain', () => {
 	it('throws InvalidDomainError for domain exceeding 255 characters', () => {
 		// Create a valid-format domain that exceeds 255 chars
 		// Each label max 63 chars, so use multiple labels
-		const longDomain =
-			'a'.repeat(63) +
-			'.' +
-			'b'.repeat(63) +
-			'.' +
-			'c'.repeat(63) +
-			'.' +
-			'd'.repeat(63) +
-			'.com';
-		assert.ok(
-			longDomain.length > 255,
-			`Domain should be > 255 chars, got ${longDomain.length}`,
-		);
+		const longDomain = 'a'.repeat(63) + '.' + 'b'.repeat(63) + '.' + 'c'.repeat(63) + '.' + 'd'.repeat(63) + '.com';
+		assert.ok(longDomain.length > 255, `Domain should be > 255 chars, got ${longDomain.length}`);
 		assert.throws(() => validateDomain(longDomain), {
 			message: 'Domain must not exceed 255 characters',
 		});
@@ -87,10 +76,7 @@ describe('Error classes', () => {
 	describe('DnsRecordNotFoundError', () => {
 		it('is instanceof Error', () => {
 			const err = new DnsRecordNotFoundError('_fairpm.example.com');
-			assert.strictEqual(
-				err.message,
-				'No DNS TXT record found at _fairpm.example.com',
-			);
+			assert.strictEqual(err.message, 'No DNS TXT record found at _fairpm.example.com');
 			assert.ok(err instanceof Error);
 		});
 	});
@@ -106,10 +92,7 @@ describe('Error classes', () => {
 	describe('DidMismatchError', () => {
 		it('is instanceof Error', () => {
 			const err = new DidMismatchError('did:plc:expected', 'did:plc:found');
-			assert.strictEqual(
-				err.message,
-				'DID mismatch: expected did:plc:expected, found did:plc:found',
-			);
+			assert.strictEqual(err.message, 'DID mismatch: expected did:plc:expected, found did:plc:found');
 			assert.ok(err instanceof Error);
 		});
 	});
@@ -117,10 +100,7 @@ describe('Error classes', () => {
 	describe('NoAliasError', () => {
 		it('is instanceof Error', () => {
 			const err = new NoAliasError();
-			assert.strictEqual(
-				err.message,
-				'No fair:// alias found in alsoKnownAs field',
-			);
+			assert.strictEqual(err.message, 'No fair:// alias found in alsoKnownAs field');
 			assert.ok(err instanceof Error);
 		});
 	});
@@ -128,10 +108,7 @@ describe('Error classes', () => {
 	describe('MultipleAliasesError', () => {
 		it('is instanceof Error', () => {
 			const err = new MultipleAliasesError(2);
-			assert.strictEqual(
-				err.message,
-				'Found 2 fair:// aliases, but only one is allowed',
-			);
+			assert.strictEqual(err.message, 'Found 2 fair:// aliases, but only one is allowed');
 			assert.ok(err instanceof Error);
 		});
 	});

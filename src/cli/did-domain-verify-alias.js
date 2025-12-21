@@ -1,12 +1,7 @@
 #!/usr/bin/env node
 
 import { parseArgs } from 'node:util';
-import {
-	DnsRecordNotFoundError,
-	DnsRecordInvalidError,
-	getFairAlias,
-	verifyDomainDid,
-} from '../domain.js';
+import { DnsRecordNotFoundError, DnsRecordInvalidError, getFairAlias, verifyDomainDid } from '../domain.js';
 import { validatePlcDid, DidValidationError } from '../did-validation.js';
 
 const { values } = parseArgs({
@@ -85,10 +80,7 @@ try {
 	console.log(`  DID: ${values.did}`);
 } catch (err) {
 	console.error(`\n✗ ${err.message}`);
-	if (
-		err instanceof DnsRecordNotFoundError ||
-		err instanceof DnsRecordInvalidError
-	) {
+	if (err instanceof DnsRecordNotFoundError || err instanceof DnsRecordInvalidError) {
 		console.error(`\n  To verify this domain, add a TXT record:`);
 		console.error(`    Host: _fairpm.${domain}`);
 		console.error(`    Value: did=${values.did}`);

@@ -3,12 +3,7 @@ import assert from 'node:assert';
 import { writeFile, rm, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import {
-	loadRotationKey,
-	loadVerificationKey,
-	loadRotationKeyForRevocation,
-	SigningKeyError,
-} from '../src/signing.js';
+import { loadRotationKey, loadVerificationKey, loadRotationKeyForRevocation, SigningKeyError } from '../src/signing.js';
 import { base58btc } from 'multiformats/bases/base58';
 import { encodeRotationKey, encodeVerificationKey } from '../src/keyfile.js';
 
@@ -18,14 +13,8 @@ const SECP256K1_PRIV_PREFIX = new Uint8Array([0x81, 0x26]);
 const testDir = join(tmpdir(), 'fair-tools-signing-test-' + Date.now());
 
 // Sample key data - PEM-encoded keys
-const sampleRotationKeyBytes1 = Buffer.from(
-	'aabbccdd112233445566778899aabbccddeeff00112233445566778899001122',
-	'hex',
-);
-const sampleRotationKeyBytes2 = Buffer.from(
-	'eeff0011223344556677889900112233445566778899aabbccddeeff00112233',
-	'hex',
-);
+const sampleRotationKeyBytes1 = Buffer.from('aabbccdd112233445566778899aabbccddeeff00112233445566778899001122', 'hex');
+const sampleRotationKeyBytes2 = Buffer.from('eeff0011223344556677889900112233445566778899aabbccddeeff00112233', 'hex');
 const sampleVerificationKeyBytes1 = Buffer.from(
 	'112233445566778899001122334455667788aabbccddeeff0011223344556677',
 	'hex',
@@ -42,18 +31,13 @@ const sampleKeyFile = {
 		'did:key:zQ3shRotation2': encodeRotationKey(sampleRotationKeyBytes2),
 	},
 	verificationKeys: {
-		'did:key:z6MkVerification1': encodeVerificationKey(
-			sampleVerificationKeyBytes1,
-		),
-		'did:key:z6MkVerification2': encodeVerificationKey(
-			sampleVerificationKeyBytes2,
-		),
+		'did:key:z6MkVerification1': encodeVerificationKey(sampleVerificationKeyBytes1),
+		'did:key:z6MkVerification2': encodeVerificationKey(sampleVerificationKeyBytes2),
 	},
 };
 
 // Sample hex key (32 bytes)
-const sampleHexKey =
-	'aabbccdd112233445566778899aabbccddeeff00112233445566778899001122';
+const sampleHexKey = 'aabbccdd112233445566778899aabbccddeeff00112233445566778899001122';
 const sampleKeyBytes = Buffer.from(sampleHexKey, 'hex');
 
 // Sample PEM keys (encoded from sampleHexKey)
@@ -61,18 +45,12 @@ const samplePemRotationKey = encodeRotationKey(sampleKeyBytes);
 const samplePemVerificationKey = encodeVerificationKey(sampleKeyBytes);
 
 // Sample multibase keys (encoded from sampleHexKey with appropriate prefix)
-const sampleMultibaseRotationKey = base58btc.encode(
-	Buffer.concat([SECP256K1_PRIV_PREFIX, sampleKeyBytes]),
-);
+const sampleMultibaseRotationKey = base58btc.encode(Buffer.concat([SECP256K1_PRIV_PREFIX, sampleKeyBytes]));
 // Sodium format verification key: 64 bytes (32-byte seed + 32-byte public key)
 // The first 32 bytes are sampleHexKey, followed by 32 dummy bytes for the public key portion
 const sodiumPublicKeyPortion = Buffer.alloc(32, 0xff); // dummy public key bytes
 const sampleMultibaseVerificationKey = base58btc.encode(
-	Buffer.concat([
-		Buffer.from([0x80, 0x26]),
-		sampleKeyBytes,
-		sodiumPublicKeyPortion,
-	]),
+	Buffer.concat([Buffer.from([0x80, 0x26]), sampleKeyBytes, sodiumPublicKeyPortion]),
 );
 
 describe('signing.js', () => {
@@ -82,49 +60,31 @@ describe('signing.js', () => {
 
 	describe('loadRotationKey', () => {
 		it('throws when --signing-key used without --signing-file', async () => {
-			await assert.rejects(
-				loadRotationKey({ signingKey: 'did:key:zQ3sh...' }),
-				(err) => {
-					assert(err instanceof SigningKeyError);
-					assert.strictEqual(
-						err.message,
-						'Cannot specify a signing key without a signing file',
-					);
-					return true;
-				},
-			);
+			await assert.rejects(loadRotationKey({ signingKey: 'did:key:zQ3sh...' }), (err) => {
+				assert(err instanceof SigningKeyError);
+				assert.strictEqual(err.message, 'Cannot specify a signing key without a signing file');
+				return true;
+			});
 		});
 
 		it('throws when key file does not exist', async () => {
-			await assert.rejects(
-				loadRotationKey({ signingFile: '/nonexistent/path.json' }),
-				(err) => {
-					assert(err instanceof SigningKeyError);
-					assert.match(err.message, /Error reading key file/);
-					return true;
-				},
-			);
+			await assert.rejects(loadRotationKey({ signingFile: '/nonexistent/path.json' }), (err) => {
+				assert(err instanceof SigningKeyError);
+				assert.match(err.message, /Error reading key file/);
+				return true;
+			});
 		});
 
 		it('throws when key file has no rotation keys', async () => {
 			await mkdir(testDir, { recursive: true });
 			const filePath = join(testDir, 'empty-rotation.json');
-			await writeFile(
-				filePath,
-				JSON.stringify({ did: 'did:plc:test', rotationKeys: {} }),
-			);
+			await writeFile(filePath, JSON.stringify({ did: 'did:plc:test', rotationKeys: {} }));
 
-			await assert.rejects(
-				loadRotationKey({ signingFile: filePath }),
-				(err) => {
-					assert(err instanceof SigningKeyError);
-					assert.strictEqual(
-						err.message,
-						'Key file must contain at least one rotation key',
-					);
-					return true;
-				},
-			);
+			await assert.rejects(loadRotationKey({ signingFile: filePath }), (err) => {
+				assert(err instanceof SigningKeyError);
+				assert.strictEqual(err.message, 'Key file must contain at least one rotation key');
+				return true;
+			});
 		});
 
 		it('throws when specified signing key not found', async () => {
@@ -153,10 +113,7 @@ describe('signing.js', () => {
 
 			const result = await loadRotationKey({ signingFile: filePath });
 
-			assert.strictEqual(
-				result.privateKeyHex,
-				sampleRotationKeyBytes1.toString('hex'),
-			);
+			assert.strictEqual(result.privateKeyHex, sampleRotationKeyBytes1.toString('hex'));
 			assert.deepStrictEqual(result.keyData, sampleKeyFile);
 		});
 
@@ -170,10 +127,7 @@ describe('signing.js', () => {
 				signingKey: 'did:key:zQ3shRotation2',
 			});
 
-			assert.strictEqual(
-				result.privateKeyHex,
-				sampleRotationKeyBytes2.toString('hex'),
-			);
+			assert.strictEqual(result.privateKeyHex, sampleRotationKeyBytes2.toString('hex'));
 		});
 
 		it('loads multibase-encoded rotation key from JSON file', async () => {
@@ -276,10 +230,7 @@ describe('signing.js', () => {
 				}),
 				(err) => {
 					assert(err instanceof SigningKeyError);
-					assert.strictEqual(
-						err.message,
-						'Cannot specify a signing key when using a standalone key file',
-					);
+					assert.strictEqual(err.message, 'Cannot specify a signing key when using a standalone key file');
 					return true;
 				},
 			);
@@ -290,17 +241,11 @@ describe('signing.js', () => {
 			const filePath = join(testDir, 'rotation-invalid.txt');
 			await writeFile(filePath, 'this is not valid');
 
-			await assert.rejects(
-				loadRotationKey({ signingFile: filePath }),
-				(err) => {
-					assert(err instanceof SigningKeyError);
-					assert.strictEqual(
-						err.message,
-						'Key file must be valid JSON or a standalone key (PEM, multibase, or hex)',
-					);
-					return true;
-				},
-			);
+			await assert.rejects(loadRotationKey({ signingFile: filePath }), (err) => {
+				assert(err instanceof SigningKeyError);
+				assert.strictEqual(err.message, 'Key file must be valid JSON or a standalone key (PEM, multibase, or hex)');
+				return true;
+			});
 		});
 
 		it('throws when standalone key has wrong type (verification instead of rotation)', async () => {
@@ -309,17 +254,14 @@ describe('signing.js', () => {
 			// Use a verification key (ed25519) where rotation key (secp256k1) is expected
 			await writeFile(filePath, sampleMultibaseVerificationKey);
 
-			await assert.rejects(
-				loadRotationKey({ signingFile: filePath }),
-				(err) => {
-					assert(err instanceof SigningKeyError);
-					assert.strictEqual(
-						err.message,
-						'Wrong key type for this operation. This looks like a verification key, but a rotation key is required.',
-					);
-					return true;
-				},
-			);
+			await assert.rejects(loadRotationKey({ signingFile: filePath }), (err) => {
+				assert(err instanceof SigningKeyError);
+				assert.strictEqual(
+					err.message,
+					'Wrong key type for this operation. This looks like a verification key, but a rotation key is required.',
+				);
+				return true;
+			});
 		});
 
 		it('throws when multibase key has invalid base58btc encoding', async () => {
@@ -328,17 +270,11 @@ describe('signing.js', () => {
 			// 'z' prefix followed by invalid base58 characters (0, O, I, l are invalid)
 			await writeFile(filePath, 'zInvalidBase58WithBadChars0OIl');
 
-			await assert.rejects(
-				loadRotationKey({ signingFile: filePath }),
-				(err) => {
-					assert(err instanceof SigningKeyError);
-					assert.strictEqual(
-						err.message,
-						'Invalid key format. The key could not be decoded.',
-					);
-					return true;
-				},
-			);
+			await assert.rejects(loadRotationKey({ signingFile: filePath }), (err) => {
+				assert(err instanceof SigningKeyError);
+				assert.strictEqual(err.message, 'Invalid key format. The key could not be decoded.');
+				return true;
+			});
 		});
 
 		it('throws when multibase key has wrong length', async () => {
@@ -352,17 +288,11 @@ describe('signing.js', () => {
 			combined.set(shortKey, prefix.length);
 			await writeFile(filePath, base58btc.encode(combined));
 
-			await assert.rejects(
-				loadRotationKey({ signingFile: filePath }),
-				(err) => {
-					assert(err instanceof SigningKeyError);
-					assert.strictEqual(
-						err.message,
-						'Invalid key format. The key has the wrong length.',
-					);
-					return true;
-				},
-			);
+			await assert.rejects(loadRotationKey({ signingFile: filePath }), (err) => {
+				assert(err instanceof SigningKeyError);
+				assert.strictEqual(err.message, 'Invalid key format. The key has the wrong length.');
+				return true;
+			});
 		});
 
 		it('throws when env var not set and no signing file', async () => {
@@ -423,38 +353,23 @@ describe('signing.js', () => {
 
 	describe('loadVerificationKey', () => {
 		it('throws when --signing-key used without --signing-file', async () => {
-			await assert.rejects(
-				loadVerificationKey({ signingKey: 'did:key:z6Mk...' }),
-				(err) => {
-					assert(err instanceof SigningKeyError);
-					assert.strictEqual(
-						err.message,
-						'Cannot specify a signing key without a signing file',
-					);
-					return true;
-				},
-			);
+			await assert.rejects(loadVerificationKey({ signingKey: 'did:key:z6Mk...' }), (err) => {
+				assert(err instanceof SigningKeyError);
+				assert.strictEqual(err.message, 'Cannot specify a signing key without a signing file');
+				return true;
+			});
 		});
 
 		it('throws when key file has no verification keys', async () => {
 			await mkdir(testDir, { recursive: true });
 			const filePath = join(testDir, 'empty-verification.json');
-			await writeFile(
-				filePath,
-				JSON.stringify({ did: 'did:plc:test', verificationKeys: {} }),
-			);
+			await writeFile(filePath, JSON.stringify({ did: 'did:plc:test', verificationKeys: {} }));
 
-			await assert.rejects(
-				loadVerificationKey({ signingFile: filePath }),
-				(err) => {
-					assert(err instanceof SigningKeyError);
-					assert.strictEqual(
-						err.message,
-						'Key file must contain at least one verification key',
-					);
-					return true;
-				},
-			);
+			await assert.rejects(loadVerificationKey({ signingFile: filePath }), (err) => {
+				assert(err instanceof SigningKeyError);
+				assert.strictEqual(err.message, 'Key file must contain at least one verification key');
+				return true;
+			});
 		});
 
 		it('throws when specified signing key not found', async () => {
@@ -482,10 +397,7 @@ describe('signing.js', () => {
 
 			const result = await loadVerificationKey({ signingFile: filePath });
 
-			assert.strictEqual(
-				result.privateKeyHex,
-				sampleVerificationKeyBytes1.toString('hex'),
-			);
+			assert.strictEqual(result.privateKeyHex, sampleVerificationKeyBytes1.toString('hex'));
 		});
 
 		it('loads specific verification key when specified', async () => {
@@ -498,10 +410,7 @@ describe('signing.js', () => {
 				signingKey: 'did:key:z6MkVerification2',
 			});
 
-			assert.strictEqual(
-				result.privateKeyHex,
-				sampleVerificationKeyBytes2.toString('hex'),
-			);
+			assert.strictEqual(result.privateKeyHex, sampleVerificationKeyBytes2.toString('hex'));
 		});
 
 		it('loads multibase-encoded verification key from JSON file', async () => {
@@ -604,10 +513,7 @@ describe('signing.js', () => {
 				}),
 				(err) => {
 					assert(err instanceof SigningKeyError);
-					assert.strictEqual(
-						err.message,
-						'Cannot specify a signing key when using a standalone key file',
-					);
+					assert.strictEqual(err.message, 'Cannot specify a signing key when using a standalone key file');
 					return true;
 				},
 			);
@@ -618,17 +524,11 @@ describe('signing.js', () => {
 			const filePath = join(testDir, 'verification-invalid.txt');
 			await writeFile(filePath, 'this is not valid');
 
-			await assert.rejects(
-				loadVerificationKey({ signingFile: filePath }),
-				(err) => {
-					assert(err instanceof SigningKeyError);
-					assert.strictEqual(
-						err.message,
-						'Key file must be valid JSON or a standalone key (PEM, multibase, or hex)',
-					);
-					return true;
-				},
-			);
+			await assert.rejects(loadVerificationKey({ signingFile: filePath }), (err) => {
+				assert(err instanceof SigningKeyError);
+				assert.strictEqual(err.message, 'Key file must be valid JSON or a standalone key (PEM, multibase, or hex)');
+				return true;
+			});
 		});
 
 		it('throws when standalone key has wrong type (rotation instead of verification)', async () => {
@@ -637,17 +537,14 @@ describe('signing.js', () => {
 			// Use a rotation key (secp256k1) where verification key (ed25519) is expected
 			await writeFile(filePath, sampleMultibaseRotationKey);
 
-			await assert.rejects(
-				loadVerificationKey({ signingFile: filePath }),
-				(err) => {
-					assert(err instanceof SigningKeyError);
-					assert.strictEqual(
-						err.message,
-						'Wrong key type for this operation. This looks like a rotation key, but a verification key is required.',
-					);
-					return true;
-				},
-			);
+			await assert.rejects(loadVerificationKey({ signingFile: filePath }), (err) => {
+				assert(err instanceof SigningKeyError);
+				assert.strictEqual(
+					err.message,
+					'Wrong key type for this operation. This looks like a rotation key, but a verification key is required.',
+				);
+				return true;
+			});
 		});
 
 		it('loads from env var when no signing file', async () => {
@@ -687,10 +584,7 @@ describe('signing.js', () => {
 		it('throws when key file has no rotation keys', async () => {
 			await mkdir(testDir, { recursive: true });
 			const filePath = join(testDir, 'revoke-empty.json');
-			await writeFile(
-				filePath,
-				JSON.stringify({ did: 'did:plc:test', rotationKeys: {} }),
-			);
+			await writeFile(filePath, JSON.stringify({ did: 'did:plc:test', rotationKeys: {} }));
 
 			await assert.rejects(
 				loadRotationKeyForRevocation({
@@ -699,10 +593,7 @@ describe('signing.js', () => {
 				}),
 				(err) => {
 					assert(err instanceof SigningKeyError);
-					assert.strictEqual(
-						err.message,
-						'Key file must contain at least one rotation key',
-					);
+					assert.strictEqual(err.message, 'Key file must contain at least one rotation key');
 					return true;
 				},
 			);
@@ -740,10 +631,7 @@ describe('signing.js', () => {
 				}),
 				(err) => {
 					assert(err instanceof SigningKeyError);
-					assert.strictEqual(
-						err.message,
-						'Cannot use the key being revoked to sign the operation',
-					);
+					assert.strictEqual(err.message, 'Cannot use the key being revoked to sign the operation');
 					return true;
 				},
 			);
@@ -768,10 +656,7 @@ describe('signing.js', () => {
 				(err) => {
 					assert(err instanceof SigningKeyError);
 					assert.match(err.message, /No signing key available/);
-					assert.match(
-						err.message,
-						/only rotation key in the file is the one being revoked/,
-					);
+					assert.match(err.message, /only rotation key in the file is the one being revoked/);
 					return true;
 				},
 			);
@@ -787,10 +672,7 @@ describe('signing.js', () => {
 				revokeKey: 'did:key:zQ3shRotation1',
 			});
 
-			assert.strictEqual(
-				result.privateKeyHex,
-				sampleRotationKeyBytes2.toString('hex'),
-			);
+			assert.strictEqual(result.privateKeyHex, sampleRotationKeyBytes2.toString('hex'));
 		});
 
 		it('uses specified signing key when different from revoke key', async () => {
@@ -804,10 +686,7 @@ describe('signing.js', () => {
 				revokeKey: 'did:key:zQ3shRotation1',
 			});
 
-			assert.strictEqual(
-				result.privateKeyHex,
-				sampleRotationKeyBytes2.toString('hex'),
-			);
+			assert.strictEqual(result.privateKeyHex, sampleRotationKeyBytes2.toString('hex'));
 		});
 
 		it('loads multibase key file without trailing newline', async () => {
@@ -879,10 +758,7 @@ describe('signing.js', () => {
 				}),
 				(err) => {
 					assert(err instanceof SigningKeyError);
-					assert.strictEqual(
-						err.message,
-						'Cannot specify a signing key when using a standalone key file',
-					);
+					assert.strictEqual(err.message, 'Cannot specify a signing key when using a standalone key file');
 					return true;
 				},
 			);
@@ -900,10 +776,7 @@ describe('signing.js', () => {
 				}),
 				(err) => {
 					assert(err instanceof SigningKeyError);
-					assert.strictEqual(
-						err.message,
-						'Key file must be valid JSON or a standalone key (PEM, multibase, or hex)',
-					);
+					assert.strictEqual(err.message, 'Key file must be valid JSON or a standalone key (PEM, multibase, or hex)');
 					return true;
 				},
 			);
@@ -956,17 +829,14 @@ describe('signing.js', () => {
 			delete process.env.FAIR_ROTATION_KEY;
 
 			try {
-				await assert.rejects(
-					loadRotationKeyForRevocation({ revokeKey: 'did:key:zQ3sh...' }),
-					(err) => {
-						assert(err instanceof SigningKeyError);
-						assert.strictEqual(
-							err.message,
-							'No signing key provided. Set the FAIR_ROTATION_KEY environment variable or provide a signing file.',
-						);
-						return true;
-					},
-				);
+				await assert.rejects(loadRotationKeyForRevocation({ revokeKey: 'did:key:zQ3sh...' }), (err) => {
+					assert(err instanceof SigningKeyError);
+					assert.strictEqual(
+						err.message,
+						'No signing key provided. Set the FAIR_ROTATION_KEY environment variable or provide a signing file.',
+					);
+					return true;
+				});
 			} finally {
 				if (originalEnv !== undefined) {
 					process.env.FAIR_ROTATION_KEY = originalEnv;

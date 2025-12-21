@@ -13,9 +13,7 @@ async function loadFixtures() {
 	if (Object.keys(fixtures).length > 0) return fixtures;
 
 	const files = await readdir('test/fixtures');
-	const readmeFiles = files.filter(
-		(f) => f.startsWith('readme.') && f.endsWith('.txt'),
-	);
+	const readmeFiles = files.filter((f) => f.startsWith('readme.') && f.endsWith('.txt'));
 
 	for (const file of readmeFiles) {
 		// Convert readme.user-switching.txt -> userSwitching
@@ -42,9 +40,7 @@ describe('parseReadmeFile', () => {
 
 			// Get list of input files to derive output filenames
 			const files = await readdir('test/fixtures');
-			const readmeFiles = files.filter(
-				(f) => f.startsWith('readme.') && f.endsWith('.txt'),
-			);
+			const readmeFiles = files.filter((f) => f.startsWith('readme.') && f.endsWith('.txt'));
 
 			// Track that optional fields are tested at least once
 			let hasScreenshotsFixture = false;
@@ -67,16 +63,10 @@ describe('parseReadmeFile', () => {
 				assert.ok(data, `${name}: should return data`);
 
 				// Every fixture should have keywords array (even if empty)
-				assert.ok(
-					Array.isArray(data.keywords),
-					`${name}: keywords should be array`,
-				);
+				assert.ok(Array.isArray(data.keywords), `${name}: keywords should be array`);
 
 				// Every fixture should have a description section
-				assert.ok(
-					typeof data.sections.description === 'string',
-					`${name}: sections.description should be string`,
-				);
+				assert.ok(typeof data.sections.description === 'string', `${name}: sections.description should be string`);
 
 				// Description should not contain unparsed section markers
 				assert.ok(
@@ -89,40 +79,25 @@ describe('parseReadmeFile', () => {
 				);
 
 				// Fixtures should have a name
-				assert.ok(
-					typeof data.name === 'string',
-					`${name}: name should be string`,
-				);
+				assert.ok(typeof data.name === 'string', `${name}: name should be string`);
 
 				// Every fixture should have a stableTag
-				assert.ok(
-					typeof data.stableTag === 'string',
-					`${name}: stableTag should be string`,
-				);
+				assert.ok(typeof data.stableTag === 'string', `${name}: stableTag should be string`);
 
 				// Check that returned properties are not empty
 				// (screenshots and keywords are optional, so excluded)
 				for (const prop of Object.keys(data)) {
 					if (prop === 'screenshots' || prop === 'keywords') continue;
 					const val = data[prop];
-					assert.ok(
-						val !== '' && !(Array.isArray(val) && val.length === 0),
-						`${name}: ${prop} should not be empty`,
-					);
+					assert.ok(val !== '' && !(Array.isArray(val) && val.length === 0), `${name}: ${prop} should not be empty`);
 				}
 
 				// If screenshots exists, it should be an array of objects with description
 				if (data.screenshots) {
 					hasScreenshotsFixture = true;
-					assert.ok(
-						Array.isArray(data.screenshots),
-						`${name}: screenshots should be array`,
-					);
+					assert.ok(Array.isArray(data.screenshots), `${name}: screenshots should be array`);
 					for (const item of data.screenshots) {
-						assert.ok(
-							typeof item.description === 'string',
-							`${name}: screenshot description should be string`,
-						);
+						assert.ok(typeof item.description === 'string', `${name}: screenshot description should be string`);
 					}
 				}
 
@@ -133,14 +108,8 @@ describe('parseReadmeFile', () => {
 			}
 
 			// Ensure optional fields are tested by at least one fixture
-			assert.ok(
-				hasScreenshotsFixture,
-				'at least one fixture should have screenshots',
-			);
-			assert.ok(
-				hasKeywordsFixture,
-				'at least one fixture should have keywords',
-			);
+			assert.ok(hasScreenshotsFixture, 'at least one fixture should have screenshots');
+			assert.ok(hasKeywordsFixture, 'at least one fixture should have keywords');
 		});
 	});
 
@@ -562,8 +531,7 @@ Initial release.
 
 		it('handles trailing whitespace after plugin name', () => {
 			// Note: the "===  " has intentional trailing spaces
-			const content =
-				'=== Test Plugin ===  \n\nShort description.\n\n== Description ==\n\nThe description.\n';
+			const content = '=== Test Plugin ===  \n\nShort description.\n\n== Description ==\n\nThe description.\n';
 			const data = parseReadmeFile(content);
 			assert.deepStrictEqual(data, {
 				name: 'Test Plugin',
@@ -585,8 +553,7 @@ Initial release.
 
 		it('handles trailing whitespace after markdown heading', () => {
 			// Note: the "# Test Plugin  " has intentional trailing spaces
-			const content =
-				'# Test Plugin  \n\nShort description.\n\n== Description ==\n\nThe description.\n';
+			const content = '# Test Plugin  \n\nShort description.\n\n== Description ==\n\nThe description.\n';
 			const data = parseReadmeFile(content);
 			assert.deepStrictEqual(data, {
 				name: 'Test Plugin',
@@ -649,8 +616,7 @@ Initial release.
 				stableTag: undefined,
 				donateLink: undefined,
 				sections: {
-					description:
-						'<p>Intro.</p>\n<h4>Sub Section</h4>\n<p>Content here.</p>\n',
+					description: '<p>Intro.</p>\n<h4>Sub Section</h4>\n<p>Content here.</p>\n',
 				},
 			});
 		});
@@ -672,8 +638,7 @@ Initial release.
 				stableTag: undefined,
 				donateLink: undefined,
 				sections: {
-					description:
-						'<h4>Main Feature</h4>\n<p>Intro.</p>\n<h4>Sub Feature</h4>\n<p>Content.</p>\n',
+					description: '<h4>Main Feature</h4>\n<p>Intro.</p>\n<h4>Sub Feature</h4>\n<p>Content.</p>\n',
 				},
 			});
 		});
@@ -827,10 +792,7 @@ Use wp plugin list.
 				stableTag: undefined,
 				donateLink: undefined,
 				sections: {
-					description:
-						'<p>The description.</p>\n' +
-						'<h3>WP CLI Commands</h3>\n' +
-						'<p>Use wp plugin list.</p>\n',
+					description: '<p>The description.</p>\n' + '<h3>WP CLI Commands</h3>\n' + '<p>Use wp plugin list.</p>\n',
 				},
 			});
 		});

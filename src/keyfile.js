@@ -122,9 +122,7 @@ export function formatKeyFileContent({ did, rotationKey, verificationKey }) {
 				[rotationKey.publicKey]: encodeRotationKey(rotationKey.privateKey),
 			},
 			verificationKeys: {
-				[verificationKey.publicKey]: encodeVerificationKey(
-					verificationKey.privateKey,
-				),
+				[verificationKey.publicKey]: encodeVerificationKey(verificationKey.privateKey),
 			},
 		},
 		null,

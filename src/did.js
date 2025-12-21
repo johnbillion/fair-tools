@@ -121,12 +121,7 @@ async function submitDID({ op, did, plcUrl = PLC_DIRECTORY_URL }) {
  * }} opts
  * @returns {Promise<string>} The created DID
  */
-export async function createDID({
-	verificationKey,
-	rotationKey,
-	keypair,
-	plcUrl = PLC_DIRECTORY_URL,
-}) {
+export async function createDID({ verificationKey, rotationKey, keypair, plcUrl = PLC_DIRECTORY_URL }) {
 	const { op, did } = await generateDID({
 		verificationKey,
 		rotationKey,
@@ -170,16 +165,9 @@ export function updateServiceUrlInOp(lastOp, serviceUrl) {
  * }} opts
  * @returns {Promise<void>}
  */
-export async function updateDID({
-	did,
-	serviceUrl,
-	signer,
-	plcUrl = PLC_DIRECTORY_URL,
-}) {
+export async function updateDID({ did, serviceUrl, signer, plcUrl = PLC_DIRECTORY_URL }) {
 	const client = createPlcClient(plcUrl);
-	await client.updateData(did, signer, (lastOp) =>
-		updateServiceUrlInOp(lastOp, serviceUrl),
-	);
+	await client.updateData(did, signer, (lastOp) => updateServiceUrlInOp(lastOp, serviceUrl));
 }
 
 /**
@@ -230,16 +218,9 @@ export function addVerificationKeyToOp(lastOp, verificationKey) {
  * }} opts
  * @returns {Promise<void>}
  */
-export async function addVerificationKey({
-	did,
-	verificationKey,
-	signer,
-	plcUrl = PLC_DIRECTORY_URL,
-}) {
+export async function addVerificationKey({ did, verificationKey, signer, plcUrl = PLC_DIRECTORY_URL }) {
 	const client = createPlcClient(plcUrl);
-	await client.updateData(did, signer, (lastOp) =>
-		addVerificationKeyToOp(lastOp, verificationKey),
-	);
+	await client.updateData(did, signer, (lastOp) => addVerificationKeyToOp(lastOp, verificationKey));
 }
 
 /**
@@ -273,16 +254,9 @@ export function addRotationKeyToOp(lastOp, rotationKey) {
  * }} opts
  * @returns {Promise<void>}
  */
-export async function addRotationKey({
-	did,
-	rotationKey,
-	signer,
-	plcUrl = PLC_DIRECTORY_URL,
-}) {
+export async function addRotationKey({ did, rotationKey, signer, plcUrl = PLC_DIRECTORY_URL }) {
 	const client = createPlcClient(plcUrl);
-	await client.updateData(did, signer, (lastOp) =>
-		addRotationKeyToOp(lastOp, rotationKey),
-	);
+	await client.updateData(did, signer, (lastOp) => addRotationKeyToOp(lastOp, rotationKey));
 }
 
 /**
@@ -294,9 +268,7 @@ export async function addRotationKey({
  * @throws {Error} If the verification key is not found
  */
 export function revokeVerificationKeyFromOp(lastOp, publicKey) {
-	const keyId = Object.entries(lastOp.verificationMethods).find(
-		([, value]) => value === publicKey,
-	)?.[0];
+	const keyId = Object.entries(lastOp.verificationMethods).find(([, value]) => value === publicKey)?.[0];
 	if (!keyId) {
 		throw new Error(`Verification key ${publicKey} not found in DID`);
 	}
@@ -320,16 +292,9 @@ export function revokeVerificationKeyFromOp(lastOp, publicKey) {
  * }} opts
  * @returns {Promise<void>}
  */
-export async function revokeVerificationKey({
-	did,
-	publicKey,
-	signer,
-	plcUrl = PLC_DIRECTORY_URL,
-}) {
+export async function revokeVerificationKey({ did, publicKey, signer, plcUrl = PLC_DIRECTORY_URL }) {
 	const client = createPlcClient(plcUrl);
-	await client.updateData(did, signer, (lastOp) =>
-		revokeVerificationKeyFromOp(lastOp, publicKey),
-	);
+	await client.updateData(did, signer, (lastOp) => revokeVerificationKeyFromOp(lastOp, publicKey));
 }
 
 /**
@@ -368,22 +333,13 @@ export function revokeRotationKeyFromOp(lastOp, rotationKey) {
  * }} opts
  * @returns {Promise<void>}
  */
-export async function revokeRotationKey({
-	did,
-	rotationKey,
-	signer,
-	plcUrl = PLC_DIRECTORY_URL,
-}) {
+export async function revokeRotationKey({ did, rotationKey, signer, plcUrl = PLC_DIRECTORY_URL }) {
 	const signerPublicKey = signer.did();
 	if (rotationKey === signerPublicKey) {
-		throw new Error(
-			'Cannot revoke the rotation key used to sign this operation',
-		);
+		throw new Error('Cannot revoke the rotation key used to sign this operation');
 	}
 	const client = createPlcClient(plcUrl);
-	await client.updateData(did, signer, (lastOp) =>
-		revokeRotationKeyFromOp(lastOp, rotationKey),
-	);
+	await client.updateData(did, signer, (lastOp) => revokeRotationKeyFromOp(lastOp, rotationKey));
 }
 
 /**
@@ -418,16 +374,9 @@ export function addAlsoKnownAsToOp(lastOp, url) {
  * }} opts
  * @returns {Promise<void>}
  */
-export async function addAlsoKnownAs({
-	did,
-	url,
-	signer,
-	plcUrl = PLC_DIRECTORY_URL,
-}) {
+export async function addAlsoKnownAs({ did, url, signer, plcUrl = PLC_DIRECTORY_URL }) {
 	const client = createPlcClient(plcUrl);
-	await client.updateData(did, signer, (lastOp) =>
-		addAlsoKnownAsToOp(lastOp, url),
-	);
+	await client.updateData(did, signer, (lastOp) => addAlsoKnownAsToOp(lastOp, url));
 }
 
 /**
@@ -474,17 +423,9 @@ export function replaceAlsoKnownAsInOp(lastOp, oldUrl, newUrl) {
  * }} opts
  * @returns {Promise<void>}
  */
-export async function replaceAlsoKnownAs({
-	did,
-	oldUrl,
-	newUrl,
-	signer,
-	plcUrl = PLC_DIRECTORY_URL,
-}) {
+export async function replaceAlsoKnownAs({ did, oldUrl, newUrl, signer, plcUrl = PLC_DIRECTORY_URL }) {
 	const client = createPlcClient(plcUrl);
-	await client.updateData(did, signer, (lastOp) =>
-		replaceAlsoKnownAsInOp(lastOp, oldUrl, newUrl),
-	);
+	await client.updateData(did, signer, (lastOp) => replaceAlsoKnownAsInOp(lastOp, oldUrl, newUrl));
 }
 
 /**
@@ -505,9 +446,7 @@ export function replaceServiceUrlInOp(lastOp, oldUrl, newUrl) {
 		throw new Error(`FAIR service not found in DID`);
 	}
 	if (existingService.endpoint !== oldUrl) {
-		throw new Error(
-			`Current service URL does not match: expected "${oldUrl}", found "${existingService.endpoint}"`,
-		);
+		throw new Error(`Current service URL does not match: expected "${oldUrl}", found "${existingService.endpoint}"`);
 	}
 	return {
 		...lastOp,
@@ -537,17 +476,9 @@ export function replaceServiceUrlInOp(lastOp, oldUrl, newUrl) {
  * }} opts
  * @returns {Promise<void>}
  */
-export async function replaceServiceUrl({
-	did,
-	oldUrl,
-	newUrl,
-	signer,
-	plcUrl = PLC_DIRECTORY_URL,
-}) {
+export async function replaceServiceUrl({ did, oldUrl, newUrl, signer, plcUrl = PLC_DIRECTORY_URL }) {
 	const client = createPlcClient(plcUrl);
-	await client.updateData(did, signer, (lastOp) =>
-		replaceServiceUrlInOp(lastOp, oldUrl, newUrl),
-	);
+	await client.updateData(did, signer, (lastOp) => replaceServiceUrlInOp(lastOp, oldUrl, newUrl));
 }
 
 /**
@@ -567,9 +498,7 @@ export function removeServiceUrlFromOp(lastOp, url) {
 		throw new Error(`FAIR service not found in DID`);
 	}
 	if (existingService.endpoint !== url) {
-		throw new Error(
-			`Service URL does not match: expected "${url}", found "${existingService.endpoint}"`,
-		);
+		throw new Error(`Service URL does not match: expected "${url}", found "${existingService.endpoint}"`);
 	}
 	const { [FAIR_SERVICE_ID]: _, ...remainingServices } = lastOp.services;
 	return {
@@ -592,16 +521,9 @@ export function removeServiceUrlFromOp(lastOp, url) {
  * }} opts
  * @returns {Promise<void>}
  */
-export async function removeServiceUrl({
-	did,
-	url,
-	signer,
-	plcUrl = PLC_DIRECTORY_URL,
-}) {
+export async function removeServiceUrl({ did, url, signer, plcUrl = PLC_DIRECTORY_URL }) {
 	const client = createPlcClient(plcUrl);
-	await client.updateData(did, signer, (lastOp) =>
-		removeServiceUrlFromOp(lastOp, url),
-	);
+	await client.updateData(did, signer, (lastOp) => removeServiceUrlFromOp(lastOp, url));
 }
 
 /**
@@ -639,14 +561,7 @@ export function removeAlsoKnownAsFromOp(lastOp, url) {
  * }} opts
  * @returns {Promise<void>}
  */
-export async function removeAlsoKnownAs({
-	did,
-	url,
-	signer,
-	plcUrl = PLC_DIRECTORY_URL,
-}) {
+export async function removeAlsoKnownAs({ did, url, signer, plcUrl = PLC_DIRECTORY_URL }) {
 	const client = createPlcClient(plcUrl);
-	await client.updateData(did, signer, (lastOp) =>
-		removeAlsoKnownAsFromOp(lastOp, url),
-	);
+	await client.updateData(did, signer, (lastOp) => removeAlsoKnownAsFromOp(lastOp, url));
 }

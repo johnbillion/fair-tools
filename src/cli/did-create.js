@@ -2,17 +2,9 @@
 
 import { stat, mkdir } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
-import {
-	generateRotationKeyPair,
-	generateVerificationKeyPair,
-} from '../keys.js';
+import { generateRotationKeyPair, generateVerificationKeyPair } from '../keys.js';
 import { createDID } from '../did.js';
-import {
-	KEY_DIR_MODE,
-	getKeyFilePath,
-	formatKeyFileContent,
-	writeKeyFile,
-} from '../keyfile.js';
+import { KEY_DIR_MODE, getKeyFilePath, formatKeyFileContent, writeKeyFile } from '../keyfile.js';
 import { logPlcError } from './lib/plc-error.js';
 
 const { values } = parseArgs({
@@ -106,9 +98,5 @@ console.log(`View at: https://web.plc.directory/did/${did}`);
 console.log(`Keys written to ${outputPath}`);
 console.log('');
 console.log('\x1b[33m\x1b[1mWARNING: Back up this file immediately!\x1b[0m');
-console.log(
-	'\x1b[33mThis file contains the private keys needed to manage your DID.',
-);
-console.log(
-	'If you lose this file, you will lose control of your DID permanently.\x1b[0m',
-);
+console.log('\x1b[33mThis file contains the private keys needed to manage your DID.');
+console.log('If you lose this file, you will lose control of your DID permanently.\x1b[0m');

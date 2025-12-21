@@ -188,9 +188,7 @@ describe('buildMetadataFromContent', () => {
 			downloadUrl: 'https://example.com/test.zip',
 		});
 
-		assert.deepStrictEqual(metadata.security, [
-			{ url: 'https://example.com/security' },
-		]);
+		assert.deepStrictEqual(metadata.security, [{ url: 'https://example.com/security' }]);
 	});
 
 	it('has empty security array when no securityContact provided', async () => {
@@ -223,9 +221,7 @@ describe('buildMetadataFromContent', () => {
 			downloadUrl: 'https://example.com/test.zip',
 		});
 
-		assert.deepStrictEqual(metadata.security, [
-			{ email: 'security@example.com' },
-		]);
+		assert.deepStrictEqual(metadata.security, [{ email: 'security@example.com' }]);
 	});
 
 	it('formats URL security contact correctly', async () => {
@@ -242,9 +238,7 @@ describe('buildMetadataFromContent', () => {
 			downloadUrl: 'https://example.com/test.zip',
 		});
 
-		assert.deepStrictEqual(metadata.security, [
-			{ url: 'https://example.com/security-policy' },
-		]);
+		assert.deepStrictEqual(metadata.security, [{ url: 'https://example.com/security-policy' }]);
 	});
 
 	it('treats mailto: URLs as URLs not emails', async () => {
@@ -261,9 +255,7 @@ describe('buildMetadataFromContent', () => {
 			downloadUrl: 'https://example.com/test.zip',
 		});
 
-		assert.deepStrictEqual(metadata.security, [
-			{ url: 'mailto:security@example.com' },
-		]);
+		assert.deepStrictEqual(metadata.security, [{ url: 'mailto:security@example.com' }]);
 	});
 
 	it('includes sections from options', async () => {
@@ -336,10 +328,7 @@ describe('buildMetadataFromContent', () => {
 			slug: 'test-plugin',
 			filename: 'test-plugin/test-plugin.php',
 			version: '1.0.0',
-			existingReleases: [
-				{ version: '1.0.0', artifacts: { package: [{ url: 'old' }] } },
-				{ version: '0.9.0' },
-			],
+			existingReleases: [{ version: '1.0.0', artifacts: { package: [{ url: 'old' }] } }, { version: '0.9.0' }],
 			zipData: Buffer.from('fake zip'),
 			downloadUrl: 'https://example.com/test.zip',
 		});
@@ -349,10 +338,7 @@ describe('buildMetadataFromContent', () => {
 		assert.strictEqual(metadata.releases[0].version, '1.0.0');
 		assert.strictEqual(metadata.releases[1].version, '0.9.0');
 		// Verify the new release replaced the old one (different URL)
-		assert.strictEqual(
-			metadata.releases[0].artifacts.package[0].url,
-			'https://example.com/test.zip',
-		);
+		assert.strictEqual(metadata.releases[0].artifacts.package[0].url, 'https://example.com/test.zip');
 	});
 
 	it('preserves other releases when overwriting a version', async () => {
@@ -364,11 +350,7 @@ describe('buildMetadataFromContent', () => {
 			slug: 'test-plugin',
 			filename: 'test-plugin/test-plugin.php',
 			version: '1.1.0',
-			existingReleases: [
-				{ version: '1.1.0' },
-				{ version: '1.0.0' },
-				{ version: '0.9.0' },
-			],
+			existingReleases: [{ version: '1.1.0' }, { version: '1.0.0' }, { version: '0.9.0' }],
 			zipData: Buffer.from('fake zip'),
 			downloadUrl: 'https://example.com/test.zip',
 		});
@@ -480,10 +462,7 @@ describe('parsePluginHeaders', () => {
 		assert.strictEqual(headers.author, 'John Doe');
 		assert.strictEqual(headers.authorUri, 'https://example.com');
 		assert.strictEqual(headers.license, 'GPL-2.0-or-later');
-		assert.strictEqual(
-			headers.licenseUri,
-			'https://www.gnu.org/licenses/gpl-2.0.html',
-		);
+		assert.strictEqual(headers.licenseUri, 'https://www.gnu.org/licenses/gpl-2.0.html');
 		assert.strictEqual(headers.textDomain, 'my-plugin');
 		assert.strictEqual(headers.domainPath, '/languages');
 		assert.strictEqual(headers.requiresWp, '6.0');
@@ -576,10 +555,7 @@ describe('parseComposerJson', () => {
 		});
 
 		const data = parseComposerJson(content);
-		assert.strictEqual(
-			data.securityContact,
-			'https://example.com/security-policy',
-		);
+		assert.strictEqual(data.securityContact, 'https://example.com/security-policy');
 	});
 
 	it('extracts both license and security contact', () => {
@@ -714,11 +690,7 @@ describe('createSignedArtifact', () => {
 			keypair,
 		});
 
-		assert.deepStrictEqual(Object.keys(artifact).sort(), [
-			'checksum',
-			'signature',
-			'url',
-		]);
+		assert.deepStrictEqual(Object.keys(artifact).sort(), ['checksum', 'signature', 'url']);
 		assert.strictEqual(artifact.url, 'https://example.com/file.zip');
 		assert.ok(artifact.checksum.startsWith('sha256:'));
 		assert.ok(artifact.signature);
@@ -734,12 +706,7 @@ describe('createSignedArtifact', () => {
 			contentType: 'application/zip',
 		});
 
-		assert.deepStrictEqual(Object.keys(artifact).sort(), [
-			'checksum',
-			'content-type',
-			'signature',
-			'url',
-		]);
+		assert.deepStrictEqual(Object.keys(artifact).sort(), ['checksum', 'content-type', 'signature', 'url']);
 		assert.strictEqual(artifact.url, 'https://example.com/file.zip');
 		assert.ok(artifact.checksum.startsWith('sha256:'));
 		assert.ok(artifact.signature);
@@ -817,19 +784,13 @@ describe('discoverAssets', () => {
 			assert.strictEqual(icons.length, 0);
 
 			const banner772 = banners.find((b) => b.width === 772);
-			assert.strictEqual(
-				banner772.url,
-				'https://example.com/assets/banner-772x250.png',
-			);
+			assert.strictEqual(banner772.url, 'https://example.com/assets/banner-772x250.png');
 			assert.strictEqual(banner772['content-type'], 'image/png');
 			assert.strictEqual(banner772.height, 250);
 			assert.strictEqual(banner772.width, 772);
 
 			const banner1544 = banners.find((b) => b.width === 1544);
-			assert.strictEqual(
-				banner1544.url,
-				'https://example.com/assets/banner-1544x500.jpg',
-			);
+			assert.strictEqual(banner1544.url, 'https://example.com/assets/banner-1544x500.jpg');
 			assert.strictEqual(banner1544['content-type'], 'image/jpeg');
 			assert.strictEqual(banner1544.height, 500);
 			assert.strictEqual(banner1544.width, 1544);
@@ -862,18 +823,12 @@ describe('discoverAssets', () => {
 			assert.strictEqual(svg.width, null);
 
 			const icon128 = icons.find((i) => i.width === 128);
-			assert.strictEqual(
-				icon128.url,
-				'https://example.com/assets/icon-128x128.png',
-			);
+			assert.strictEqual(icon128.url, 'https://example.com/assets/icon-128x128.png');
 			assert.strictEqual(icon128['content-type'], 'image/png');
 			assert.strictEqual(icon128.height, 128);
 
 			const icon256 = icons.find((i) => i.width === 256);
-			assert.strictEqual(
-				icon256.url,
-				'https://example.com/assets/icon-256x256.gif',
-			);
+			assert.strictEqual(icon256.url, 'https://example.com/assets/icon-256x256.gif');
 			assert.strictEqual(icon256['content-type'], 'image/gif');
 		} finally {
 			await rm(testDir, { recursive: true });
@@ -951,10 +906,7 @@ describe('matchAssetFiles', () => {
 	});
 
 	it('matches standard banner file', () => {
-		const { banners } = matchAssetFiles(
-			{ 'banner-772x250.png': null },
-			'https://example.com/assets/',
-		);
+		const { banners } = matchAssetFiles({ 'banner-772x250.png': null }, 'https://example.com/assets/');
 
 		assert.strictEqual(banners.length, 1);
 		assert.deepStrictEqual(banners[0], {
@@ -966,10 +918,7 @@ describe('matchAssetFiles', () => {
 	});
 
 	it('matches retina banner file', () => {
-		const { banners } = matchAssetFiles(
-			{ 'banner-1544x500.jpg': null },
-			'https://example.com/assets/',
-		);
+		const { banners } = matchAssetFiles({ 'banner-1544x500.jpg': null }, 'https://example.com/assets/');
 
 		assert.strictEqual(banners.length, 1);
 		assert.deepStrictEqual(banners[0], {
@@ -981,10 +930,7 @@ describe('matchAssetFiles', () => {
 	});
 
 	it('matches SVG icon file', () => {
-		const { icons } = matchAssetFiles(
-			{ 'icon.svg': null },
-			'https://example.com/assets/',
-		);
+		const { icons } = matchAssetFiles({ 'icon.svg': null }, 'https://example.com/assets/');
 
 		assert.strictEqual(icons.length, 1);
 		assert.deepStrictEqual(icons[0], {
@@ -996,10 +942,7 @@ describe('matchAssetFiles', () => {
 	});
 
 	it('matches standard icon file', () => {
-		const { icons } = matchAssetFiles(
-			{ 'icon-128x128.png': null },
-			'https://example.com/assets/',
-		);
+		const { icons } = matchAssetFiles({ 'icon-128x128.png': null }, 'https://example.com/assets/');
 
 		assert.strictEqual(icons.length, 1);
 		assert.deepStrictEqual(icons[0], {
@@ -1011,10 +954,7 @@ describe('matchAssetFiles', () => {
 	});
 
 	it('matches retina icon file', () => {
-		const { icons } = matchAssetFiles(
-			{ 'icon-256x256.gif': null },
-			'https://example.com/assets/',
-		);
+		const { icons } = matchAssetFiles({ 'icon-256x256.gif': null }, 'https://example.com/assets/');
 
 		assert.strictEqual(icons.length, 1);
 		assert.deepStrictEqual(icons[0], {
@@ -1042,10 +982,7 @@ describe('matchAssetFiles', () => {
 	});
 
 	it('handles jpeg extension', () => {
-		const { banners } = matchAssetFiles(
-			{ 'banner-772x250.jpeg': null },
-			'https://example.com/assets/',
-		);
+		const { banners } = matchAssetFiles({ 'banner-772x250.jpeg': null }, 'https://example.com/assets/');
 
 		assert.strictEqual(banners.length, 1);
 		assert.strictEqual(banners[0]['content-type'], 'image/jpeg');
@@ -1067,15 +1004,9 @@ describe('matchAssetFiles', () => {
 	});
 
 	it('constructs URLs correctly with base URL', () => {
-		const { icons } = matchAssetFiles(
-			{ 'icon.svg': null },
-			'https://ps.w.org/my-plugin/assets/',
-		);
+		const { icons } = matchAssetFiles({ 'icon.svg': null }, 'https://ps.w.org/my-plugin/assets/');
 
-		assert.strictEqual(
-			icons[0].url,
-			'https://ps.w.org/my-plugin/assets/icon.svg',
-		);
+		assert.strictEqual(icons[0].url, 'https://ps.w.org/my-plugin/assets/icon.svg');
 	});
 
 	it('matches screenshot files', () => {
@@ -1118,20 +1049,14 @@ describe('matchAssetFiles', () => {
 	});
 
 	it('matches jpeg extension for screenshots', () => {
-		const { screenshots } = matchAssetFiles(
-			{ 'screenshot-1.jpeg': null },
-			'https://example.com/assets/',
-		);
+		const { screenshots } = matchAssetFiles({ 'screenshot-1.jpeg': null }, 'https://example.com/assets/');
 
 		assert.strictEqual(screenshots.length, 1);
 		assert.strictEqual(screenshots[0]['content-type'], 'image/jpeg');
 	});
 
 	it('does not match gif screenshots', () => {
-		const { screenshots } = matchAssetFiles(
-			{ 'screenshot-1.gif': null },
-			'https://example.com/assets/',
-		);
+		const { screenshots } = matchAssetFiles({ 'screenshot-1.gif': null }, 'https://example.com/assets/');
 
 		assert.strictEqual(screenshots.length, 0);
 	});

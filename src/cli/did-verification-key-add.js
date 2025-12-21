@@ -80,14 +80,11 @@ try {
 	}
 	throw err;
 }
-const { keypair: signer, publicKey: signerPublicKey } =
-	await importRotationKeyPair(privateKeyHex);
+const { keypair: signer, publicKey: signerPublicKey } = await importRotationKeyPair(privateKeyHex);
 
 // Validate that we have somewhere to save the new key
 if (!values['output-file'] && !keyData) {
-	console.error(
-		'Error: No output file specified. Use --signing-file or --output-file to save the key.',
-	);
+	console.error('Error: No output file specified. Use --signing-file or --output-file to save the key.');
 	process.exit(1);
 }
 
@@ -124,13 +121,9 @@ try {
 	if (err instanceof SaveKeyError) {
 		console.error(`Error saving key: ${err.message}`);
 		console.error('');
-		console.error(
-			'\x1b[33m\x1b[1mWARNING: The key was added to the DID but could not be saved locally.\x1b[0m',
-		);
+		console.error('\x1b[33m\x1b[1mWARNING: The key was added to the DID but could not be saved locally.\x1b[0m');
 		console.error(`\x1b[33mPublic key: ${newVerificationKey.publicKey}\x1b[0m`);
-		console.error(
-			'\x1b[33mYou may need to revoke this key if you cannot recover it.\x1b[0m',
-		);
+		console.error('\x1b[33mYou may need to revoke this key if you cannot recover it.\x1b[0m');
 		process.exit(1);
 	}
 	throw err;

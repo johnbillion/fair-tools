@@ -1,10 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import {
-	formatPlcError,
-	diagnosePlcError,
-	logPlcError,
-} from '../../src/cli/lib/plc-error.js';
+import { formatPlcError, diagnosePlcError, logPlcError } from '../../src/cli/lib/plc-error.js';
 
 describe('formatPlcError', () => {
 	it('returns message for regular errors', () => {
@@ -16,30 +12,21 @@ describe('formatPlcError', () => {
 		const err = new Error('Request failed with status code 400');
 		err.status = 400;
 		err.data = 'Invalid signature on op';
-		assert.strictEqual(
-			formatPlcError(err),
-			'Request failed with status code 400 (400): Invalid signature on op',
-		);
+		assert.strictEqual(formatPlcError(err), 'Request failed with status code 400 (400): Invalid signature on op');
 	});
 
 	it('formats PlcClientError with object data containing message', () => {
 		const err = new Error('Request failed with status code 400');
 		err.status = 400;
 		err.data = { message: 'Key not found' };
-		assert.strictEqual(
-			formatPlcError(err),
-			'Request failed with status code 400 (400): Key not found',
-		);
+		assert.strictEqual(formatPlcError(err), 'Request failed with status code 400 (400): Key not found');
 	});
 
 	it('formats PlcClientError with object data containing error', () => {
 		const err = new Error('Request failed with status code 500');
 		err.status = 500;
 		err.data = { error: 'Internal server error' };
-		assert.strictEqual(
-			formatPlcError(err),
-			'Request failed with status code 500 (500): Internal server error',
-		);
+		assert.strictEqual(formatPlcError(err), 'Request failed with status code 500 (500): Internal server error');
 	});
 
 	it('JSON stringifies object data without message or error', () => {
@@ -56,19 +43,13 @@ describe('formatPlcError', () => {
 		const err = new Error('Request failed with status code 400');
 		err.status = 400;
 		err.data = 'Some detailed error message';
-		assert.strictEqual(
-			formatPlcError(err, { includeData: false }),
-			'Request failed with status code 400 (400)',
-		);
+		assert.strictEqual(formatPlcError(err, { includeData: false }), 'Request failed with status code 400 (400)');
 	});
 
 	it('returns status without data when error has status but no data', () => {
 		const err = new Error('Request failed with status code 404');
 		err.status = 404;
-		assert.strictEqual(
-			formatPlcError(err),
-			'Request failed with status code 404 (404)',
-		);
+		assert.strictEqual(formatPlcError(err), 'Request failed with status code 404 (404)');
 	});
 });
 
@@ -91,20 +72,13 @@ describe('diagnosePlcError', () => {
 		const err = new Error('Bad request');
 		err.status = 400;
 		const op = {
-			rotationKeys: [
-				'did:key:zQ3shpnvgkfhKzXp7cokYi1y6QGnue371C4BFFwFJz6qj3RNH',
-			],
+			rotationKeys: ['did:key:zQ3shpnvgkfhKzXp7cokYi1y6QGnue371C4BFFwFJz6qj3RNH'],
 		};
 		err.data = { message: `Invalid signature on op: ${JSON.stringify(op)}` };
 		const hints = diagnosePlcError(err, {
-			signerPublicKey:
-				'did:key:zQ3shgzHYGG4X5pQHMiJKbjgnF7foYR3LeLbon7zeF32yDZPQ',
+			signerPublicKey: 'did:key:zQ3shgzHYGG4X5pQHMiJKbjgnF7foYR3LeLbon7zeF32yDZPQ',
 		});
-		assert.ok(
-			hints.some((h) =>
-				h.includes("is not in the DID's current rotation keys"),
-			),
-		);
+		assert.ok(hints.some((h) => h.includes("is not in the DID's current rotation keys")));
 	});
 
 	it('returns empty array when no JSON can be extracted', () => {
@@ -119,8 +93,7 @@ describe('diagnosePlcError', () => {
 		err.status = 400;
 		err.data = 'Invalid signature on op: {not valid json}';
 		const hints = diagnosePlcError(err, {
-			signerPublicKey:
-				'did:key:zQ3shgzHYGG4X5pQHMiJKbjgnF7foYR3LeLbon7zeF32yDZPQ',
+			signerPublicKey: 'did:key:zQ3shgzHYGG4X5pQHMiJKbjgnF7foYR3LeLbon7zeF32yDZPQ',
 		});
 		assert.deepStrictEqual(hints, []);
 	});
@@ -130,21 +103,14 @@ describe('diagnosePlcError', () => {
 			const err = new Error('Bad request');
 			err.status = 400;
 			const op = {
-				rotationKeys: [
-					'did:key:zQ3shpnvgkfhKzXp7cokYi1y6QGnue371C4BFFwFJz6qj3RNH',
-				],
+				rotationKeys: ['did:key:zQ3shpnvgkfhKzXp7cokYi1y6QGnue371C4BFFwFJz6qj3RNH'],
 				verificationMethods: {},
 			};
 			err.data = `Invalid signature on op: ${JSON.stringify(op)}`;
 			const hints = diagnosePlcError(err, {
-				signerPublicKey:
-					'did:key:zQ3shgzHYGG4X5pQHMiJKbjgnF7foYR3LeLbon7zeF32yDZPQ',
+				signerPublicKey: 'did:key:zQ3shgzHYGG4X5pQHMiJKbjgnF7foYR3LeLbon7zeF32yDZPQ',
 			});
-			assert.ok(
-				hints.some((h) =>
-					h.includes("is not in the DID's current rotation keys"),
-				),
-			);
+			assert.ok(hints.some((h) => h.includes("is not in the DID's current rotation keys")));
 			assert.ok(hints.some((h) => h.includes('Use --signing-key')));
 		});
 
@@ -152,20 +118,13 @@ describe('diagnosePlcError', () => {
 			const err = new Error('Bad request');
 			err.status = 400;
 			const op = {
-				rotationKeys: [
-					'did:key:zQ3shpnvgkfhKzXp7cokYi1y6QGnue371C4BFFwFJz6qj3RNH',
-				],
+				rotationKeys: ['did:key:zQ3shpnvgkfhKzXp7cokYi1y6QGnue371C4BFFwFJz6qj3RNH'],
 			};
 			err.data = `some error: ${JSON.stringify(op)}`;
 			const hints = diagnosePlcError(err, {
-				signerPublicKey:
-					'did:key:zQ3shpnvgkfhKzXp7cokYi1y6QGnue371C4BFFwFJz6qj3RNH',
+				signerPublicKey: 'did:key:zQ3shpnvgkfhKzXp7cokYi1y6QGnue371C4BFFwFJz6qj3RNH',
 			});
-			assert.ok(
-				!hints.some((h) =>
-					h.includes("is not in the DID's current rotation keys"),
-				),
-			);
+			assert.ok(!hints.some((h) => h.includes("is not in the DID's current rotation keys")));
 		});
 	});
 });
@@ -191,9 +150,7 @@ describe('logPlcError', () => {
 		const err = new Error('Request failed with status code 400');
 		err.status = 400;
 		const op = {
-			rotationKeys: [
-				'did:key:zQ3shpnvgkfhKzXp7cokYi1y6QGnue371C4BFFwFJz6qj3RNH',
-			],
+			rotationKeys: ['did:key:zQ3shpnvgkfhKzXp7cokYi1y6QGnue371C4BFFwFJz6qj3RNH'],
 		};
 		err.data = `Invalid signature on op: ${JSON.stringify(op)}`;
 		const logs = [];
@@ -201,8 +158,7 @@ describe('logPlcError', () => {
 		console.error = (msg) => logs.push(msg);
 		try {
 			logPlcError('Error', err, {
-				signerPublicKey:
-					'did:key:zQ3shgzHYGG4X5pQHMiJKbjgnF7foYR3LeLbon7zeF32yDZPQ',
+				signerPublicKey: 'did:key:zQ3shgzHYGG4X5pQHMiJKbjgnF7foYR3LeLbon7zeF32yDZPQ',
 			});
 		} finally {
 			console.error = originalError;

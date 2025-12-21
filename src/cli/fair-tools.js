@@ -94,9 +94,7 @@ function showHelp() {
 	const allCommands = collectCommands(commands);
 	const maxLen = Math.max(...allCommands.map((c) => c.path.join(' ').length));
 
-	const lines = allCommands.map(
-		(c) => `  ${c.path.join(' ').padEnd(maxLen + 2)}${c.description}`,
-	);
+	const lines = allCommands.map((c) => `  ${c.path.join(' ').padEnd(maxLen + 2)}${c.description}`);
 
 	console.log(`Usage: fair-tools <command> [options]
 
@@ -110,9 +108,7 @@ function showSubHelp(obj, path) {
 	const subCommands = collectCommands(obj, []);
 	const maxLen = Math.max(...subCommands.map((c) => c.path.join(' ').length));
 
-	const lines = subCommands.map(
-		(c) => `  ${c.path.join(' ').padEnd(maxLen + 2)}${c.description}`,
-	);
+	const lines = subCommands.map((c) => `  ${c.path.join(' ').padEnd(maxLen + 2)}${c.description}`);
 
 	console.log(`Usage: fair-tools ${path.join(' ')} <command> [options]
 

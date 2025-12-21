@@ -108,8 +108,7 @@ try {
 	}
 	throw err;
 }
-const { keypair: signer, publicKey: signerPublicKey } =
-	await importRotationKeyPair(privateKeyHex);
+const { keypair: signer, publicKey: signerPublicKey } = await importRotationKeyPair(privateKeyHex);
 
 console.log(`Revoking verification key from DID ${values.did}...`);
 console.log(`  Key to revoke: ${values.revoke}`);
@@ -129,32 +128,17 @@ try {
 console.log('Verification key revoked successfully.');
 
 // Remove the revoked key from the key file if requested
-if (
-	values.cleanup &&
-	keyData &&
-	keyData.verificationKeys &&
-	keyData.verificationKeys[values.revoke]
-) {
+if (values.cleanup && keyData && keyData.verificationKeys && keyData.verificationKeys[values.revoke]) {
 	delete keyData.verificationKeys[values.revoke];
 	try {
-		await writeFile(
-			values['signing-file'],
-			JSON.stringify(keyData, null, 2) + '\n',
-			{ mode: 0o600 },
-		);
+		await writeFile(values['signing-file'], JSON.stringify(keyData, null, 2) + '\n', { mode: 0o600 });
 	} catch (err) {
 		console.error(`Error writing key file: ${err.message}`);
 		process.exit(1);
 	}
 	console.log(`Removed revoked key from ${values['signing-file']}`);
-} else if (
-	keyData &&
-	keyData.verificationKeys &&
-	keyData.verificationKeys[values.revoke]
-) {
-	console.log(
-		`Note: The revoked key still exists in ${values['signing-file']}. Use --cleanup to delete it.`,
-	);
+} else if (keyData && keyData.verificationKeys && keyData.verificationKeys[values.revoke]) {
+	console.log(`Note: The revoked key still exists in ${values['signing-file']}. Use --cleanup to delete it.`);
 }
 
 console.log(`View at: https://web.plc.directory/did/${values.did}`);

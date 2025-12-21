@@ -46,14 +46,10 @@ const SECP256K1_DID_KEY_LENGTH = 57;
  */
 export function validatePlcDid(did) {
 	if (!did.startsWith('did:plc:')) {
-		throw new DidValidationError(
-			`Invalid DID format. DID must start with 'did:plc:' prefix.`,
-		);
+		throw new DidValidationError(`Invalid DID format. DID must start with 'did:plc:' prefix.`);
 	}
 	if (did.length !== DID_PLC_LENGTH) {
-		throw new DidValidationError(
-			`Invalid DID format. DID must be ${DID_PLC_LENGTH} characters in length.`,
-		);
+		throw new DidValidationError(`Invalid DID format. DID must be ${DID_PLC_LENGTH} characters in length.`);
 	}
 }
 
@@ -65,9 +61,7 @@ export function validatePlcDid(did) {
  */
 export function validateVerificationKey(key) {
 	if (!key.startsWith('did:key:')) {
-		throw new PublicKeyValidationError(
-			`Invalid verification key format. Key must start with 'did:key:' prefix.`,
-		);
+		throw new PublicKeyValidationError(`Invalid verification key format. Key must start with 'did:key:' prefix.`);
 	}
 
 	if (key.startsWith(SECP256K1_DID_KEY_PREFIX)) {
@@ -97,9 +91,7 @@ export function validateVerificationKey(key) {
  */
 export function validateRotationKey(key) {
 	if (!key.startsWith('did:key:')) {
-		throw new PublicKeyValidationError(
-			`Invalid rotation key format. Key must start with 'did:key:' prefix.`,
-		);
+		throw new PublicKeyValidationError(`Invalid rotation key format. Key must start with 'did:key:' prefix.`);
 	}
 
 	if (key.startsWith(ED25519_DID_KEY_PREFIX)) {

@@ -63,9 +63,7 @@ function tokenizeReadme(content) {
 	const mdMatches = [...content.matchAll(mdSectionRegex)];
 
 	// Combine and sort by position in the document
-	const allMatches = [...wpMatches, ...mdMatches].sort(
-		(a, b) => a.index - b.index,
-	);
+	const allMatches = [...wpMatches, ...mdMatches].sort((a, b) => a.index - b.index);
 
 	if (allMatches.length === 0) {
 		return { headerBlock: content, sections };
@@ -248,9 +246,7 @@ export function parseReadmeFile(content) {
 
 	// Parse screenshots section into structured data
 	if (rawSections.has('screenshots')) {
-		result.screenshots = parseScreenshotsSection(
-			rawSections.get('screenshots').content,
-		);
+		result.screenshots = parseScreenshotsSection(rawSections.get('screenshots').content);
 	}
 
 	// Supported sections per FAIR spec (plus upgradeNotice for WordPress compatibility)
@@ -270,8 +266,7 @@ export function parseReadmeFile(content) {
 	for (const [key, { content, originalTitle }] of rawSections) {
 		if (!supportedSections.includes(key)) {
 			const descriptionContent = result.sections.description || '';
-			result.sections.description =
-				descriptionContent + `\n\n### ${originalTitle}\n\n${content}`;
+			result.sections.description = descriptionContent + `\n\n### ${originalTitle}\n\n${content}`;
 			delete result.sections[key];
 		}
 	}
@@ -286,10 +281,7 @@ export function parseReadmeFile(content) {
 		// Convert WordPress-flavour subheadings to markdown before parsing
 		// Handles 1-3 equals signs: = Heading =, == Heading ==, === Heading ===
 		// All become #### Heading (h4) as they're subheadings within sections
-		let markdown = result.sections[section].replace(
-			/^={1,3}\s*(.+?)\s*={0,3}\s*$/gm,
-			'#### $1',
-		);
+		let markdown = result.sections[section].replace(/^={1,3}\s*(.+?)\s*={0,3}\s*$/gm, '#### $1');
 		// Strip trailing hashes from markdown headings (e.g., "### Heading ###" -> "### Heading")
 		// Some readmes use ATX-style closing hashes which marked doesn't handle
 		markdown = markdown.replace(/^(#{1,6}\s+.+?)\s*#{1,6}\s*$/gm, '$1');

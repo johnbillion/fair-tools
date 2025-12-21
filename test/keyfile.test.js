@@ -45,22 +45,12 @@ describe('formatKeyFileContent', () => {
 
 		// Check rotation key is PEM encoded (SEC1 format for secp256k1)
 		const rotationKeyValue = parsed.rotationKeys['did:key:zQ3shRotation'];
-		assert(
-			rotationKeyValue.startsWith('-----BEGIN EC PRIVATE KEY-----'),
-			'Rotation key should be SEC1 PEM',
-		);
-		assert(
-			rotationKeyValue.endsWith('-----END EC PRIVATE KEY-----'),
-			'Rotation key should end with SEC1 footer',
-		);
+		assert(rotationKeyValue.startsWith('-----BEGIN EC PRIVATE KEY-----'), 'Rotation key should be SEC1 PEM');
+		assert(rotationKeyValue.endsWith('-----END EC PRIVATE KEY-----'), 'Rotation key should end with SEC1 footer');
 
 		// Check verification key is PEM encoded (PKCS#8 format for Ed25519)
-		const verificationKeyValue =
-			parsed.verificationKeys['did:key:z6MkVerification'];
-		assert(
-			verificationKeyValue.startsWith('-----BEGIN PRIVATE KEY-----'),
-			'Verification key should be PKCS#8 PEM',
-		);
+		const verificationKeyValue = parsed.verificationKeys['did:key:z6MkVerification'];
+		assert(verificationKeyValue.startsWith('-----BEGIN PRIVATE KEY-----'), 'Verification key should be PKCS#8 PEM');
 		assert(
 			verificationKeyValue.endsWith('-----END PRIVATE KEY-----'),
 			'Verification key should end with PKCS#8 footer',
@@ -95,11 +85,7 @@ describe('writeKeyFile', () => {
 		const fileStat = await stat(filePath);
 		// mode includes file type bits, so mask to get just permissions
 		const permissions = fileStat.mode & 0o777;
-		assert.strictEqual(
-			permissions,
-			0o600,
-			`Expected 0600, got ${permissions.toString(8)}`,
-		);
+		assert.strictEqual(permissions, 0o600, `Expected 0600, got ${permissions.toString(8)}`);
 	});
 
 	it('creates file that can be parsed as JSON', async () => {
@@ -123,14 +109,8 @@ describe('encodeRotationKey', () => {
 	it('encodes 32-byte key as SEC1 PEM format', () => {
 		const encoded = encodeRotationKey(sampleRotationKey);
 
-		assert(
-			encoded.startsWith('-----BEGIN EC PRIVATE KEY-----'),
-			'Should start with SEC1 header',
-		);
-		assert(
-			encoded.endsWith('-----END EC PRIVATE KEY-----'),
-			'Should end with SEC1 footer',
-		);
+		assert(encoded.startsWith('-----BEGIN EC PRIVATE KEY-----'), 'Should start with SEC1 header');
+		assert(encoded.endsWith('-----END EC PRIVATE KEY-----'), 'Should end with SEC1 footer');
 	});
 
 	it('produces a valid PEM that can be parsed by Node.js crypto', () => {
@@ -156,14 +136,8 @@ describe('encodeVerificationKey', () => {
 	it('encodes 32-byte key as PKCS#8 PEM format', () => {
 		const encoded = encodeVerificationKey(sampleVerificationKey);
 
-		assert(
-			encoded.startsWith('-----BEGIN PRIVATE KEY-----'),
-			'Should start with PKCS#8 header',
-		);
-		assert(
-			encoded.endsWith('-----END PRIVATE KEY-----'),
-			'Should end with PKCS#8 footer',
-		);
+		assert(encoded.startsWith('-----BEGIN PRIVATE KEY-----'), 'Should start with PKCS#8 header');
+		assert(encoded.endsWith('-----END PRIVATE KEY-----'), 'Should end with PKCS#8 footer');
 	});
 
 	it('produces a valid PEM that can be parsed by Node.js crypto', () => {
@@ -186,10 +160,7 @@ describe('encodeVerificationKey', () => {
 });
 
 describe('saveRotationKeyToFile', () => {
-	const testDir = join(
-		tmpdir(),
-		'fair-tools-save-rotation-key-test-' + Date.now(),
-	);
+	const testDir = join(tmpdir(), 'fair-tools-save-rotation-key-test-' + Date.now());
 
 	// Helper to create a mock key object with a 32-byte key
 	function mockKey(publicKey) {
@@ -216,14 +187,8 @@ describe('saveRotationKeyToFile', () => {
 
 		assert.strictEqual(result.appended, false);
 		const content = await readFile(outputFile, 'utf-8');
-		assert(
-			content.startsWith('-----BEGIN EC PRIVATE KEY-----'),
-			'Should start with PEM header',
-		);
-		assert(
-			content.endsWith('-----END EC PRIVATE KEY-----\n'),
-			'Should end with PEM footer and trailing newline',
-		);
+		assert(content.startsWith('-----BEGIN EC PRIVATE KEY-----'), 'Should start with PEM header');
+		assert(content.endsWith('-----END EC PRIVATE KEY-----\n'), 'Should end with PEM footer and trailing newline');
 	});
 
 	it('appends to rotationKeys when file exists with valid JSON', async () => {
@@ -244,20 +209,11 @@ describe('saveRotationKeyToFile', () => {
 		assert.strictEqual(result.appended, true);
 		const content = await readFile(outputFile, 'utf-8');
 		const parsed = JSON.parse(content);
-		assert.strictEqual(
-			parsed.rotationKeys['did:key:zQ3shExisting'],
-			'11223344',
-		);
+		assert.strictEqual(parsed.rotationKeys['did:key:zQ3shExisting'], '11223344');
 		// New key should be PEM encoded
 		const newKeyValue = parsed.rotationKeys['did:key:zQ3shNew'];
-		assert(
-			newKeyValue.startsWith('-----BEGIN EC PRIVATE KEY-----'),
-			'New key should start with PEM header',
-		);
-		assert(
-			newKeyValue.endsWith('-----END EC PRIVATE KEY-----'),
-			'New key should end with PEM footer',
-		);
+		assert(newKeyValue.startsWith('-----BEGIN EC PRIVATE KEY-----'), 'New key should start with PEM header');
+		assert(newKeyValue.endsWith('-----END EC PRIVATE KEY-----'), 'New key should end with PEM footer');
 	});
 
 	it('creates rotationKeys object when missing from existing JSON', async () => {
@@ -276,15 +232,11 @@ describe('saveRotationKeyToFile', () => {
 		const content = await readFile(outputFile, 'utf-8');
 		const parsed = JSON.parse(content);
 		assert(
-			parsed.rotationKeys['did:key:zQ3shNew'].startsWith(
-				'-----BEGIN EC PRIVATE KEY-----',
-			),
+			parsed.rotationKeys['did:key:zQ3shNew'].startsWith('-----BEGIN EC PRIVATE KEY-----'),
 			'Should start with PEM header',
 		);
 		assert(
-			parsed.rotationKeys['did:key:zQ3shNew'].endsWith(
-				'-----END EC PRIVATE KEY-----',
-			),
+			parsed.rotationKeys['did:key:zQ3shNew'].endsWith('-----END EC PRIVATE KEY-----'),
 			'Should end with PEM footer',
 		);
 	});
@@ -364,20 +316,13 @@ describe('saveRotationKeyToFile', () => {
 		const parsed = JSON.parse(content);
 		assert.strictEqual(parsed.did, 'did:plc:test');
 		assert.strictEqual(parsed.customField, 'should be preserved');
-		assert.strictEqual(
-			parsed.verificationKeys['did:key:z6MkVerify'],
-			'55667788',
-		);
+		assert.strictEqual(parsed.verificationKeys['did:key:z6MkVerify'], '55667788');
 		assert(
-			parsed.rotationKeys['did:key:zQ3shNew'].startsWith(
-				'-----BEGIN EC PRIVATE KEY-----',
-			),
+			parsed.rotationKeys['did:key:zQ3shNew'].startsWith('-----BEGIN EC PRIVATE KEY-----'),
 			'Should start with PEM header',
 		);
 		assert(
-			parsed.rotationKeys['did:key:zQ3shNew'].endsWith(
-				'-----END EC PRIVATE KEY-----',
-			),
+			parsed.rotationKeys['did:key:zQ3shNew'].endsWith('-----END EC PRIVATE KEY-----'),
 			'Should end with PEM footer',
 		);
 	});
@@ -399,10 +344,7 @@ describe('saveRotationKeyToFile', () => {
 			}),
 			(err) => {
 				assert(err instanceof SaveKeyError);
-				assert.strictEqual(
-					err.message,
-					'Key already exists in file: did:key:zQ3shSame',
-				);
+				assert.strictEqual(err.message, 'Key already exists in file: did:key:zQ3shSame');
 				return true;
 			},
 		);
@@ -410,10 +352,7 @@ describe('saveRotationKeyToFile', () => {
 });
 
 describe('saveVerificationKeyToFile', () => {
-	const testDir = join(
-		tmpdir(),
-		'fair-tools-save-verification-key-test-' + Date.now(),
-	);
+	const testDir = join(tmpdir(), 'fair-tools-save-verification-key-test-' + Date.now());
 
 	// Helper to create a mock key object with a 32-byte key
 	function mockKey(publicKey) {
@@ -440,14 +379,8 @@ describe('saveVerificationKeyToFile', () => {
 
 		assert.strictEqual(result.appended, false);
 		const content = await readFile(outputFile, 'utf-8');
-		assert(
-			content.startsWith('-----BEGIN PRIVATE KEY-----'),
-			'Should start with PEM header',
-		);
-		assert(
-			content.endsWith('-----END PRIVATE KEY-----\n'),
-			'Should end with PEM footer and trailing newline',
-		);
+		assert(content.startsWith('-----BEGIN PRIVATE KEY-----'), 'Should start with PEM header');
+		assert(content.endsWith('-----END PRIVATE KEY-----\n'), 'Should end with PEM footer and trailing newline');
 	});
 
 	it('appends to verificationKeys when file exists with valid JSON', async () => {
@@ -468,20 +401,11 @@ describe('saveVerificationKeyToFile', () => {
 		assert.strictEqual(result.appended, true);
 		const content = await readFile(outputFile, 'utf-8');
 		const parsed = JSON.parse(content);
-		assert.strictEqual(
-			parsed.verificationKeys['did:key:z6MkExisting'],
-			'11223344',
-		);
+		assert.strictEqual(parsed.verificationKeys['did:key:z6MkExisting'], '11223344');
 		// New key should be PEM encoded
 		const newKeyValue = parsed.verificationKeys['did:key:z6MkNew'];
-		assert(
-			newKeyValue.startsWith('-----BEGIN PRIVATE KEY-----'),
-			'New key should start with PEM header',
-		);
-		assert(
-			newKeyValue.endsWith('-----END PRIVATE KEY-----'),
-			'New key should end with PEM footer',
-		);
+		assert(newKeyValue.startsWith('-----BEGIN PRIVATE KEY-----'), 'New key should start with PEM header');
+		assert(newKeyValue.endsWith('-----END PRIVATE KEY-----'), 'New key should end with PEM footer');
 	});
 
 	it('creates verificationKeys object when missing from existing JSON', async () => {
@@ -500,15 +424,11 @@ describe('saveVerificationKeyToFile', () => {
 		const content = await readFile(outputFile, 'utf-8');
 		const parsed = JSON.parse(content);
 		assert(
-			parsed.verificationKeys['did:key:z6MkNew'].startsWith(
-				'-----BEGIN PRIVATE KEY-----',
-			),
+			parsed.verificationKeys['did:key:z6MkNew'].startsWith('-----BEGIN PRIVATE KEY-----'),
 			'Should start with PEM header',
 		);
 		assert(
-			parsed.verificationKeys['did:key:z6MkNew'].endsWith(
-				'-----END PRIVATE KEY-----',
-			),
+			parsed.verificationKeys['did:key:z6MkNew'].endsWith('-----END PRIVATE KEY-----'),
 			'Should end with PEM footer',
 		);
 	});
@@ -530,10 +450,7 @@ describe('saveVerificationKeyToFile', () => {
 			}),
 			(err) => {
 				assert(err instanceof SaveKeyError);
-				assert.strictEqual(
-					err.message,
-					'Key already exists in file: did:key:z6MkSame',
-				);
+				assert.strictEqual(err.message, 'Key already exists in file: did:key:z6MkSame');
 				return true;
 			},
 		);

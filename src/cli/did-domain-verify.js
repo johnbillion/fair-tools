@@ -1,11 +1,7 @@
 #!/usr/bin/env node
 
 import { parseArgs } from 'node:util';
-import {
-	DnsRecordNotFoundError,
-	DnsRecordInvalidError,
-	verifyDomainDid,
-} from '../domain.js';
+import { DnsRecordNotFoundError, DnsRecordInvalidError, verifyDomainDid } from '../domain.js';
 import { validatePlcDid, DidValidationError } from '../did-validation.js';
 
 const { values } = parseArgs({
@@ -50,9 +46,7 @@ DNS Record Setup:
 const required = ['domain', 'did'];
 const missing = required.filter((opt) => !values[opt]);
 if (missing.length > 0) {
-	console.error(
-		`Error: Missing required options: ${missing.map((o) => `--${o}`).join(', ')}`,
-	);
+	console.error(`Error: Missing required options: ${missing.map((o) => `--${o}`).join(', ')}`);
 	console.error('Run with --help for usage information.');
 	process.exit(1);
 }
@@ -77,10 +71,7 @@ try {
 	console.log(`  DID: ${values.did}`);
 } catch (err) {
 	console.error(`\n✗ ${err.message}`);
-	if (
-		err instanceof DnsRecordNotFoundError ||
-		err instanceof DnsRecordInvalidError
-	) {
+	if (err instanceof DnsRecordNotFoundError || err instanceof DnsRecordInvalidError) {
 		console.error(`\n  To verify this domain, add a TXT record:`);
 		console.error(`    Host: _fairpm.${values.domain}`);
 		console.error(`    Value: did=${values.did}`);
