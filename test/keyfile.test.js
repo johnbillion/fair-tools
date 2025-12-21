@@ -721,7 +721,7 @@ describe('migrateKeysToPEM', () => {
 
 		await assert.rejects(migrateKeysToPEM({ keyFile }), (err) => {
 			assert(err instanceof MigrateKeysError);
-			assert.match(err.message, /Key file must be valid JSON or a standalone key/);
+			assert.strictEqual(err.message, 'Key file must be valid JSON or a standalone multibase-encoded key.');
 			return true;
 		});
 	});
