@@ -14,18 +14,18 @@ export const SECP256K1_PRIV_PREFIX = new Uint8Array([0x81, 0x26]);
  */
 export const ED25519_PRIV_PREFIX = new Uint8Array([0x80, 0x26]);
 
-export const SECP256K1_PRIV_PREFIX_HEX = Buffer.from(SECP256K1_PRIV_PREFIX).toString('hex');
-export const ED25519_PRIV_PREFIX_HEX = Buffer.from(ED25519_PRIV_PREFIX).toString('hex');
+const SECP256K1_PRIV_PREFIX_HEX = Buffer.from(SECP256K1_PRIV_PREFIX).toString('hex');
+const ED25519_PRIV_PREFIX_HEX = Buffer.from(ED25519_PRIV_PREFIX).toString('hex');
 
 /**
  * PEM header for EC private keys (SEC1 format, used for secp256k1 rotation keys).
  */
-export const EC_PRIVATE_KEY_HEADER = '-----BEGIN EC PRIVATE KEY-----';
+const EC_PRIVATE_KEY_HEADER = '-----BEGIN EC PRIVATE KEY-----';
 
 /**
  * PEM header for PKCS#8 private keys (used for Ed25519 verification keys).
  */
-export const PKCS8_PRIVATE_KEY_HEADER = '-----BEGIN PRIVATE KEY-----';
+const PKCS8_PRIVATE_KEY_HEADER = '-----BEGIN PRIVATE KEY-----';
 
 export class SigningKeyError extends Error {}
 
