@@ -134,7 +134,7 @@ Most subsequent commands after creating a DID require a signing key. There are t
 Builds signed FAIR metadata for a release of a plugin for WordPress.
 
 ```bash
-fair-tools metadata build \
+fair-tools metadata release \
   --did did:plc:xxx \
   --plugin-file ./my-plugin/my-plugin.php \
   --zip-file ./my-plugin.zip \

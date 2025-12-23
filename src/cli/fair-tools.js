@@ -72,9 +72,9 @@ const commands = {
 		},
 	},
 	metadata: {
-		build: {
-			description: 'Build a FAIR metadata document',
-			load: () => import('./metadata-build.js'),
+		release: {
+			description: 'Build a FAIR metadata document containing a new release',
+			load: () => import('./metadata-release.js'),
 		},
 	},
 };
