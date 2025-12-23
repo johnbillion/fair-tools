@@ -135,7 +135,7 @@ export function formatKeyFileContent({ did, rotationKey, verificationKey }) {
 			},
 		},
 		null,
-		2,
+		'\t',
 	);
 }
 
@@ -201,7 +201,7 @@ export async function saveRotationKeyToFile({ outputFile, key }) {
 				throw new SaveKeyError(`Key already exists in file: ${publicKey}`);
 			}
 			outputData.rotationKeys[publicKey] = encodedKey;
-			await writeFile(outputFile, JSON.stringify(outputData, null, 2) + '\n', {
+			await writeFile(outputFile, JSON.stringify(outputData, null, '\t') + '\n', {
 				mode: KEY_FILE_MODE,
 			});
 			return { appended: true };
@@ -269,7 +269,7 @@ export async function saveVerificationKeyToFile({ outputFile, key }) {
 				throw new SaveKeyError(`Key already exists in file: ${publicKey}`);
 			}
 			outputData.verificationKeys[publicKey] = encodedKey;
-			await writeFile(outputFile, JSON.stringify(outputData, null, 2) + '\n', {
+			await writeFile(outputFile, JSON.stringify(outputData, null, '\t') + '\n', {
 				mode: KEY_FILE_MODE,
 			});
 			return { appended: true };
@@ -477,7 +477,7 @@ async function migrateJsonKeyFile(keyFile, keyData) {
 		}
 
 		try {
-			await writeFile(keyFile, JSON.stringify(keyData, null, 2) + '\n');
+			await writeFile(keyFile, JSON.stringify(keyData, null, '\t') + '\n');
 			await chmod(keyFile, KEY_FILE_MODE);
 		} catch (err) {
 			throw new MigrateKeysError(`Error writing migrated file: ${err.message}`);

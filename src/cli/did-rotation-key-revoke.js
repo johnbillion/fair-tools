@@ -142,7 +142,7 @@ console.log('Rotation key revoked successfully.');
 if (values.cleanup && keyData && keyData.rotationKeys[values.revoke]) {
 	delete keyData.rotationKeys[values.revoke];
 	try {
-		await writeFile(values['signing-file'], JSON.stringify(keyData, null, 2) + '\n', { mode: 0o600 });
+		await writeFile(values['signing-file'], JSON.stringify(keyData, null, '\t') + '\n', { mode: 0o600 });
 	} catch (err) {
 		console.error(`Error writing key file: ${err.message}`);
 		process.exit(1);

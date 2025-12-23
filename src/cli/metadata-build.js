@@ -164,7 +164,7 @@ if (overwrittenVersion) {
 	console.warn(`Warning: Overwriting existing release version ${overwrittenVersion}`);
 }
 
-const output = JSON.stringify(metadata, null, 2);
+const output = JSON.stringify(metadata, null, '\t');
 
 if (values['output-file']) {
 	try {

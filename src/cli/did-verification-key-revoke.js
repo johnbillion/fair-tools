@@ -131,7 +131,7 @@ console.log('Verification key revoked successfully.');
 if (values.cleanup && keyData && keyData.verificationKeys && keyData.verificationKeys[values.revoke]) {
 	delete keyData.verificationKeys[values.revoke];
 	try {
-		await writeFile(values['signing-file'], JSON.stringify(keyData, null, 2) + '\n', { mode: 0o600 });
+		await writeFile(values['signing-file'], JSON.stringify(keyData, null, '\t') + '\n', { mode: 0o600 });
 	} catch (err) {
 		console.error(`Error writing key file: ${err.message}`);
 		process.exit(1);
