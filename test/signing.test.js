@@ -243,7 +243,10 @@ describe('signing.js', () => {
 
 			await assert.rejects(loadRotationKey({ signingFile: filePath }), (err) => {
 				assert(err instanceof SigningKeyError);
-				assert.strictEqual(err.message, 'Key file must be valid JSON or a standalone key (PEM, multibase, or hex)');
+				assert.strictEqual(
+					err.message,
+					'Key file must be valid JSON or a standalone key (PEM, multibase, or hex)',
+				);
 				return true;
 			});
 		});
@@ -526,7 +529,10 @@ describe('signing.js', () => {
 
 			await assert.rejects(loadVerificationKey({ signingFile: filePath }), (err) => {
 				assert(err instanceof SigningKeyError);
-				assert.strictEqual(err.message, 'Key file must be valid JSON or a standalone key (PEM, multibase, or hex)');
+				assert.strictEqual(
+					err.message,
+					'Key file must be valid JSON or a standalone key (PEM, multibase, or hex)',
+				);
 				return true;
 			});
 		});
@@ -776,7 +782,10 @@ describe('signing.js', () => {
 				}),
 				(err) => {
 					assert(err instanceof SigningKeyError);
-					assert.strictEqual(err.message, 'Key file must be valid JSON or a standalone key (PEM, multibase, or hex)');
+					assert.strictEqual(
+						err.message,
+						'Key file must be valid JSON or a standalone key (PEM, multibase, or hex)',
+					);
 					return true;
 				},
 			);

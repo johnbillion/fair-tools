@@ -446,7 +446,9 @@ export function replaceServiceUrlInOp(lastOp, oldUrl, newUrl) {
 		throw new Error(`FAIR service not found in DID`);
 	}
 	if (existingService.endpoint !== oldUrl) {
-		throw new Error(`Current service URL does not match: expected "${oldUrl}", found "${existingService.endpoint}"`);
+		throw new Error(
+			`Current service URL does not match: expected "${oldUrl}", found "${existingService.endpoint}"`,
+		);
 	}
 	return {
 		...lastOp,
