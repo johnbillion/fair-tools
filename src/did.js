@@ -30,9 +30,9 @@ export const FAIR_SERVICE_TYPE = 'FairPackageManagementRepo';
 export const FAIR_SERVICE_ID = 'fairpm_repo';
 
 /**
- * Creates an unsigned FAIR genesis operation.
+ * Creates an unsigned PLC DID genesis operation.
  *
- * This creates the initial operation for a new FAIR package DID.
+ * This creates the initial operation for a new PLC DID for a FAIR package.
  * The operation does NOT include the FAIR service - this should be
  * added in a subsequent update operation after the DID is created.
  *
@@ -56,9 +56,9 @@ function createGenesisOperation({ verificationKey, rotationKeys }) {
 }
 
 /**
- * Creates a signed FAIR genesis operation.
+ * Creates a signed PLC DID genesis operation.
  *
- * This creates the initial operation for a new FAIR package DID.
+ * This creates the initial operation for a new PLC DID for a FAIR package.
  * The operation does NOT include the FAIR service - this should be
  * added in a subsequent updateDID() operation after the DID is created.
  *
