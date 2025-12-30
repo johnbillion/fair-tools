@@ -1,6 +1,6 @@
 # FAIR Tools
 
-A library of Node.js tools for [FAIR](https://fair.pm/) that can be used by authors of plugins and themes for WordPress. Create keys, create DIDs, manage DID documents, and build signed FAIR metadata.
+A library of Node.js tools for [FAIR](https://fair.pm/) that can be used by authors and consumers of plugins and themes for WordPress.
 
 This library focuses on providing FAIR tools for the WordPress ecosystem, but its tools are also applicable to FAIR and DID PLC in general.
 
