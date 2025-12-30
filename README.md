@@ -120,14 +120,14 @@ Manually add the new DID to the header of your plugin. The `did:plc:` prefix mus
 Most subsequent commands after creating a DID require a signing key. There are two ways to provide one:
 
 1. **Key file**: Use `--signing-file` to specify a key file. The file can be either:
-    - A JSON file created by fair-tools containing your keys (use `--signing-key` to select a specific key; defaults to first key)
-    - A standalone PEM file (starts with `-----BEGIN EC PRIVATE KEY-----` for rotation keys or `-----BEGIN PRIVATE KEY-----` for verification keys)
-    - A standalone multibase base58btc file (starts with `z3vL` for rotation keys or `zru`/`zrv` for verification keys from FAIR Beacon)
-    - A standalone hex file (64-character lowercase hex string representing the 32-byte private key)
+   - A JSON file created by fair-tools containing your keys (use `--signing-key` to select a specific key; defaults to first key)
+   - A standalone PEM file (starts with `-----BEGIN EC PRIVATE KEY-----` for rotation keys or `-----BEGIN PRIVATE KEY-----` for verification keys)
+   - A standalone multibase base58btc file (starts with `z3vL` for rotation keys or `zru`/`zrv` for verification keys from FAIR Beacon)
+   - A standalone hex file (64-character lowercase hex string representing the 32-byte private key)
 
 2. **Environment variable**: If `--signing-file` is not provided, the command falls back to an environment variable:
-    - `FAIR_VERIFICATION_KEY` for metadata signing
-    - `FAIR_ROTATION_KEY` for DID operations
+   - `FAIR_VERIFICATION_KEY` for metadata signing
+   - `FAIR_ROTATION_KEY` for DID operations
 
 ### Build metadata
 

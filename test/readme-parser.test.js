@@ -66,10 +66,7 @@ describe('parseReadmeFile', () => {
 				assert.ok(Array.isArray(data.keywords), `${name}: keywords should be array`);
 
 				// Every fixture should have a description section
-				assert.ok(
-					typeof data.sections.description === 'string',
-					`${name}: sections.description should be string`,
-				);
+				assert.ok(typeof data.sections.description === 'string', `${name}: sections.description should be string`);
 
 				// Description should not contain unparsed section markers
 				assert.ok(
@@ -92,10 +89,7 @@ describe('parseReadmeFile', () => {
 				for (const prop of Object.keys(data)) {
 					if (prop === 'screenshots' || prop === 'keywords') continue;
 					const val = data[prop];
-					assert.ok(
-						val !== '' && !(Array.isArray(val) && val.length === 0),
-						`${name}: ${prop} should not be empty`,
-					);
+					assert.ok(val !== '' && !(Array.isArray(val) && val.length === 0), `${name}: ${prop} should not be empty`);
 				}
 
 				// If screenshots exists, it should be an array of objects with description
@@ -103,10 +97,7 @@ describe('parseReadmeFile', () => {
 					hasScreenshotsFixture = true;
 					assert.ok(Array.isArray(data.screenshots), `${name}: screenshots should be array`);
 					for (const item of data.screenshots) {
-						assert.ok(
-							typeof item.description === 'string',
-							`${name}: screenshot description should be string`,
-						);
+						assert.ok(typeof item.description === 'string', `${name}: screenshot description should be string`);
 					}
 				}
 
@@ -801,8 +792,7 @@ Use wp plugin list.
 				stableTag: undefined,
 				donateLink: undefined,
 				sections: {
-					description:
-						'<p>The description.</p>\n' + '<h3>WP CLI Commands</h3>\n' + '<p>Use wp plugin list.</p>\n',
+					description: '<p>The description.</p>\n' + '<h3>WP CLI Commands</h3>\n' + '<p>Use wp plugin list.</p>\n',
 				},
 			});
 		});

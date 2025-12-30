@@ -401,11 +401,7 @@ describe('replaceServiceUrlInOp', () => {
 
 		assert.throws(
 			() =>
-				replaceServiceUrlInOp(
-					lastOp,
-					'https://old.example.com/metadata.json',
-					'https://new.example.com/metadata.json',
-				),
+				replaceServiceUrlInOp(lastOp, 'https://old.example.com/metadata.json', 'https://new.example.com/metadata.json'),
 			/FAIR service not found in DID/,
 		);
 	});
@@ -532,10 +528,7 @@ describe('revokeRotationKeyFromOp', () => {
 			rotationKeys: ['did:key:zQ3shOnly'],
 		};
 
-		assert.throws(
-			() => revokeRotationKeyFromOp(lastOp, 'did:key:zQ3shOnly'),
-			/Cannot revoke the last rotation key/,
-		);
+		assert.throws(() => revokeRotationKeyFromOp(lastOp, 'did:key:zQ3shOnly'), /Cannot revoke the last rotation key/);
 	});
 
 	it('preserves verification keys, services, and alsoKnownAs', () => {
