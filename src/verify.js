@@ -28,7 +28,7 @@
  * }} VerificationOptions
  */
 
-import { createHash } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { Ed25519Keypair } from './Ed25519Keypair.js';
 import { METADATA_CONTEXT, verifyArtifact } from './metadata.js';
 import { PLC_DIRECTORY_URL } from './did.js';
@@ -190,10 +190,20 @@ export function verifyArtifactChecksum(data, checksum) {
 		throw new ChecksumVerificationError(`Unsupported checksum algorithm: ${algorithm}`);
 	}
 
-	const actualHash = createHash(algorithm).update(data).digest('hex');
+	const actualHashBuffer = createHash(algorithm).update(data).digest();
+	const expectedHashBuffer = Buffer.from(expectedHash, 'hex');
 
-	if (actualHash !== expectedHash) {
-		throw new ChecksumVerificationError(`Checksum mismatch: expected ${expectedHash}, got ${actualHash}`);
+	let match;
+	try {
+		match = timingSafeEqual(actualHashBuffer, expectedHashBuffer);
+	} catch {
+		match = false;
+	}
+
+	if (!match) {
+		throw new ChecksumVerificationError(
+			`Checksum mismatch: expected ${expectedHash}, got ${actualHashBuffer.toString('hex')}`,
+		);
 	}
 }
 
