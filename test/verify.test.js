@@ -3,10 +3,14 @@ import assert from 'node:assert';
 import {
 	extractVerificationKeys,
 	verifyArtifactChecksum,
+	verifyArtifactSignature,
 	validateMetadataStructure,
 	ChecksumVerificationError,
+	SignatureVerificationError,
 } from '../src/verify.js';
-import { METADATA_CONTEXT } from '../src/metadata.js';
+import { generateVerificationKeyPair } from '../src/keys.js';
+import { Ed25519Keypair } from '../src/Ed25519Keypair.js';
+import { signArtifact, METADATA_CONTEXT } from '../src/metadata.js';
 
 describe('extractVerificationKeys', () => {
 	it('extracts keys with #fair fragment', () => {
@@ -158,5 +162,159 @@ describe('validateMetadataStructure', () => {
 
 		assert.strictEqual(result.valid, false);
 		assert.ok(result.errors.length >= 2);
+	});
+});
+
+describe('Ed25519Keypair.fromPublicKeyMultibase', () => {
+	it('parses a valid Ed25519 publicKeyMultibase and can verify signatures', async () => {
+		// Generate a keypair, get its multibase representation, then parse it back
+		const original = await generateVerificationKeyPair();
+
+		// Sign something with the original keypair
+		const data = Buffer.from('test artifact data');
+		const signature = await signArtifact(data, original.keypair);
+
+		// Get the multibase public key from the did:key
+		// did:key:z6Mk... -> z6Mk... (strip 'did:key:' prefix)
+		const publicKeyMultibase = original.publicKey.replace('did:key:', '');
+
+		// Parse it back and verify the signature
+		const parsed = await Ed25519Keypair.fromPublicKeyMultibase(publicKeyMultibase);
+		const { verifyArtifact } = await import('../src/metadata.js');
+		const isValid = await verifyArtifact(data, signature, parsed);
+
+		assert.strictEqual(isValid, true);
+	});
+
+	it('rejects secp256k1 keys with clear error message', async () => {
+		// secp256k1 compressed public key multibase (starts with zQ3sh)
+		// This is a valid secp256k1 key format used for rotation keys
+		const secp256k1Multibase = 'zQ3shZc2QzJE5VLjPRhMgwg7JXjHKhqLmUxGPGBbhq3yuU3oR';
+
+		await assert.rejects(Ed25519Keypair.fromPublicKeyMultibase(secp256k1Multibase), (err) => {
+			assert.ok(err.message.includes('Ed25519'));
+			assert.ok(err.message.includes('0xe701')); // secp256k1's multicodec prefix
+			return true;
+		});
+	});
+
+	it('rejects malformed multibase strings', async () => {
+		await assert.rejects(Ed25519Keypair.fromPublicKeyMultibase('not-valid-multibase'), (err) => {
+			assert.ok(err instanceof Error);
+			return true;
+		});
+	});
+
+	it('round-trips a real public key from querymonitor.com DID document', async () => {
+		// Real public key from did:plc:q2afge25l63iz553aumeqi3w#fair
+		const publicKeyMultibase = 'z6Mkitp3T2Gk2U4pvuwpy8ygAzxkM6K1Ygoyv1ZgUx3AW9Px';
+
+		const keypair = await Ed25519Keypair.fromPublicKeyMultibase(publicKeyMultibase);
+
+		// Verify it parsed correctly - should be 32 bytes
+		assert.strictEqual(keypair.publicKeyBytes().length, 32);
+
+		// Round-trip: publicKeyStr() should return the same multibase
+		assert.strictEqual(keypair.publicKeyStr(), publicKeyMultibase);
+	});
+});
+
+describe('verifyArtifactSignature', () => {
+	it('returns the key ID when signature matches', async () => {
+		const keys = await generateVerificationKeyPair();
+		const data = Buffer.from('artifact content');
+		const signature = await signArtifact(data, keys.keypair);
+
+		const verificationKeys = [
+			{
+				id: 'did:plc:test#fair',
+				publicKeyMultibase: keys.publicKey.replace('did:key:', ''),
+			},
+		];
+
+		const matchedKeyId = await verifyArtifactSignature(data, signature, verificationKeys);
+
+		assert.strictEqual(matchedKeyId, 'did:plc:test#fair');
+	});
+
+	it('tries multiple keys and returns the one that matches', async () => {
+		const correctKey = await generateVerificationKeyPair();
+		const wrongKey = await generateVerificationKeyPair();
+		const data = Buffer.from('artifact content');
+		const signature = await signArtifact(data, correctKey.keypair);
+
+		const verificationKeys = [
+			{
+				id: 'did:plc:test#fair-wrong',
+				publicKeyMultibase: wrongKey.publicKey.replace('did:key:', ''),
+			},
+			{
+				id: 'did:plc:test#fair-correct',
+				publicKeyMultibase: correctKey.publicKey.replace('did:key:', ''),
+			},
+		];
+
+		const matchedKeyId = await verifyArtifactSignature(data, signature, verificationKeys);
+
+		assert.strictEqual(matchedKeyId, 'did:plc:test#fair-correct');
+	});
+
+	it('throws SignatureVerificationError when no key matches', async () => {
+		const signingKey = await generateVerificationKeyPair();
+		const wrongKey = await generateVerificationKeyPair();
+		const data = Buffer.from('artifact content');
+		const signature = await signArtifact(data, signingKey.keypair);
+
+		const verificationKeys = [
+			{
+				id: 'did:plc:test#fair',
+				publicKeyMultibase: wrongKey.publicKey.replace('did:key:', ''),
+			},
+		];
+
+		await assert.rejects(verifyArtifactSignature(data, signature, verificationKeys), (err) => {
+			assert.ok(err instanceof SignatureVerificationError);
+			assert.ok(err.message.includes('does not match'));
+			return true;
+		});
+	});
+
+	it('includes key parsing errors in the error message', async () => {
+		const data = Buffer.from('artifact content');
+		const signature = 'some-signature';
+
+		// Use an invalid multibase that will fail to parse
+		const verificationKeys = [
+			{
+				id: 'did:plc:test#fair-bad',
+				publicKeyMultibase: 'invalid-not-multibase',
+			},
+		];
+
+		await assert.rejects(verifyArtifactSignature(data, signature, verificationKeys), (err) => {
+			assert.ok(err instanceof SignatureVerificationError);
+			assert.ok(err.message.includes('did:plc:test#fair-bad'));
+			return true;
+		});
+	});
+
+	it('rejects non-Ed25519 keys with informative error', async () => {
+		const data = Buffer.from('artifact content');
+		const signature = 'some-signature';
+
+		// secp256k1 key (rotation key type, not verification key)
+		const verificationKeys = [
+			{
+				id: 'did:plc:test#wrong-type',
+				publicKeyMultibase: 'zQ3shZc2QzJE5VLjPRhMgwg7JXjHKhqLmUxGPGBbhq3yuU3oR',
+			},
+		];
+
+		await assert.rejects(verifyArtifactSignature(data, signature, verificationKeys), (err) => {
+			assert.ok(err instanceof SignatureVerificationError);
+			assert.ok(err.message.includes('did:plc:test#wrong-type'));
+			assert.ok(err.message.includes('Ed25519'));
+			return true;
+		});
 	});
 });

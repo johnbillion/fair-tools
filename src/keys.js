@@ -1,4 +1,4 @@
-import { parseMultikey, Secp256k1Keypair, verifySignature } from '@atproto/crypto';
+import { Secp256k1Keypair, verifySignature } from '@atproto/crypto';
 import { ed25519 } from '@noble/curves/ed25519';
 import { Ed25519Keypair } from './Ed25519Keypair.js';
 
@@ -116,19 +116,4 @@ export async function verifyWithVerificationKey(message, signature, keypair) {
  */
 export async function verifyWithRotationKey(message, signature, publicKey) {
 	return verifySignature(publicKey, message, signature);
-}
-
-/**
- * Creates a verification keypair from a publicKeyMultibase value.
- *
- * @param {string} publicKeyMultibase - The multibase-encoded public key
- * @returns {Promise<Ed25519Keypair>} The keypair (public key only)
- * @throws {Error} If the key is not an Ed25519 key
- */
-export async function keypairFromMultibase(publicKeyMultibase) {
-	const { jwtAlg, keyBytes } = parseMultikey(publicKeyMultibase);
-	if (jwtAlg !== 'EdDSA') {
-		throw new Error(`Unsupported key type: expected EdDSA, got ${jwtAlg}`);
-	}
-	return Ed25519Keypair.fromPublicKey(keyBytes);
 }

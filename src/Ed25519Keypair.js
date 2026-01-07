@@ -1,4 +1,4 @@
-import { bytesToMultibase } from '@atproto/crypto';
+import { bytesToMultibase, multibaseToBytes } from '@atproto/crypto';
 import { ed25519 } from '@noble/curves/ed25519';
 import * as uint8arrays from 'uint8arrays';
 
@@ -69,6 +69,27 @@ export class Ed25519Keypair {
 	 */
 	static async fromPublicKey(publicKey) {
 		return new Ed25519Keypair(null, publicKey);
+	}
+
+	/**
+	 * Create a verification-only keypair from a multibase-encoded public key.
+	 *
+	 * @param {string} publicKeyMultibase - Multibase-encoded public key (z6Mk...)
+	 * @returns {Promise<Ed25519Keypair>}
+	 * @throws {Error} If the key is not an Ed25519 key
+	 */
+	static async fromPublicKeyMultibase(publicKeyMultibase) {
+		const decoded = multibaseToBytes(publicKeyMultibase);
+
+		if (decoded[0] !== ED25519_PUBLIC_PREFIX[0] || decoded[1] !== ED25519_PUBLIC_PREFIX[1]) {
+			throw new Error(
+				`Unsupported key type: expected Ed25519 multicodec prefix (0xed01), ` +
+					`got 0x${decoded[0].toString(16).padStart(2, '0')}${decoded[1].toString(16).padStart(2, '0')}`,
+			);
+		}
+
+		const publicKeyBytes = decoded.slice(ED25519_PUBLIC_PREFIX.length);
+		return new Ed25519Keypair(null, publicKeyBytes);
 	}
 
 	/**

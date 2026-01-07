@@ -29,7 +29,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { keypairFromMultibase } from './keys.js';
+import { Ed25519Keypair } from './Ed25519Keypair.js';
 import { METADATA_CONTEXT, verifyArtifact } from './metadata.js';
 import { PLC_DIRECTORY_URL } from './did.js';
 
@@ -159,7 +159,7 @@ export async function verifyArtifactSignature(data, signature, verificationKeys)
 
 	for (const key of verificationKeys) {
 		try {
-			const keypair = await keypairFromMultibase(key.publicKeyMultibase);
+			const keypair = await Ed25519Keypair.fromPublicKeyMultibase(key.publicKeyMultibase);
 			const valid = await verifyArtifact(data, signature, keypair);
 			if (valid) {
 				return key.id;
@@ -190,7 +190,7 @@ export function verifyArtifactChecksum(data, checksum) {
 		throw new ChecksumVerificationError(`Unsupported checksum algorithm: ${algorithm}`);
 	}
 
-	const actualHash = createHash('sha256').update(data).digest('hex');
+	const actualHash = createHash(algorithm).update(data).digest('hex');
 
 	if (actualHash !== expectedHash) {
 		throw new ChecksumVerificationError(`Checksum mismatch: expected ${expectedHash}, got ${actualHash}`);
