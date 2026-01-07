@@ -22,7 +22,9 @@ export const ED25519_PRIVATE_PREFIX = new Uint8Array([0x80, 0x26]);
  * Provides the same interface as Secp256k1Keypair for Ed25519 keys used for artifact signing.
  */
 export class Ed25519Keypair {
+	/** @type {Uint8Array | null} */
 	#privateKey;
+	/** @type {Uint8Array} */
 	#publicKey;
 
 	/**

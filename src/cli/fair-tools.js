@@ -79,11 +79,42 @@ const commands = {
 	},
 };
 
+/**
+ * Checks if an object is a command definition.
+ *
+ * @param {object} obj - Object to check
+ * @returns {boolean} True if obj is a command with a load function
+ */
 function isCommand(obj) {
 	return obj && typeof obj.load === 'function';
 }
 
+/**
+ * @typedef {Object} Command
+ * @property {string} description - Command description
+ * @property {() => Promise<unknown>} load - Function to load the command module
+ */
+
+/**
+ * @typedef {Object} CollectedCommand
+ * @property {string[]} path - Command path segments
+ * @property {string} description - Command description
+ * @property {() => Promise<unknown>} load - Function to load the command module
+ */
+
+/**
+ * @typedef {Command | Record<string, CommandTree>} CommandTree
+ */
+
+/**
+ * Recursively collects all commands from a command tree.
+ *
+ * @param {Record<string, CommandTree>} obj - Command tree object
+ * @param {string[]} prefix - Path prefix for nested commands
+ * @returns {CollectedCommand[]} Array of collected commands with their paths
+ */
 function collectCommands(obj, prefix = []) {
+	/** @type {CollectedCommand[]} */
 	const results = [];
 	for (const [key, value] of Object.entries(obj)) {
 		const path = [...prefix, key];
@@ -96,6 +127,11 @@ function collectCommands(obj, prefix = []) {
 	return results;
 }
 
+/**
+ * Displays the main help message with all available commands.
+ *
+ * @returns {void}
+ */
 function showHelp() {
 	const allCommands = collectCommands(commands);
 	const maxLen = Math.max(...allCommands.map((c) => c.path.join(' ').length));
@@ -110,6 +146,13 @@ ${lines.join('\n')}
 Run 'fair-tools <command> --help' for more information on a command.`);
 }
 
+/**
+ * Displays help for a subcommand group.
+ *
+ * @param {Record<string, CommandTree>} obj - Command tree for the subcommand group
+ * @param {string[]} path - Path segments to the subcommand group
+ * @returns {void}
+ */
 function showSubHelp(obj, path) {
 	const subCommands = collectCommands(obj, []);
 	const maxLen = Math.max(...subCommands.map((c) => c.path.join(' ').length));
