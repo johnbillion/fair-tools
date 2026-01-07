@@ -73,14 +73,13 @@ try {
 	throw err;
 }
 
-/** @type {{valid: boolean, did: string, log: object, services: object[], alias: object|null, warnings: string[], errors: string[]}} */
+/** @type {{valid: boolean, did: string, log: object, services: object[], alias: object|null, errors: string[]}} */
 const result = {
 	valid: true,
 	did: values.did,
 	log: { valid: false },
 	services: [],
 	alias: null,
-	warnings: [],
 	errors: [],
 };
 
@@ -131,8 +130,7 @@ const fairServices = (didDocument.service || []).filter((s) => s.type === FAIR_S
 console.log('\nService Endpoints:');
 
 if (fairServices.length === 0) {
-	result.warnings.push('No FairPackageManagementRepo services found');
-	console.log('  ⚠ No FairPackageManagementRepo services found');
+	console.log('  - No FairPackageManagementRepo services found');
 } else {
 	// 3. Verify each service endpoint
 	for (const service of fairServices) {
@@ -141,65 +139,65 @@ if (fairServices.length === 0) {
 		console.log(`\n  ${serviceUrl}:`);
 
 		try {
-			const serviceResult = await verifyServiceEndpoint(serviceUrl, {
+			const releases = await verifyServiceEndpoint(serviceUrl, {
 				did: values.did,
 				allReleases: values['all-releases'],
 			});
 
 			result.services.push({
 				url: serviceUrl,
-				valid: serviceResult.valid,
-				releases: serviceResult.releases,
-				warnings: serviceResult.warnings,
-				errors: serviceResult.errors,
+				valid: true,
+				releases,
 			});
 
-			if (!serviceResult.valid) {
-				result.valid = false;
-				result.errors.push(...serviceResult.errors.map((e) => `${serviceUrl}: ${e}`));
-			}
-			result.warnings.push(...serviceResult.warnings.map((w) => `${serviceUrl}: ${w}`));
-
-			if (serviceResult.valid) {
-				console.log('    ✓ Metadata document valid');
-			} else {
-				console.log('    ✗ Metadata verification failed');
-			}
+			console.log('    ✓ Metadata document valid');
 
 			// Show release results
-			for (const release of serviceResult.releases) {
-				const releaseIcon = release.valid ? '✓' : '✗';
-				console.log(`    ${releaseIcon} Release v${release.version}`);
+			for (const release of releases) {
+				console.log(`    ✓ Release v${release.version}`);
 
 				for (const artifact of release.artifacts) {
-					const sigStatus = artifact.signatureValid ? `Signature valid (${artifact.keyId})` : 'Signature FAILED';
-					let checksumStatus;
-					if (artifact.checksumMissing) {
-						checksumStatus = 'checksum missing';
-					} else if (artifact.checksumValid) {
-						checksumStatus = 'checksum valid';
-					} else {
-						checksumStatus = 'checksum FAILED';
-					}
-					const icon = artifact.signatureValid && (artifact.checksumMissing || artifact.checksumValid) ? '✓' : '✗';
-					console.log(`      ${icon} ${artifact.url}: ${sigStatus}, ${checksumStatus}`);
+					console.log(`      ✓ ${artifact.url}: Signature valid (${artifact.keyId}), checksum valid`);
 				}
 			}
 		} catch (err) {
 			result.valid = false;
-			const errorMsg =
-				err instanceof MetadataFetchError || err instanceof MetadataVerificationError
-					? err.message
-					: `Unexpected error: ${err.message}`;
 
-			result.services.push({
-				url: serviceUrl,
-				valid: false,
-				error: errorMsg,
-			});
-			result.errors.push(`${serviceUrl}: ${errorMsg}`);
+			if (err instanceof MetadataFetchError) {
+				result.services.push({
+					url: serviceUrl,
+					valid: false,
+					error: err.message,
+				});
+				result.errors.push(`${serviceUrl}: ${err.message}`);
+				console.log(`    ✗ ${err.message}`);
+			} else if (err instanceof MetadataVerificationError) {
+				result.services.push({
+					url: serviceUrl,
+					valid: false,
+					releases: err.result,
+					error: err.message,
+				});
+				result.errors.push(`${serviceUrl}: ${err.message}`);
 
-			console.log(`    ✗ ${errorMsg}`);
+				console.log(`    ✗ ${err.message}`);
+
+				// Show release results if available
+				if (err.result) {
+					for (const release of err.result) {
+						console.log(`    ✗ Release v${release.version}`);
+
+						for (const artifact of release.artifacts) {
+							const sigStatus = artifact.signatureValid ? `Signature valid (${artifact.keyId})` : 'Signature FAILED';
+							const checksumStatus = artifact.checksumValid ? 'checksum valid' : 'checksum FAILED';
+							const icon = artifact.signatureValid && artifact.checksumValid ? '✓' : '✗';
+							console.log(`      ${icon} ${artifact.url}: ${sigStatus}, ${checksumStatus}`);
+						}
+					}
+				}
+			} else {
+				throw err;
+			}
 		}
 	}
 }
@@ -267,25 +265,7 @@ if (result.valid) {
 	}
 }
 
-if (result.warnings.length > 0) {
-	console.log('\nWarnings:');
-	for (const warning of result.warnings) {
-		console.log(`  ⚠ ${warning}`);
-	}
-}
-
 // Determine exit code
 if (!result.valid) {
-	// Check if it was a "could not verify" situation
-	const couldNotVerify =
-		result.errors.some(
-			(e) =>
-				e.includes('Could not fetch') ||
-				e.includes('Failed to fetch') ||
-				e.includes('not found') ||
-				e.includes('No verification keys'),
-		) ||
-		(result.log && !result.log.valid && result.log.error?.includes('Failed to fetch'));
-
-	process.exit(couldNotVerify ? 2 : 1);
+	process.exit(1);
 }

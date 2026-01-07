@@ -40,7 +40,7 @@ describe('fetchDidLog', () => {
 				() => fetchDidLog('did:plc:notfound'),
 				(err) => {
 					assert.ok(err instanceof DidLogFetchError);
-					assert.ok(err.message.includes('DID not found'));
+					assert.ok(err.message.includes('HTTP 404'));
 					return true;
 				},
 			);

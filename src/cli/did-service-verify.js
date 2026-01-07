@@ -77,66 +77,33 @@ if (!values.url.startsWith('https://')) {
 console.log(`Verifying service endpoint for ${values.did}...`);
 console.log(`URL: ${values.url}`);
 
-try {
-	const result = await verifyServiceEndpoint(values.url, {
-		did: values.did,
-		allReleases: values['all-releases'],
-	});
-
-	if (result.valid) {
-		console.log(`\n✓ Service endpoint verification passed`);
-	} else {
-		console.log(`\n✗ Service endpoint verification failed`);
-	}
-
-	// Show release results
-	for (const release of result.releases) {
-		const icon = release.valid ? '✓' : '✗';
+/**
+ * Display release verification details.
+ * @param {object[]} releases
+ * @param {boolean} [failed=false] - Whether the releases are from a failed verification
+ */
+function displayReleases(releases, failed = false) {
+	for (const release of releases) {
+		const icon = failed ? '✗' : '✓';
 		console.log(`\n${icon} Release v${release.version}`);
 
 		for (const artifact of release.artifacts) {
 			const sigStatus = artifact.signatureValid ? `Signature valid (${artifact.keyId})` : 'Signature FAILED';
-			let checksumStatus;
-			if (artifact.checksumMissing) {
-				checksumStatus = 'checksum missing';
-			} else if (artifact.checksumValid) {
-				checksumStatus = 'checksum valid';
-			} else {
-				checksumStatus = 'checksum FAILED';
-			}
-			const artifactIcon = artifact.signatureValid && (artifact.checksumMissing || artifact.checksumValid) ? '✓' : '✗';
+			const checksumStatus = artifact.checksumValid ? 'checksum valid' : 'checksum FAILED';
+			const artifactIcon = artifact.signatureValid && artifact.checksumValid ? '✓' : '✗';
 			console.log(`  ${artifactIcon} ${artifact.url}: ${sigStatus}, ${checksumStatus}`);
 		}
 	}
+}
 
-	// Show warnings
-	if (result.warnings.length > 0) {
-		console.log('\nWarnings:');
-		for (const warning of result.warnings) {
-			console.log(`  ⚠ ${warning}`);
-		}
-	}
+try {
+	const releases = await verifyServiceEndpoint(values.url, {
+		did: values.did,
+		allReleases: values['all-releases'],
+	});
 
-	// Show errors
-	if (result.errors.length > 0) {
-		console.log('\nErrors:');
-		for (const error of result.errors) {
-			console.log(`  ✗ ${error}`);
-		}
-	}
-
-	// Exit code based on whether any errors caused failure
-	if (!result.valid) {
-		// Determine if it was a verification failure or couldn't verify
-		const couldNotVerify = result.errors.some(
-			(e) =>
-				e.includes('Failed to fetch') ||
-				e.includes('not found') ||
-				e.includes('No verification keys') ||
-				e.includes('DID mismatch'),
-		);
-		process.exit(couldNotVerify ? 2 : 1);
-	}
+	console.log(`\n✓ Service endpoint verification passed`);
+	displayReleases(releases);
 } catch (err) {
 	if (err instanceof MetadataFetchError) {
 		console.error(`\n✗ ${err.message}`);
@@ -145,6 +112,9 @@ try {
 
 	if (err instanceof MetadataVerificationError) {
 		console.error(`\n✗ ${err.message}`);
+		if (err.result) {
+			displayReleases(err.result, true);
+		}
 		process.exit(1);
 	}
 

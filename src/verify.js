@@ -9,43 +9,26 @@
  *   url: string,
  *   keyId: string|null,
  *   signatureValid: boolean,
- *   checksumValid: boolean,
- *   checksumMissing: boolean
+ *   checksumValid: boolean
  * }} ArtifactVerificationResult
  */
 
 /**
  * @typedef {{
  *   version: string,
- *   valid: boolean,
- *   artifacts: ArtifactVerificationResult[],
- *   warnings: string[],
- *   errors: string[]
+ *   artifacts: ArtifactVerificationResult[]
  * }} ReleaseVerificationResult
- */
-
-/**
- * @typedef {{
- *   valid: boolean,
- *   did: string,
- *   source?: string,
- *   releases: ReleaseVerificationResult[],
- *   warnings: string[],
- *   errors: string[]
- * }} MetadataVerificationResult
  */
 
 /**
  * @typedef {{
  *   did: string,
  *   allReleases?: boolean,
- *   source?: string,
  *   plcUrl?: string
  * }} VerificationOptions
  */
 
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import * as uint8arrays from 'uint8arrays';
 import { Ed25519Keypair } from './Ed25519Keypair.js';
 import { METADATA_CONTEXT, verifyArtifact } from './metadata.js';
@@ -53,8 +36,33 @@ import { PLC_DIRECTORY_URL } from './did.js';
 
 /**
  * Error thrown when metadata verification fails.
+ * @property {ReleaseVerificationResult[]} [result] - Detailed verification result when available
  */
-export class MetadataVerificationError extends Error {}
+export class MetadataVerificationError extends Error {
+	/**
+	 * @param {string} message
+	 * @param {ReleaseVerificationResult[]} [result]
+	 */
+	constructor(message, result) {
+		super(message);
+		this.result = result;
+	}
+}
+
+/**
+ * Error thrown when release verification fails.
+ * @property {ReleaseVerificationResult} [result] - Detailed verification result when available
+ */
+export class ReleaseVerificationError extends Error {
+	/**
+	 * @param {string} message
+	 * @param {ReleaseVerificationResult} [result]
+	 */
+	constructor(message, result) {
+		super(message);
+		this.result = result;
+	}
+}
 
 /**
  * Error thrown when metadata cannot be fetched.
@@ -95,10 +103,7 @@ export async function fetchDidDocument(did, plcUrl = PLC_DIRECTORY_URL) {
 	}
 
 	if (!response.ok) {
-		if (response.status === 404) {
-			throw new MetadataFetchError(`DID not found: ${did}`);
-		}
-		throw new MetadataFetchError(`Failed to fetch DID document: HTTP ${response.status}`);
+		throw new MetadataFetchError(`Failed to fetch DID document: HTTP ${response.status} ${response.statusText}`);
 	}
 
 	try {
@@ -244,30 +249,45 @@ export async function fetchArtifact(url) {
  * @param {object} release - The release object from metadata
  * @param {Array<{id: string, publicKeyMultibase: string}>} verificationKeys - Keys to verify against
  * @returns {Promise<ReleaseVerificationResult>}
+ * @throws {ReleaseVerificationError} If verification fails (includes result with details)
  */
 export async function verifyRelease(release, verificationKeys) {
-	const result = {
-		version: release.version,
-		valid: true,
-		artifacts: [],
-		warnings: [],
-		errors: [],
-	};
+	const artifacts = [];
+	const errors = [];
 
 	// Only verify 'package' artifacts - other types don't require signatures
 	const packageArtifacts = release.artifacts?.package || [];
 
 	if (packageArtifacts.length === 0) {
-		result.warnings.push('No package artifacts to verify');
-		return result;
+		throw new ReleaseVerificationError('No package artifacts to verify', {
+			version: release.version,
+			artifacts: [],
+		});
 	}
 
 	// Verify each package artifact
 	for (const artifact of packageArtifacts) {
 		// Signature is required
 		if (!artifact.signature) {
-			result.valid = false;
-			result.errors.push(`package: Missing signature for ${artifact.url}`);
+			errors.push(`Missing signature for ${artifact.url}`);
+			artifacts.push({
+				url: artifact.url,
+				keyId: null,
+				signatureValid: false,
+				checksumValid: false,
+			});
+			continue;
+		}
+
+		// Checksum is required
+		if (!artifact.checksum) {
+			errors.push(`Missing checksum for ${artifact.url}`);
+			artifacts.push({
+				url: artifact.url,
+				keyId: null,
+				signatureValid: false,
+				checksumValid: false,
+			});
 			continue;
 		}
 
@@ -276,47 +296,47 @@ export async function verifyRelease(release, verificationKeys) {
 		try {
 			data = await fetchArtifact(artifact.url);
 		} catch (err) {
-			result.valid = false;
-			result.errors.push(`package: Failed to fetch ${artifact.url}: ${err.message}`);
+			errors.push(`Failed to fetch ${artifact.url}: ${err.message}`);
+			artifacts.push({
+				url: artifact.url,
+				keyId: null,
+				signatureValid: false,
+				checksumValid: false,
+			});
 			continue;
 		}
 
-		// Track results for this artifact
+		// Verify signature and checksum
 		let signatureValid = false;
 		let checksumValid = false;
 		let keyId = null;
-		const checksumMissing = !artifact.checksum;
 
-		// Verify signature
 		try {
 			keyId = await verifyArtifactSignature(data, artifact.signature, verificationKeys);
 			signatureValid = true;
 		} catch (err) {
-			result.valid = false;
-			result.errors.push(`package: ${err.message}`);
+			errors.push(err.message);
 		}
 
-		// Verify checksum if present (warn if missing, fail if mismatch)
-		if (artifact.checksum) {
-			try {
-				verifyArtifactChecksum(data, artifact.checksum);
-				checksumValid = true;
-			} catch (err) {
-				result.valid = false;
-				result.errors.push(`package: ${err.message}`);
-			}
-		} else {
-			result.warnings.push(`package: Missing checksum for ${artifact.url}`);
+		try {
+			verifyArtifactChecksum(data, artifact.checksum);
+			checksumValid = true;
+		} catch (err) {
+			errors.push(err.message);
 		}
 
-		// Add artifact result with both check statuses
-		result.artifacts.push({
+		artifacts.push({
 			url: artifact.url,
 			keyId,
 			signatureValid,
 			checksumValid,
-			checksumMissing,
 		});
+	}
+
+	const result = { version: release.version, artifacts };
+
+	if (errors.length > 0) {
+		throw new ReleaseVerificationError(errors.join('; '), result);
 	}
 
 	return result;
@@ -343,32 +363,13 @@ export async function fetchFairMetadata(url) {
 	}
 
 	if (!response.ok) {
-		if (response.status === 404) {
-			throw new MetadataFetchError(`Metadata not found at URL: ${url}`);
-		}
-		throw new MetadataFetchError(`Failed to fetch metadata: HTTP ${response.status}`);
+		throw new MetadataFetchError(`Failed to fetch metadata: HTTP ${response.status} ${response.statusText}`);
 	}
 
 	try {
 		return await response.json();
 	} catch (err) {
 		throw new MetadataFetchError(`Failed to parse metadata: ${err.message}`);
-	}
-}
-
-/**
- * Loads FAIR metadata from a local file.
- *
- * @param {string} filePath - Path to the metadata file
- * @returns {Promise<object>} The metadata document
- * @throws {MetadataFetchError} If the file cannot be read
- */
-export async function loadFairMetadata(filePath) {
-	try {
-		const content = await readFile(filePath, 'utf-8');
-		return JSON.parse(content);
-	} catch (err) {
-		throw new MetadataFetchError(`Failed to load metadata from file: ${err.message}`);
 	}
 }
 
@@ -408,60 +409,53 @@ export function validateMetadataStructure(metadata, expectedDid) {
  *
  * @param {object} metadata - The metadata document
  * @param {VerificationOptions} options - Verification options
- * @returns {Promise<MetadataVerificationResult>}
+ * @returns {Promise<ReleaseVerificationResult[]>}
+ * @throws {MetadataVerificationError} If verification fails (includes result with details)
+ * @throws {MetadataFetchError} If verification keys cannot be fetched
  */
 export async function verifyMetadata(metadata, options) {
-	const { did, allReleases = false, source, plcUrl = PLC_DIRECTORY_URL } = options;
-
-	const result = {
-		valid: true,
-		did,
-		source,
-		releases: [],
-		warnings: [],
-		errors: [],
-	};
+	const { did, allReleases = false, plcUrl = PLC_DIRECTORY_URL } = options;
 
 	// Validate metadata structure
 	const structureResult = validateMetadataStructure(metadata, did);
 	if (!structureResult.valid) {
-		result.valid = false;
-		result.errors.push(...structureResult.errors);
-		return result;
+		throw new MetadataVerificationError(structureResult.errors.join('; '));
 	}
 
-	// Get verification keys
-	let verificationKeys;
-	try {
-		verificationKeys = await getVerificationKeys(did, plcUrl);
-	} catch (err) {
-		result.valid = false;
-		result.errors.push(err.message);
-		return result;
-	}
+	// Get verification keys (throws MetadataFetchError on failure)
+	const verificationKeys = await getVerificationKeys(did, plcUrl);
 
 	// Determine which releases to verify
-	const releases = metadata.releases || [];
-	const releasesToVerify = allReleases ? releases : releases.slice(0, 1);
+	const metadataReleases = metadata.releases || [];
+	const releasesToVerify = allReleases ? metadataReleases : metadataReleases.slice(0, 1);
 
 	if (releasesToVerify.length === 0) {
-		result.warnings.push('No releases to verify');
-		return result;
+		throw new MetadataVerificationError('No releases to verify');
 	}
+
+	const releaseResults = [];
+	const errors = [];
 
 	// Verify releases
 	for (const release of releasesToVerify) {
-		const releaseResult = await verifyRelease(release, verificationKeys);
-		result.releases.push(releaseResult);
-
-		if (!releaseResult.valid) {
-			result.valid = false;
-			result.errors.push(...releaseResult.errors.map((e) => `v${release.version}: ${e}`));
+		try {
+			const releaseResult = await verifyRelease(release, verificationKeys);
+			releaseResults.push(releaseResult);
+		} catch (err) {
+			if (err instanceof ReleaseVerificationError) {
+				releaseResults.push(err.result);
+				errors.push(`v${release.version}: ${err.message}`);
+			} else {
+				throw err;
+			}
 		}
-		result.warnings.push(...releaseResult.warnings.map((w) => `v${release.version}: ${w}`));
 	}
 
-	return result;
+	if (errors.length > 0) {
+		throw new MetadataVerificationError(errors.join('; '), releaseResults);
+	}
+
+	return releaseResults;
 }
 
 /**
@@ -470,59 +464,40 @@ export async function verifyMetadata(metadata, options) {
  * @param {object} metadata - The metadata document
  * @param {string} version - The version to verify
  * @param {VerificationOptions} options - Verification options
- * @returns {Promise<MetadataVerificationResult>}
+ * @returns {Promise<ReleaseVerificationResult[]>}
+ * @throws {MetadataVerificationError} If verification fails (includes result with details)
+ * @throws {MetadataFetchError} If verification keys cannot be fetched
  */
 export async function verifyMetadataRelease(metadata, version, options) {
-	const { did, source, plcUrl = PLC_DIRECTORY_URL } = options;
-
-	const result = {
-		valid: true,
-		did,
-		source,
-		releases: [],
-		warnings: [],
-		errors: [],
-	};
+	const { did, plcUrl = PLC_DIRECTORY_URL } = options;
 
 	// Validate metadata structure
 	const structureResult = validateMetadataStructure(metadata, did);
 	if (!structureResult.valid) {
-		result.valid = false;
-		result.errors.push(...structureResult.errors);
-		return result;
+		throw new MetadataVerificationError(structureResult.errors.join('; '));
 	}
 
 	// Find the specified release
-	const releases = metadata.releases || [];
-	const release = releases.find((r) => r.version === version);
+	const metadataReleases = metadata.releases || [];
+	const release = metadataReleases.find((r) => r.version === version);
 
 	if (!release) {
-		result.valid = false;
-		result.errors.push(`Release version "${version}" not found in metadata`);
-		return result;
+		throw new MetadataVerificationError(`Release version "${version}" not found in metadata`);
 	}
 
-	// Get verification keys
-	let verificationKeys;
-	try {
-		verificationKeys = await getVerificationKeys(did, plcUrl);
-	} catch (err) {
-		result.valid = false;
-		result.errors.push(err.message);
-		return result;
-	}
+	// Get verification keys (throws MetadataFetchError on failure)
+	const verificationKeys = await getVerificationKeys(did, plcUrl);
 
 	// Verify the release
-	const releaseResult = await verifyRelease(release, verificationKeys);
-	result.releases.push(releaseResult);
-
-	if (!releaseResult.valid) {
-		result.valid = false;
-		result.errors.push(...releaseResult.errors.map((e) => `v${version}: ${e}`));
+	try {
+		const releaseResult = await verifyRelease(release, verificationKeys);
+		return [releaseResult];
+	} catch (err) {
+		if (err instanceof ReleaseVerificationError) {
+			throw new MetadataVerificationError(`v${version}: ${err.message}`, [err.result]);
+		}
+		throw err;
 	}
-	result.warnings.push(...releaseResult.warnings.map((w) => `v${version}: ${w}`));
-
-	return result;
 }
 
 /**
@@ -532,31 +507,17 @@ export async function verifyMetadataRelease(metadata, version, options) {
  *
  * @param {string} url - The service endpoint URL (must be HTTPS)
  * @param {VerificationOptions} options - Verification options
- * @returns {Promise<MetadataVerificationResult>}
+ * @returns {Promise<ReleaseVerificationResult[]>}
+ * @throws {MetadataFetchError} If metadata cannot be fetched
  */
 export async function verifyServiceEndpoint(url, options) {
 	const { did, allReleases = false, plcUrl = PLC_DIRECTORY_URL } = options;
 
-	// Fetch metadata from the URL
-	let metadata;
-	try {
-		metadata = await fetchFairMetadata(url);
-	} catch (err) {
-		return {
-			valid: false,
-			did,
-			source: url,
-			releases: [],
-			warnings: [],
-			errors: [err.message],
-		};
-	}
+	const metadata = await fetchFairMetadata(url);
 
-	// Verify the metadata
 	return verifyMetadata(metadata, {
 		did,
 		allReleases,
-		source: url,
 		plcUrl,
 	});
 }

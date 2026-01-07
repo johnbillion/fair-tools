@@ -2,6 +2,20 @@ import { assureValidSig, didForCreateOp, getLastOpWithCid } from '@did-plc/lib';
 import { PLC_DIRECTORY_URL } from './did.js';
 
 /**
+ * @typedef {object} ValidatedOperation
+ * @property {number} index - Operation index in the log
+ * @property {string} cid - Content identifier of the operation
+ * @property {string} type - Operation type (e.g., 'plc_operation')
+ * @property {string} signingKey - The key that signed this operation
+ */
+
+/**
+ * @typedef {object} ValidationResult
+ * @property {string} did - The validated DID
+ * @property {ValidatedOperation[]} operations - The validated operations
+ */
+
+/**
  * Error thrown when DID log validation fails.
  */
 export class DidLogValidationError extends Error {}
@@ -29,12 +43,8 @@ export async function fetchDidLog(did, plcUrl = PLC_DIRECTORY_URL) {
 		throw new DidLogFetchError(`Failed to fetch DID log: ${err.message}`);
 	}
 
-	if (response.status === 404) {
-		throw new DidLogFetchError(`DID not found: ${did}`);
-	}
-
 	if (!response.ok) {
-		throw new DidLogFetchError(`Failed to fetch DID log: HTTP ${response.status}`);
+		throw new DidLogFetchError(`Failed to fetch DID log: HTTP ${response.status} ${response.statusText}`);
 	}
 
 	try {
@@ -65,7 +75,7 @@ export async function fetchDidLog(did, plcUrl = PLC_DIRECTORY_URL) {
  *
  * @param {string} did - The DID to validate (did:plc:...)
  * @param {object[]} ops - The operation log array
- * @returns {Promise<{did: string, operations: {index: number, cid: string, type: string, signingKey: string}[]}>}
+ * @returns {Promise<ValidationResult>}
  * @throws {DidLogValidationError} If validation fails
  */
 export async function validateOperations(did, ops) {
@@ -157,7 +167,7 @@ export async function validateOperations(did, ops) {
  *
  * @param {string} did - The DID to validate (did:plc:...)
  * @param {string} [plcUrl] - The PLC directory URL (defaults to https://plc.directory)
- * @returns {Promise<{did: string, operations: {index: number, cid: string, type: string, signingKey: string}[]}>}
+ * @returns {Promise<ValidationResult>}
  * @throws {DidLogFetchError} If the log cannot be fetched
  * @throws {DidLogValidationError} If validation fails
  */
