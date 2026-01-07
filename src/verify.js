@@ -331,12 +331,11 @@ export async function verifyRelease(release, verificationKeys) {
  *
  * @param {string} url - The metadata URL (must be HTTPS)
  * @returns {Promise<object>} The metadata document
- * @throws {MetadataFetchError} If the metadata cannot be fetched
- * @throws {MetadataVerificationError} If the URL is not HTTPS
+ * @throws {MetadataFetchError} If the URL is not HTTPS or the metadata cannot be fetched
  */
 export async function fetchFairMetadata(url) {
 	if (!url.startsWith('https://')) {
-		throw new MetadataVerificationError('Metadata URL must use HTTPS');
+		throw new MetadataFetchError('Metadata URL must use HTTPS');
 	}
 
 	let response;

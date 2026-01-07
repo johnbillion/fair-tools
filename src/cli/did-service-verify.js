@@ -68,12 +68,6 @@ try {
 	throw err;
 }
 
-// Validate URL format
-if (!values.url.startsWith('https://')) {
-	console.error('Error: URL must use HTTPS');
-	process.exit(2);
-}
-
 console.log(`Verifying service endpoint for ${values.did}...`);
 console.log(`URL: ${values.url}`);
 
