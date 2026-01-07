@@ -25,6 +25,7 @@
 		"lint": "eslint .",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
+		"license-check": "jq -r '.packages | to_entries[] | select(.value.dev | not) | select(.value.license | IN(\"MIT\",\"Apache-2.0\",\"ISC\",\"BSD-3-Clause\",\"BSD-2-Clause\",\"(Apache-2.0 AND MIT)\") | not) | \"\\(.key): \\(.value.license)\"' package-lock.json | grep . && exit 1 || exit 0",
 		"fair-tools": "node src/cli/fair-tools.js"
 	},
 	"keywords": [
