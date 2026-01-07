@@ -29,8 +29,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import * as uint8arrays from 'uint8arrays';
-import { Ed25519Keypair } from './Ed25519Keypair.js';
+import { keypairFromMultibase } from './keys.js';
 import { METADATA_CONTEXT, verifyArtifact } from './metadata.js';
 import { PLC_DIRECTORY_URL } from './did.js';
 
@@ -144,21 +143,6 @@ export async function getVerificationKeys(did, plcUrl = PLC_DIRECTORY_URL) {
 	}
 
 	return keys;
-}
-
-/**
- * Creates an Ed25519Keypair from a publicKeyMultibase value.
- *
- * @param {string} publicKeyMultibase - The multibase-encoded public key
- * @returns {Promise<Ed25519Keypair>} The keypair (public key only)
- */
-async function keypairFromMultibase(publicKeyMultibase) {
-	// publicKeyMultibase is in format: z + base58btc(multicodec_prefix + public_key)
-	// For Ed25519, the multicodec prefix is 0xed01
-	const decoded = uint8arrays.fromString(publicKeyMultibase.slice(1), 'base58btc');
-	// Skip the 2-byte multicodec prefix (0xed, 0x01)
-	const publicKeyBytes = decoded.slice(2);
-	return Ed25519Keypair.fromPublicKey(publicKeyBytes);
 }
 
 /**
