@@ -7,6 +7,7 @@ import {
 	validateMetadataStructure,
 	ChecksumVerificationError,
 	SignatureVerificationError,
+	MetadataVerificationError,
 } from '../src/verify.js';
 import { generateVerificationKeyPair } from '../src/keys.js';
 import { Ed25519Keypair } from '../src/Ed25519Keypair.js';
@@ -95,61 +96,58 @@ describe('validateMetadataStructure', () => {
 			releases: [],
 		};
 
-		const result = validateMetadataStructure(metadata, 'did:plc:test123456789012345678');
-
-		assert.strictEqual(result.valid, true);
-		assert.strictEqual(result.errors.length, 0);
+		assert.doesNotThrow(() => validateMetadataStructure(metadata, 'did:plc:test123456789012345678'));
 	});
 
-	it('fails for wrong @context', () => {
+	it('throws for wrong @context', () => {
 		const metadata = {
 			'@context': 'https://wrong.context/v1',
 			id: 'did:plc:test123456789012345678',
 			releases: [],
 		};
 
-		const result = validateMetadataStructure(metadata, 'did:plc:test123456789012345678');
-
-		assert.strictEqual(result.valid, false);
-		assert.ok(result.errors.some((e) => e.includes('@context')));
+		assert.throws(
+			() => validateMetadataStructure(metadata, 'did:plc:test123456789012345678'),
+			(err) => err instanceof MetadataVerificationError && err.message.includes('@context'),
+		);
 	});
 
-	it('fails for DID mismatch', () => {
+	it('throws for DID mismatch', () => {
 		const metadata = {
 			'@context': METADATA_CONTEXT,
 			id: 'did:plc:wrong12345678901234567',
 			releases: [],
 		};
 
-		const result = validateMetadataStructure(metadata, 'did:plc:test123456789012345678');
-
-		assert.strictEqual(result.valid, false);
-		assert.ok(result.errors.some((e) => e.includes('DID mismatch')));
+		assert.throws(
+			() => validateMetadataStructure(metadata, 'did:plc:test123456789012345678'),
+			(err) => err instanceof MetadataVerificationError && err.message.includes('DID mismatch'),
+		);
 	});
 
-	it('fails for missing releases array', () => {
+	it('throws for missing releases array', () => {
 		const metadata = {
 			'@context': METADATA_CONTEXT,
 			id: 'did:plc:test123456789012345678',
 		};
 
-		const result = validateMetadataStructure(metadata, 'did:plc:test123456789012345678');
-
-		assert.strictEqual(result.valid, false);
-		assert.ok(result.errors.some((e) => e.includes('releases')));
+		assert.throws(
+			() => validateMetadataStructure(metadata, 'did:plc:test123456789012345678'),
+			(err) => err instanceof MetadataVerificationError && err.message.includes('Missing releases'),
+		);
 	});
 
-	it('fails for non-array releases', () => {
+	it('throws for non-array releases', () => {
 		const metadata = {
 			'@context': METADATA_CONTEXT,
 			id: 'did:plc:test123456789012345678',
 			releases: 'not an array',
 		};
 
-		const result = validateMetadataStructure(metadata, 'did:plc:test123456789012345678');
-
-		assert.strictEqual(result.valid, false);
-		assert.ok(result.errors.some((e) => e.includes('releases')));
+		assert.throws(
+			() => validateMetadataStructure(metadata, 'did:plc:test123456789012345678'),
+			(err) => err instanceof MetadataVerificationError && err.message.includes('Invalid releases'),
+		);
 	});
 
 	it('collects multiple errors', () => {
@@ -158,10 +156,37 @@ describe('validateMetadataStructure', () => {
 			id: 'wrong-did',
 		};
 
-		const result = validateMetadataStructure(metadata, 'did:plc:test123456789012345678');
+		assert.throws(
+			() => validateMetadataStructure(metadata, 'did:plc:test123456789012345678'),
+			(err) =>
+				err instanceof MetadataVerificationError &&
+				err.message.includes('@context') &&
+				err.message.includes('DID mismatch'),
+		);
+	});
 
-		assert.strictEqual(result.valid, false);
-		assert.ok(result.errors.length >= 2);
+	it('throws for missing @context', () => {
+		const metadata = {
+			id: 'did:plc:test123456789012345678',
+			releases: [],
+		};
+
+		assert.throws(
+			() => validateMetadataStructure(metadata, 'did:plc:test123456789012345678'),
+			(err) => err instanceof MetadataVerificationError && err.message.includes('Missing @context'),
+		);
+	});
+
+	it('throws for missing id', () => {
+		const metadata = {
+			'@context': METADATA_CONTEXT,
+			releases: [],
+		};
+
+		assert.throws(
+			() => validateMetadataStructure(metadata, 'did:plc:test123456789012345678'),
+			(err) => err instanceof MetadataVerificationError && err.message.includes('Missing id'),
+		);
 	});
 });
 

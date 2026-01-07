@@ -371,30 +371,35 @@ export async function fetchFairMetadata(url) {
  *
  * @param {object} metadata - The metadata document
  * @param {string} expectedDid - The expected DID
- * @returns {{valid: boolean, errors: string[]}} Validation result
+ * @throws {MetadataVerificationError} If validation fails
  */
 export function validateMetadataStructure(metadata, expectedDid) {
 	const errors = [];
 
 	// Check context
-	if (metadata['@context'] !== METADATA_CONTEXT) {
+	if (!('@context' in metadata)) {
+		errors.push('Missing @context');
+	} else if (metadata['@context'] !== METADATA_CONTEXT) {
 		errors.push(`Invalid @context: expected "${METADATA_CONTEXT}", got "${metadata['@context']}"`);
 	}
 
 	// Check DID matches
-	if (metadata.id !== expectedDid) {
+	if (!('id' in metadata)) {
+		errors.push('Missing id');
+	} else if (metadata.id !== expectedDid) {
 		errors.push(`DID mismatch: expected "${expectedDid}", got "${metadata.id}"`);
 	}
 
 	// Check required fields
-	if (!metadata.releases || !Array.isArray(metadata.releases)) {
-		errors.push('Missing or invalid releases array');
+	if (!('releases' in metadata)) {
+		errors.push('Missing releases');
+	} else if (!Array.isArray(metadata.releases)) {
+		errors.push('Invalid releases: expected array');
 	}
 
-	return {
-		valid: errors.length === 0,
-		errors,
-	};
+	if (errors.length > 0) {
+		throw new MetadataVerificationError(errors.join('; '));
+	}
 }
 
 /**
@@ -410,10 +415,7 @@ export async function verifyMetadata(metadata, options) {
 	const { did, allReleases = false, plcUrl = PLC_DIRECTORY_URL } = options;
 
 	// Validate metadata structure
-	const structureResult = validateMetadataStructure(metadata, did);
-	if (!structureResult.valid) {
-		throw new MetadataVerificationError(structureResult.errors.join('; '));
-	}
+	validateMetadataStructure(metadata, did);
 
 	// Get verification keys (throws MetadataFetchError on failure)
 	const verificationKeys = await getVerificationKeys(did, plcUrl);
@@ -465,10 +467,7 @@ export async function verifyMetadataRelease(metadata, version, options) {
 	const { did, plcUrl = PLC_DIRECTORY_URL } = options;
 
 	// Validate metadata structure
-	const structureResult = validateMetadataStructure(metadata, did);
-	if (!structureResult.valid) {
-		throw new MetadataVerificationError(structureResult.errors.join('; '));
-	}
+	validateMetadataStructure(metadata, did);
 
 	// Find the specified release
 	const metadataReleases = metadata.releases || [];
