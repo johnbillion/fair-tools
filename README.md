@@ -52,19 +52,24 @@ Commands:
 
 ```shell
 fair-tools did create                   Create a new DID
+fair-tools did verify                   Fully verify a DID, its document, and FAIR metadata
 fair-tools did service add              Add a service URL to a DID
 fair-tools did service replace          Replace a service URL in a DID
 fair-tools did service remove           Remove a service URL from a DID
+fair-tools did service verify           Verify a FAIR service endpoint URL
 fair-tools did verification-key add     Add a verification key
 fair-tools did verification-key revoke  Revoke a verification key
 fair-tools did rotation-key add         Add a rotation key
 fair-tools did rotation-key revoke      Revoke a rotation key
+fair-tools did log verify               Validate a DID operation log from genesis
 fair-tools did aka add                  Add a URL to the alsoKnownAs field
 fair-tools did aka replace              Replace a URL in the alsoKnownAs field
 fair-tools did aka remove               Remove a URL from the alsoKnownAs field
 fair-tools did domain verify            Verify the DID DNS record of a domain
 fair-tools did domain verify-alias      Verify alsoKnownAs domain aliases for a DID
-fair-tools metadata build               Build a FAIR metadata document
+fair-tools metadata release             Build a FAIR metadata document containing a new release
+fair-tools metadata verify              Verify a FAIR metadata document
+fair-tools metadata verify-release      Verify a specific release from a metadata document
 ```
 
 To see all available commands:
@@ -281,6 +286,108 @@ You cannot revoke the key used to sign the operation, and at least one rotation 
 When using `--signing-file` without `--signing-key`, defaults to signing with the first available rotation key that isn't being revoked.
 
 Use `--cleanup` to delete the revoked key from the key file after success.
+
+## Verification
+
+Verification commands allow consumers to validate DIDs, metadata, and releases. These commands do not require signing keys.
+
+### Full DID verification
+
+Performs comprehensive verification of a DID including its operation log, service endpoints, and domain aliases.
+
+```bash
+fair-tools did verify --did did:plc:xxx
+```
+
+This validates:
+
+1. **DID log** - Verifies the complete operation history from genesis, including all signatures and CID chain integrity
+2. **Service endpoints** - Fetches and validates FAIR metadata from each service URL
+3. **Domain aliases** - Checks that `fair://` aliases in alsoKnownAs resolve correctly via DNS
+
+Use `--all-releases` to verify all releases instead of just the latest.
+
+Exit codes:
+
+- `0` - All verifications passed
+- `1` - Verification failed (invalid signature, broken chain, etc.)
+- `2` - Could not verify (network error, DID not found, etc.)
+
+### Verify DID operation log
+
+Validates a PLC DID's complete operation history from genesis to current state.
+
+```bash
+fair-tools did log verify --did did:plc:xxx
+```
+
+This validates:
+
+- Genesis operation structure and DID computation
+- Each operation's signature against the previous operation's rotation keys
+- CID chain integrity (prev field matches previous operation CID)
+
+Each operation is listed with its CID and signing key.
+
+### Verify service endpoint
+
+Verifies a FAIR package management service endpoint URL.
+
+```bash
+fair-tools did service verify \
+  --did did:plc:xxx \
+  --url https://example.com/metadata.json
+```
+
+This validates:
+
+- URL is accessible (HTTPS required)
+- Response is valid FAIR metadata JSON
+- Metadata DID matches the expected DID
+- Release signatures are valid
+- Release checksums are valid (if present)
+
+Use `--all-releases` to verify all releases instead of just the latest.
+
+### Verify metadata
+
+Verifies a FAIR metadata document including signature and checksum validation.
+
+```bash
+fair-tools metadata verify \
+  --did did:plc:xxx \
+  --url https://example.com/metadata.json
+```
+
+Or verify from a local file:
+
+```bash
+fair-tools metadata verify \
+  --did did:plc:xxx \
+  --file ./metadata.json
+```
+
+Use `--all-releases` to verify all releases instead of just the latest.
+
+### Verify specific release
+
+Verifies a specific release version from a FAIR metadata document.
+
+```bash
+fair-tools metadata verify-release \
+  --did did:plc:xxx \
+  --url https://example.com/metadata.json \
+  --version 1.2.3
+```
+
+Or from a local file:
+
+```bash
+fair-tools metadata verify-release \
+  --did did:plc:xxx \
+  --file ./metadata.json \
+  --version 1.2.3
+```
 
 ## FAQs
 

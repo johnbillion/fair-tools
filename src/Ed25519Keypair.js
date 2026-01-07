@@ -62,6 +62,16 @@ export class Ed25519Keypair {
 	}
 
 	/**
+	 * Create a verification-only keypair from a public key.
+	 *
+	 * @param {Uint8Array} publicKey - 32-byte public key
+	 * @returns {Promise<Ed25519Keypair>}
+	 */
+	static async fromPublicKey(publicKey) {
+		return new Ed25519Keypair(null, publicKey);
+	}
+
+	/**
 	 * Get the public key as raw bytes.
 	 *
 	 * @returns {Uint8Array} 32-byte public key

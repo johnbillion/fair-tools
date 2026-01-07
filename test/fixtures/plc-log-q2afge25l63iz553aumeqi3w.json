@@ -1,0 +1,198 @@
+[
+	{
+		"sig": "3-BQUMiSV4igfi7r2pfxK7_C_qMpDU206dQZ00y-pa5xbFtTH1RtX9-eIjEdL1sk64iDnhK46Mx6C_0AddJ13Q",
+		"prev": null,
+		"type": "plc_operation",
+		"services": {},
+		"alsoKnownAs": [],
+		"rotationKeys": [
+			"did:key:zQ3shSRoNhsbAczDLJ3jKTDjW2nq62BHwpA7VrEZkT4CUVufa"
+		],
+		"verificationMethods": {
+			"fair": "did:key:z6Mkitp3T2Gk2U4pvuwpy8ygAzxkM6K1Ygoyv1ZgUx3AW9Px"
+		}
+	},
+	{
+		"sig": "BsS0YyxLuf3U1JSYjKt-8xoJuvRkDsoOurX5KMya_xRHX8pFY_-vh05PPJzSBYaD0wuS74-P_Otq6SvE4GrFjw",
+		"prev": "bafyreiegqbjrgxk7w2gppoyfdbecg5ravos4oln7khondejtgesz7cwrsi",
+		"type": "plc_operation",
+		"services": {
+			"fairpm_repo": {
+				"type": "FairPackageManagementRepo",
+				"endpoint": "https://raw.githubusercontent.com/johnbillion/query-monitor/refs/heads/develop/fair.json"
+			}
+		},
+		"alsoKnownAs": [],
+		"rotationKeys": [
+			"did:key:zQ3shSRoNhsbAczDLJ3jKTDjW2nq62BHwpA7VrEZkT4CUVufa"
+		],
+		"verificationMethods": {
+			"fair": "did:key:z6Mkitp3T2Gk2U4pvuwpy8ygAzxkM6K1Ygoyv1ZgUx3AW9Px"
+		}
+	},
+	{
+		"sig": "qlLbhEYeamdE2p0XJeWgEkzdHXU5jekD0oDiNliP-24ScFAh38j1ucKbLZLIl6EGBZrRSPsH7FGbA_cHYxEFBg",
+		"prev": "bafyreicyokzwds5qseg3at5zllmz3zuk5xei4ps4bhczqpqlzuasxt2xv4",
+		"type": "plc_operation",
+		"services": {
+			"fairpm_repo": {
+				"type": "FairPackageManagementRepo",
+				"endpoint": "https://raw.githubusercontent.com/johnbillion/query-monitor/refs/heads/develop/fair.json"
+			}
+		},
+		"alsoKnownAs": [],
+		"rotationKeys": [
+			"did:key:zQ3shSRoNhsbAczDLJ3jKTDjW2nq62BHwpA7VrEZkT4CUVufa"
+		],
+		"verificationMethods": {
+			"fair": "did:key:z6Mkitp3T2Gk2U4pvuwpy8ygAzxkM6K1Ygoyv1ZgUx3AW9Px"
+		}
+	},
+	{
+		"sig": "VyybjzvYE1rBJwU56hxzv4D7MjVGvgPIpLdI11lTG5JHMFqWlsA8orkQNewKMF4sVeg9v_cVPqLLdpaIT6f_Kw",
+		"prev": "bafyreiap3vrszrnwkxbcauy6yq7hllojqd55477zkwbw73jazz6ob6gyou",
+		"type": "plc_operation",
+		"services": {
+			"fairpm_repo": {
+				"type": "FairPackageManagementRepo",
+				"endpoint": "https://raw.githubusercontent.com/johnbillion/query-monitor/refs/heads/develop/fair.json"
+			}
+		},
+		"alsoKnownAs": [
+			"https://querymonitor.com"
+		],
+		"rotationKeys": [
+			"did:key:zQ3shSRoNhsbAczDLJ3jKTDjW2nq62BHwpA7VrEZkT4CUVufa"
+		],
+		"verificationMethods": {
+			"fair": "did:key:z6Mkitp3T2Gk2U4pvuwpy8ygAzxkM6K1Ygoyv1ZgUx3AW9Px"
+		}
+	},
+	{
+		"sig": "fuNaAn66M7RVDKsOM5-IRehAat5px8bcZl-hxJFtupt-8nIi1TR-Gb2K_WCO4Ml5N7kBgC9ZB0U274jFIYvKPQ",
+		"prev": "bafyreidor3ov4jagamxuoywsjnnpgnwmoppjx5evczhpwqt24pnijfuytm",
+		"type": "plc_operation",
+		"services": {
+			"fairpm_repo": {
+				"type": "FairPackageManagementRepo",
+				"endpoint": "https://raw.githubusercontent.com/johnbillion/query-monitor/refs/heads/develop/fair.json"
+			}
+		},
+		"alsoKnownAs": [
+			"https://querymonitor.com",
+			"https://wordpress.org/plugins/query-monitor/"
+		],
+		"rotationKeys": [
+			"did:key:zQ3shSRoNhsbAczDLJ3jKTDjW2nq62BHwpA7VrEZkT4CUVufa"
+		],
+		"verificationMethods": {
+			"fair": "did:key:z6Mkitp3T2Gk2U4pvuwpy8ygAzxkM6K1Ygoyv1ZgUx3AW9Px"
+		}
+	},
+	{
+		"sig": "0dIgLzC-GjQKWSsYz_6gef5oSyAxCVvPBasGaDAxbncSwn0i8Fuq2GjTYHwhM4_VlXJcBmWzzP2WDrNMkLLBvg",
+		"prev": "bafyreih7slebmbpzysrlb5qhysk75q7tse6s246vzx2qgvdgiop3s6qn7a",
+		"type": "plc_operation",
+		"services": {
+			"fairpm_repo": {
+				"type": "FairPackageManagementRepo",
+				"endpoint": "https://querymonitor.com/fair.json"
+			}
+		},
+		"alsoKnownAs": [
+			"https://querymonitor.com",
+			"https://wordpress.org/plugins/query-monitor/"
+		],
+		"rotationKeys": [
+			"did:key:zQ3shSRoNhsbAczDLJ3jKTDjW2nq62BHwpA7VrEZkT4CUVufa"
+		],
+		"verificationMethods": {
+			"fair": "did:key:z6Mkitp3T2Gk2U4pvuwpy8ygAzxkM6K1Ygoyv1ZgUx3AW9Px"
+		}
+	},
+	{
+		"sig": "f_dXf33eZSubr1fNEjLDbT9iFyiHIzqUDqxB1mxjzAwSaYcoiDkhp05iJX0e4hfTJ86sf3xUrJne2pozrNPVZw",
+		"prev": "bafyreidjlppk5vlb52bgyp6n5lhzbzcu46oylohcgavqiwpt6qkzxyqxgq",
+		"type": "plc_operation",
+		"services": {
+			"fairpm_repo": {
+				"type": "FairPackageManagementRepo",
+				"endpoint": "https://querymonitor.com/fair.json"
+			}
+		},
+		"alsoKnownAs": [
+			"https://querymonitor.com",
+			"https://wordpress.org/plugins/query-monitor/",
+			"fair://query-monitor.com"
+		],
+		"rotationKeys": [
+			"did:key:zQ3shSRoNhsbAczDLJ3jKTDjW2nq62BHwpA7VrEZkT4CUVufa"
+		],
+		"verificationMethods": {
+			"fair": "did:key:z6Mkitp3T2Gk2U4pvuwpy8ygAzxkM6K1Ygoyv1ZgUx3AW9Px"
+		}
+	},
+	{
+		"sig": "dWcJrukxUeNruiGJi-76sl680j-mFc2oMe57SPLZ0Atg6YnNShiCmxr-DULCPPJabJQ0VHrdaUWVZ5YPtg4D4w",
+		"prev": "bafyreigaelvu7ybhk2o7ipyuiaqca6deyt3mb2imnfyn4fbmcnpe5n3ucq",
+		"type": "plc_operation",
+		"services": {
+			"fairpm_repo": {
+				"type": "FairPackageManagementRepo",
+				"endpoint": "https://querymonitor.com/fair.json"
+			}
+		},
+		"alsoKnownAs": [
+			"https://querymonitor.com",
+			"https://wordpress.org/plugins/query-monitor/",
+			"fair://querymonitor.com"
+		],
+		"rotationKeys": [
+			"did:key:zQ3shSRoNhsbAczDLJ3jKTDjW2nq62BHwpA7VrEZkT4CUVufa"
+		],
+		"verificationMethods": {
+			"fair": "did:key:z6Mkitp3T2Gk2U4pvuwpy8ygAzxkM6K1Ygoyv1ZgUx3AW9Px"
+		}
+	},
+	{
+		"sig": "n-pDwi9nAkhp58-8zNO9zMIA5_5kMDT7FMaRxJltV1kyCW5x6sZ59j5NzmoxOY26rPN3fh6E1ZVt41d1RkGkJQ",
+		"prev": "bafyreidlssosdgzhx4ihxiluc5vzihddtakvniczioqexv42gwsphxwl5u",
+		"type": "plc_operation",
+		"services": {
+			"fairpm_repo": {
+				"type": "FairPackageManagementRepo",
+				"endpoint": "https://querymonitor.com/fair.json"
+			}
+		},
+		"alsoKnownAs": [
+			"https://wordpress.org/plugins/query-monitor/",
+			"fair://querymonitor.com"
+		],
+		"rotationKeys": [
+			"did:key:zQ3shSRoNhsbAczDLJ3jKTDjW2nq62BHwpA7VrEZkT4CUVufa"
+		],
+		"verificationMethods": {
+			"fair": "did:key:z6Mkitp3T2Gk2U4pvuwpy8ygAzxkM6K1Ygoyv1ZgUx3AW9Px"
+		}
+	},
+	{
+		"sig": "FrOGEUYArW02vSoGhfpeBb24vDMhHLMgpzLr5FIwVt9f1c326-edZnxih_SYBpNYeB5OGAAgXJQYNfmn98Y09Q",
+		"prev": "bafyreifjv7p6ctkt37oa2xcvs2hgy3o6duwulqwraudgy5jgcbc3xn7r6e",
+		"type": "plc_operation",
+		"services": {
+			"fairpm_repo": {
+				"type": "FairPackageManagementRepo",
+				"endpoint": "https://querymonitor.com/fair.json"
+			}
+		},
+		"alsoKnownAs": [
+			"fair://querymonitor.com"
+		],
+		"rotationKeys": [
+			"did:key:zQ3shSRoNhsbAczDLJ3jKTDjW2nq62BHwpA7VrEZkT4CUVufa"
+		],
+		"verificationMethods": {
+			"fair": "did:key:z6Mkitp3T2Gk2U4pvuwpy8ygAzxkM6K1Ygoyv1ZgUx3AW9Px"
+		}
+	}
+]
