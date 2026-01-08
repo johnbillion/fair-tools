@@ -12,6 +12,7 @@ import {
 import { generateVerificationKeyPair } from '../src/keys.js';
 import { Ed25519Keypair } from '../src/Ed25519Keypair.js';
 import { signArtifact, METADATA_CONTEXT } from '../src/metadata.js';
+import { bytesToMultibase } from '@atproto/crypto';
 
 describe('extractVerificationKeys', () => {
 	it('extracts keys with #fair fragment', () => {
@@ -241,6 +242,68 @@ describe('Ed25519Keypair.fromPublicKeyMultibase', () => {
 
 		// Round-trip: publicKeyStr() should return the same multibase
 		assert.strictEqual(keypair.publicKeyStr(), publicKeyMultibase);
+	});
+
+	it('rejects multibase with too few bytes (less than prefix length)', async () => {
+		// Create a multibase string that decodes to only 1 byte
+		// This tests the case where decoded.length < 2
+		const tooShort = bytesToMultibase(new Uint8Array([0xed]), 'base58btc');
+
+		await assert.rejects(
+			Ed25519Keypair.fromPublicKeyMultibase(tooShort),
+			(err) => {
+				assert.strictEqual(
+					err.message,
+					'Invalid key length: expected 34 bytes for Ed25519 public key, got 1 bytes',
+				);
+				return true;
+			},
+		);
+	});
+
+	it('rejects multibase with correct prefix but wrong total length (too short)', async () => {
+		// Create a multibase with correct prefix but only 10 bytes total (should be 34)
+		const tooShort = new Uint8Array(10);
+		tooShort[0] = 0xed;
+		tooShort[1] = 0x01;
+		const multibase = bytesToMultibase(tooShort, 'base58btc');
+
+		await assert.rejects(
+			Ed25519Keypair.fromPublicKeyMultibase(multibase),
+			(err) => {
+				assert.strictEqual(
+					err.message,
+					'Invalid key length: expected 34 bytes (2-byte prefix + 32-byte key), got 10 bytes',
+				);
+				return true;
+			},
+		);
+	});
+
+	it('rejects multibase with correct prefix but wrong total length (too long)', async () => {
+		// Create a multibase with correct prefix but 50 bytes total (should be 34)
+		const tooLong = new Uint8Array(50);
+		tooLong[0] = 0xed;
+		tooLong[1] = 0x01;
+		const multibase = bytesToMultibase(tooLong, 'base58btc');
+
+		await assert.rejects(
+			Ed25519Keypair.fromPublicKeyMultibase(multibase),
+			(err) => {
+				assert.strictEqual(
+					err.message,
+					'Invalid key length: expected 34 bytes (2-byte prefix + 32-byte key), got 50 bytes',
+				);
+				return true;
+			},
+		);
+	});
+
+	it('rejects empty multibase string', async () => {
+		await assert.rejects(Ed25519Keypair.fromPublicKeyMultibase(''), (err) => {
+			assert.ok(err instanceof Error);
+			return true;
+		});
 	});
 });
 
