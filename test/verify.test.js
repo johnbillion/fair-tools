@@ -12,6 +12,7 @@ import {
 import { generateVerificationKeyPair } from '../src/keys.js';
 import { Ed25519Keypair } from '../src/Ed25519Keypair.js';
 import { signArtifact, METADATA_CONTEXT } from '../src/metadata.js';
+import { bytesToMultibase } from '@atproto/crypto';
 
 describe('extractVerificationKeys', () => {
 	it('extracts keys with #fair fragment', () => {
@@ -246,7 +247,6 @@ describe('Ed25519Keypair.fromPublicKeyMultibase', () => {
 	it('rejects multibase with too few bytes (less than prefix length)', async () => {
 		// Create a multibase string that decodes to only 1 byte
 		// This tests the case where decoded.length < 2
-		const { bytesToMultibase } = await import('@atproto/crypto');
 		const tooShort = bytesToMultibase(new Uint8Array([0xed]), 'base58btc');
 
 		await assert.rejects(Ed25519Keypair.fromPublicKeyMultibase(tooShort), (err) => {
@@ -258,7 +258,6 @@ describe('Ed25519Keypair.fromPublicKeyMultibase', () => {
 
 	it('rejects multibase with correct prefix but wrong total length (too short)', async () => {
 		// Create a multibase with correct prefix but only 10 bytes total (should be 34)
-		const { bytesToMultibase } = await import('@atproto/crypto');
 		const tooShort = new Uint8Array(10);
 		tooShort[0] = 0xed;
 		tooShort[1] = 0x01;
@@ -274,7 +273,6 @@ describe('Ed25519Keypair.fromPublicKeyMultibase', () => {
 
 	it('rejects multibase with correct prefix but wrong total length (too long)', async () => {
 		// Create a multibase with correct prefix but 50 bytes total (should be 34)
-		const { bytesToMultibase } = await import('@atproto/crypto');
 		const tooLong = new Uint8Array(50);
 		tooLong[0] = 0xed;
 		tooLong[1] = 0x01;
