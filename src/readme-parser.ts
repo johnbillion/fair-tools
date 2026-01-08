@@ -109,9 +109,6 @@ function tokenizeReadme(content) {
 
 /**
  * Parses header fields from the header block.
- *
- * @param {string} headerBlock - The header portion of readme.txt
- * @returns {Record<string, string>}
  */
 function parseHeaderFields(headerBlock: string): Record<string, string> {
 	const fields: Record<string, string> = {};
@@ -178,9 +175,6 @@ function parseShortDescription(headerBlock) {
  * Screenshots use the format:
  * 1. Description of first screenshot
  * 2. Description of second screenshot
- *
- * @param {string} content - Screenshots section content
- * @returns {Array<{ description: string }>}
  */
 function parseScreenshotsSection(content: string): Screenshot[] {
 	const screenshots: Screenshot[] = [];
@@ -201,23 +195,6 @@ function parseScreenshotsSection(content: string): Screenshot[] {
  *
  * Extracts all header fields, short description, and parses
  * structured sections like FAQ and Screenshots.
- *
- * @param {string} content - readme.txt file content
- * @returns {{
- *   name: string | undefined,
- *   license: string | undefined,
- *   licenseUri: string | undefined,
- *   keywords: string[],
- *   shortDescription: string | undefined,
- *   contributors: string[] | undefined,
- *   requires: string | undefined,
- *   testedUpTo: string | undefined,
- *   requiresPhp: string | undefined,
- *   stableTag: string | undefined,
- *   donateLink: string | undefined,
- *   sections: ReadmeSections,
- *   screenshots?: Array<{ description: string }>
- * }}
  */
 export function parseReadmeFile(content: string): ParsedReadme {
 	// Normalize line endings to Unix-style

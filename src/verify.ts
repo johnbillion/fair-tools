@@ -27,10 +27,6 @@ import { PLC_DIRECTORY_URL } from './did.js';
  */
 export class MetadataVerificationError extends Error {
 	result?: ReleaseVerificationResult[];
-	/**
-	 * @param {string} message
-	 * @param {ReleaseVerificationResult[]} [result]
-	 */
 	constructor(message: string, result?: ReleaseVerificationResult[]) {
 		super(message);
 		this.result = result;
@@ -43,10 +39,6 @@ export class MetadataVerificationError extends Error {
  */
 export class ReleaseVerificationError extends Error {
 	result?: ReleaseVerificationResult;
-	/**
-	 * @param {string} message
-	 * @param {ReleaseVerificationResult} [result]
-	 */
 	constructor(message: string, result?: ReleaseVerificationResult) {
 		super(message);
 		this.result = result;

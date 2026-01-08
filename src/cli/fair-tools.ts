@@ -110,9 +110,6 @@ type CommandTree = Command | { [key: string]: CommandTree };
 
 /**
  * Checks if an object is a command definition.
- *
- * @param {CommandTree} obj - Object to check
- * @returns {obj is Command} True if obj is a command with a load function
  */
 function isCommand(obj: CommandTree): obj is Command {
 	return obj && typeof (obj as Command).load === 'function';
@@ -122,10 +119,6 @@ type CollectedCommand = Command & { path: string[] };
 
 /**
  * Recursively collects all commands from a command tree.
- *
- * @param obj - Command tree object
- * @param prefix - Path prefix for nested commands
- * @returns Array of collected commands with their paths
  */
 function collectCommands(obj: { [key: string]: CommandTree }, prefix: string[] = []): CollectedCommand[] {
 	const results: CollectedCommand[] = [];

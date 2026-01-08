@@ -76,12 +76,6 @@ function extractOperationFromError(data) {
  *
  * Analyzes the error response to identify common issues and provide
  * helpful suggestions to the user.
- *
- * @param {PlcClientError} err - The error to diagnose
- * @param {{
- *   signerPublicKey?: string
- * }} [context] - Additional context for diagnosis
- * @returns {string[]} Array of diagnostic hints (may be empty)
  */
 export function diagnosePlcError(err: PlcClientError, context: { signerPublicKey?: string } = {}): string[] {
 	const hints: string[] = [];

@@ -82,28 +82,6 @@ export async function verifyArtifact(data, signature, keypair) {
 	return verifyWithVerificationKey(hash, sig, keypair);
 }
 
-/**
- * Parses plugin headers from PHP file content.
- *
- * @param {string} content - PHP file content
- * @returns {{
- *   name?: string,
- *   pluginUri?: string,
- *   pluginId?: string,
- *   description?: string,
- *   version?: string,
- *   author?: string,
- *   authorUri?: string,
- *   license?: string,
- *   licenseUri?: string,
- *   textDomain?: string,
- *   domainPath?: string,
- *   requiresWp?: string,
- *   requiresPhp?: string,
- *   updateUri?: string,
- *   security?: string
- * }} Parsed headers
- */
 interface PluginHeaders {
 	name?: string;
 	pluginUri?: string;
@@ -122,6 +100,9 @@ interface PluginHeaders {
 	security?: string;
 }
 
+/**
+ * Parses plugin headers from PHP file content.
+ */
 export function parsePluginHeaders(content: string): PluginHeaders {
 	const headers: PluginHeaders = {};
 	const headerMap: Record<string, keyof PluginHeaders> = {
@@ -155,12 +136,6 @@ export function parsePluginHeaders(content: string): PluginHeaders {
 
 /**
  * Parses composer.json content and extracts relevant fields.
- *
- * @param {string} content - Content of composer.json file
- * @returns {{
- *   license?: string,
- *   securityContact?: string
- * }} Parsed data
  */
 export function parseComposerJson(content: string): { license?: string; securityContact?: string } {
 	const data: { license?: string; securityContact?: string } = {};
@@ -182,11 +157,6 @@ export function parseComposerJson(content: string): { license?: string; security
 
 /**
  * Parses package.json content and extracts relevant fields.
- *
- * @param {string} content - Content of package.json file
- * @returns {{
- *   license?: string
- * }} Parsed data
  */
 export function parsePackageJson(content: string): { license?: string } {
 	const data: { license?: string } = {};
