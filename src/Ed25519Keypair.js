@@ -85,8 +85,7 @@ export class Ed25519Keypair {
 		// Validate minimum length before accessing array indices
 		if (decoded.length < ED25519_PUBLIC_PREFIX.length) {
 			throw new Error(
-				`Invalid key length: expected ${expectedLength} bytes for Ed25519 public key, ` +
-					`got ${decoded.length} bytes`,
+				`Invalid key length: expected ${expectedLength} bytes for Ed25519 public key, got ${decoded.length} bytes`,
 			);
 		}
 
