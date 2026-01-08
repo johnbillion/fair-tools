@@ -6,6 +6,10 @@ const commands = {
 			description: 'Create a new DID',
 			load: () => import('./did-create.js'),
 		},
+		verify: {
+			description: 'Fully verify a DID, its document, and FAIR metadata',
+			load: () => import('./did-verify.js'),
+		},
 		service: {
 			add: {
 				description: 'Add a service URL to a DID',
@@ -18,6 +22,10 @@ const commands = {
 			remove: {
 				description: 'Remove a service URL from a DID',
 				load: () => import('./did-service-remove.js'),
+			},
+			verify: {
+				description: 'Verify a FAIR service endpoint URL',
+				load: () => import('./did-service-verify.js'),
 			},
 		},
 		'verification-key': {
@@ -44,6 +52,12 @@ const commands = {
 			migrate: {
 				description: 'Migrate keys from hex/multibase to PEM format',
 				load: () => import('./did-keys-migrate.js'),
+			},
+		},
+		log: {
+			verify: {
+				description: 'Validate a DID operation log from genesis',
+				load: () => import('./did-log-verify.js'),
 			},
 		},
 		aka: {
@@ -75,6 +89,14 @@ const commands = {
 		release: {
 			description: 'Build a FAIR metadata document containing a new release',
 			load: () => import('./metadata-release.js'),
+		},
+		verify: {
+			description: 'Verify a FAIR metadata document',
+			load: () => import('./metadata-verify.js'),
+		},
+		'verify-release': {
+			description: 'Verify a specific release from a metadata document',
+			load: () => import('./metadata-verify-release.js'),
 		},
 	},
 };

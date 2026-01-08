@@ -1,4 +1,4 @@
-import { bytesToMultibase } from '@atproto/crypto';
+import { bytesToMultibase, multibaseToBytes } from '@atproto/crypto';
 import { ed25519 } from '@noble/curves/ed25519';
 import * as uint8arrays from 'uint8arrays';
 
@@ -59,6 +59,54 @@ export class Ed25519Keypair {
 		const privBytes = typeof privateKey === 'string' ? uint8arrays.fromString(privateKey, 'hex') : privateKey;
 		const publicKey = ed25519.getPublicKey(privBytes);
 		return new Ed25519Keypair(privBytes, publicKey);
+	}
+
+	/**
+	 * Create a verification-only keypair from a public key.
+	 *
+	 * @param {Uint8Array} publicKey - 32-byte public key
+	 * @returns {Promise<Ed25519Keypair>}
+	 */
+	static async fromPublicKey(publicKey) {
+		return new Ed25519Keypair(null, publicKey);
+	}
+
+	/**
+	 * Create a verification-only keypair from a multibase-encoded public key.
+	 *
+	 * @param {string} publicKeyMultibase - Multibase-encoded public key (z6Mk...)
+	 * @returns {Promise<Ed25519Keypair>}
+	 * @throws {Error} If the key is not an Ed25519 key or has invalid length
+	 */
+	static async fromPublicKeyMultibase(publicKeyMultibase) {
+		const decoded = multibaseToBytes(publicKeyMultibase);
+		const expectedLength = ED25519_PUBLIC_PREFIX.length + 32;
+
+		// Validate minimum length before accessing array indices
+		if (decoded.length < ED25519_PUBLIC_PREFIX.length) {
+			throw new Error(
+				`Invalid key length: expected ${expectedLength} bytes for Ed25519 public key, got ${decoded.length} bytes`,
+			);
+		}
+
+		// Check for Ed25519 multicodec prefix
+		if (decoded[0] !== ED25519_PUBLIC_PREFIX[0] || decoded[1] !== ED25519_PUBLIC_PREFIX[1]) {
+			throw new Error(
+				`Unsupported key type: expected Ed25519 multicodec prefix (0xed01), ` +
+					`got 0x${decoded[0].toString(16).padStart(2, '0')}${decoded[1].toString(16).padStart(2, '0')}`,
+			);
+		}
+
+		// Validate total length (2-byte prefix + 32-byte public key = 34 bytes)
+		if (decoded.length !== expectedLength) {
+			throw new Error(
+				`Invalid key length: expected ${expectedLength} bytes (2-byte prefix + 32-byte key), ` +
+					`got ${decoded.length} bytes`,
+			);
+		}
+
+		const publicKeyBytes = decoded.slice(ED25519_PUBLIC_PREFIX.length);
+		return new Ed25519Keypair(null, publicKeyBytes);
 	}
 
 	/**
