@@ -1,4 +1,5 @@
-import { assureValidSig, didForCreateOp, getLastOpWithCid } from '@did-plc/lib';
+import { assureValidSig, didForCreateOp } from '@did-plc/lib';
+import { cidForCbor } from '@atproto/common';
 import { PLC_DIRECTORY_URL } from './did.js';
 
 /**
@@ -103,8 +104,7 @@ export async function validateOperations(did, ops) {
 		const genesisSigningKey = await assureValidSig(genesisOp.rotationKeys, genesisOp);
 
 		// Get CID of genesis operation
-		const genesisWithCid = await getLastOpWithCid(ops.slice(0, 1));
-		let prevCid = genesisWithCid.cid;
+		let prevCid = await cidForCbor(genesisOp);
 
 		validatedOps.push({
 			index: 0,
@@ -139,8 +139,7 @@ export async function validateOperations(did, ops) {
 			currentRotationKeys = op.rotationKeys;
 
 			// Get CID of this operation for next iteration
-			const opWithCid = await getLastOpWithCid(ops.slice(0, i + 1));
-			prevCid = opWithCid.cid;
+			prevCid = await cidForCbor(op);
 
 			validatedOps.push({
 				index: i,
