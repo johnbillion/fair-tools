@@ -73,8 +73,14 @@ try {
 	throw err;
 }
 
-/** @type {{valid: boolean, did: string, log: object, services: object[], alias: object|null, errors: string[]}} */
-const result = {
+const result: {
+	valid: boolean;
+	did: string;
+	log: { valid: boolean; operationCount?: number; error?: string };
+	services: object[];
+	alias: object | null;
+	errors: string[];
+} = {
 	valid: true,
 	did: values.did,
 	log: { valid: false },

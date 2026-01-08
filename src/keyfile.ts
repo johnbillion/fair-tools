@@ -47,12 +47,12 @@ export function encodeRotationKey(privateKey) {
 		format: 'jwk',
 	});
 
-	return keyObject
-		.export({
+	return (
+		keyObject.export({
 			type: 'sec1',
 			format: 'pem',
-		})
-		.trim();
+		}) as string
+	).trim();
 }
 
 /**
@@ -73,12 +73,12 @@ export function encodeVerificationKey(privateKey) {
 		format: 'jwk',
 	});
 
-	return keyObject
-		.export({
+	return (
+		keyObject.export({
 			type: 'pkcs8',
 			format: 'pem',
-		})
-		.trim();
+		}) as string
+	).trim();
 }
 
 /**

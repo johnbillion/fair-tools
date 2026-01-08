@@ -11,18 +11,38 @@ import { marked } from 'marked';
 
 /**
  * Readme sections structure.
- *
- * @typedef {{
- *   description?: string,
- *   installation?: string,
- *   changelog?: string,
- *   faq?: string,
- *   screenshots?: string,
- *   security?: string,
- *   otherNotes?: string,
- *   upgradeNotice?: string
- * }} ReadmeSections
  */
+interface ReadmeSections {
+	description?: string;
+	installation?: string;
+	changelog?: string;
+	faq?: string;
+	screenshots?: string;
+	security?: string;
+	otherNotes?: string;
+	upgradeNotice?: string;
+	[key: string]: string | undefined;
+}
+
+interface Screenshot {
+	description: string;
+}
+
+interface ParsedReadme {
+	name: string | undefined;
+	license: string | undefined;
+	licenseUri: string | undefined;
+	keywords: string[];
+	shortDescription: string | undefined;
+	contributors: string[] | undefined;
+	requires: string | undefined;
+	testedUpTo: string | undefined;
+	requiresPhp: string | undefined;
+	stableTag: string | undefined;
+	donateLink: string | undefined;
+	sections: ReadmeSections;
+	screenshots?: Screenshot[];
+}
 
 /**
  * Normalizes a section name to camelCase.
@@ -93,8 +113,8 @@ function tokenizeReadme(content) {
  * @param {string} headerBlock - The header portion of readme.txt
  * @returns {Record<string, string>}
  */
-function parseHeaderFields(headerBlock) {
-	const fields = {};
+function parseHeaderFields(headerBlock: string): Record<string, string> {
+	const fields: Record<string, string> = {};
 	const lines = headerBlock.split('\n');
 
 	for (const line of lines) {
@@ -162,8 +182,8 @@ function parseShortDescription(headerBlock) {
  * @param {string} content - Screenshots section content
  * @returns {Array<{ description: string }>}
  */
-function parseScreenshotsSection(content) {
-	const screenshots = [];
+function parseScreenshotsSection(content: string): Screenshot[] {
+	const screenshots: Screenshot[] = [];
 	const lines = content.split('\n');
 
 	for (const line of lines) {
@@ -199,7 +219,7 @@ function parseScreenshotsSection(content) {
  *   screenshots?: Array<{ description: string }>
  * }}
  */
-export function parseReadmeFile(content) {
+export function parseReadmeFile(content: string): ParsedReadme {
 	// Normalize line endings to Unix-style
 	content = content.replace(/\r\n/g, '\n');
 
@@ -212,14 +232,13 @@ export function parseReadmeFile(content) {
 	const titleMatch = wpTitleMatch || mdTitleMatch;
 
 	// Build sections object with just content (originalTitle used later for unsupported sections)
-	/** @type {Record<string, string>} */
-	const sectionsContent = {};
+	const sectionsContent: ReadmeSections = {};
 	for (const [key, { content }] of rawSections) {
 		sectionsContent[key] = content;
 	}
 
 	// Build result with normalized field names
-	const result = {
+	const result: ParsedReadme = {
 		name: titleMatch?.[1],
 		license: fields.license,
 		licenseUri: fields.license_uri,

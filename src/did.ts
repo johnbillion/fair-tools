@@ -42,15 +42,21 @@ export const FAIR_SERVICE_ID = 'fairpm_repo';
  * }} opts
  * @returns {UnsignedOperation} The unsigned genesis operation
  */
-function createGenesisOperation({ verificationKey, rotationKeys }) {
+function createGenesisOperation({
+	verificationKey,
+	rotationKeys,
+}: {
+	verificationKey: string;
+	rotationKeys: string[];
+}) {
 	return {
-		type: 'plc_operation',
+		type: 'plc_operation' as const,
 		verificationMethods: {
 			fair: verificationKey,
 		},
 		rotationKeys,
-		alsoKnownAs: [],
-		services: {},
+		alsoKnownAs: [] as string[],
+		services: {} as Record<string, { type: string; endpoint: string }>,
 		prev: null,
 	};
 }

@@ -101,43 +101,34 @@ const commands = {
 	},
 };
 
+type Command = {
+	description: string;
+	load: () => Promise<unknown>;
+};
+
+type CommandTree = Command | { [key: string]: CommandTree };
+
 /**
  * Checks if an object is a command definition.
  *
- * @param {object} obj - Object to check
- * @returns {boolean} True if obj is a command with a load function
+ * @param {CommandTree} obj - Object to check
+ * @returns {obj is Command} True if obj is a command with a load function
  */
-function isCommand(obj) {
-	return obj && typeof obj.load === 'function';
+function isCommand(obj: CommandTree): obj is Command {
+	return obj && typeof (obj as Command).load === 'function';
 }
 
-/**
- * @typedef {Object} Command
- * @property {string} description - Command description
- * @property {() => Promise<unknown>} load - Function to load the command module
- */
-
-/**
- * @typedef {Object} CollectedCommand
- * @property {string[]} path - Command path segments
- * @property {string} description - Command description
- * @property {() => Promise<unknown>} load - Function to load the command module
- */
-
-/**
- * @typedef {Command | Record<string, CommandTree>} CommandTree
- */
+type CollectedCommand = Command & { path: string[] };
 
 /**
  * Recursively collects all commands from a command tree.
  *
- * @param {Record<string, CommandTree>} obj - Command tree object
- * @param {string[]} prefix - Path prefix for nested commands
- * @returns {CollectedCommand[]} Array of collected commands with their paths
+ * @param obj - Command tree object
+ * @param prefix - Path prefix for nested commands
+ * @returns Array of collected commands with their paths
  */
-function collectCommands(obj, prefix = []) {
-	/** @type {CollectedCommand[]} */
-	const results = [];
+function collectCommands(obj: { [key: string]: CommandTree }, prefix: string[] = []): CollectedCommand[] {
+	const results: CollectedCommand[] = [];
 	for (const [key, value] of Object.entries(obj)) {
 		const path = [...prefix, key];
 		if (isCommand(value)) {

@@ -1,10 +1,13 @@
-/**
- * @typedef {{
- *   message: string,
- *   status?: number,
- *   data?: string | { message?: string, error?: string }
- * }} PlcClientError
- */
+interface PlcClientError {
+	message: string;
+	status?: number;
+	data?:
+		| string
+		| {
+				message?: string;
+				error?: string;
+		  };
+}
 
 /**
  * Formats a PLC client error for display to the user.
@@ -80,8 +83,8 @@ function extractOperationFromError(data) {
  * }} [context] - Additional context for diagnosis
  * @returns {string[]} Array of diagnostic hints (may be empty)
  */
-export function diagnosePlcError(err, context = {}) {
-	const hints = [];
+export function diagnosePlcError(err: PlcClientError, context: { signerPublicKey?: string } = {}): string[] {
+	const hints: string[] = [];
 
 	if (err.status !== 400) {
 		return hints;

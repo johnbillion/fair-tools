@@ -4,29 +4,17 @@
  * Verifies metadata documents, release signatures, and checksums.
  */
 
-/**
- * @typedef {{
- *   url: string,
- *   keyId: string|null,
- *   signatureValid: boolean,
- *   checksumValid: boolean
- * }} ArtifactVerificationResult
- */
+interface ArtifactVerificationResult {
+	url: string;
+	keyId: string | null;
+	signatureValid: boolean;
+	checksumValid: boolean;
+}
 
-/**
- * @typedef {{
- *   version: string,
- *   artifacts: ArtifactVerificationResult[]
- * }} ReleaseVerificationResult
- */
-
-/**
- * @typedef {{
- *   did: string,
- *   allReleases?: boolean,
- *   plcUrl?: string
- * }} VerificationOptions
- */
+interface ReleaseVerificationResult {
+	version: string;
+	artifacts: ArtifactVerificationResult[];
+}
 
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { Ed25519Keypair } from './Ed25519Keypair.js';
@@ -38,11 +26,12 @@ import { PLC_DIRECTORY_URL } from './did.js';
  * @property {ReleaseVerificationResult[]} [result] - Detailed verification result when available
  */
 export class MetadataVerificationError extends Error {
+	result?: ReleaseVerificationResult[];
 	/**
 	 * @param {string} message
 	 * @param {ReleaseVerificationResult[]} [result]
 	 */
-	constructor(message, result) {
+	constructor(message: string, result?: ReleaseVerificationResult[]) {
 		super(message);
 		this.result = result;
 	}
@@ -53,11 +42,12 @@ export class MetadataVerificationError extends Error {
  * @property {ReleaseVerificationResult} [result] - Detailed verification result when available
  */
 export class ReleaseVerificationError extends Error {
+	result?: ReleaseVerificationResult;
 	/**
 	 * @param {string} message
 	 * @param {ReleaseVerificationResult} [result]
 	 */
-	constructor(message, result) {
+	constructor(message: string, result?: ReleaseVerificationResult) {
 		super(message);
 		this.result = result;
 	}

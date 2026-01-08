@@ -14,6 +14,7 @@ import { imageSize } from 'image-size';
 import { marked } from 'marked';
 import { verifyWithVerificationKey } from './keys.js';
 import { parseReadmeFile } from './readme-parser.js';
+export { parseReadmeFile } from './readme-parser.js';
 
 /**
  * @typedef {import('./Ed25519Keypair.js').Ed25519Keypair} Ed25519Keypair
@@ -103,9 +104,27 @@ export async function verifyArtifact(data, signature, keypair) {
  *   security?: string
  * }} Parsed headers
  */
-export function parsePluginHeaders(content) {
-	const headers = {};
-	const headerMap = {
+interface PluginHeaders {
+	name?: string;
+	pluginUri?: string;
+	pluginId?: string;
+	description?: string;
+	version?: string;
+	author?: string;
+	authorUri?: string;
+	license?: string;
+	licenseUri?: string;
+	textDomain?: string;
+	domainPath?: string;
+	requiresWp?: string;
+	requiresPhp?: string;
+	updateUri?: string;
+	security?: string;
+}
+
+export function parsePluginHeaders(content: string): PluginHeaders {
+	const headers: PluginHeaders = {};
+	const headerMap: Record<string, keyof PluginHeaders> = {
 		'Plugin Name': 'name',
 		'Plugin URI': 'pluginUri',
 		'Plugin ID': 'pluginId',
@@ -143,8 +162,8 @@ export function parsePluginHeaders(content) {
  *   securityContact?: string
  * }} Parsed data
  */
-export function parseComposerJson(content) {
-	const data = {};
+export function parseComposerJson(content: string): { license?: string; securityContact?: string } {
+	const data: { license?: string; securityContact?: string } = {};
 
 	try {
 		const composer = JSON.parse(content);
@@ -169,8 +188,8 @@ export function parseComposerJson(content) {
  *   license?: string
  * }} Parsed data
  */
-export function parsePackageJson(content) {
-	const data = {};
+export function parsePackageJson(content: string): { license?: string } {
+	const data: { license?: string } = {};
 
 	try {
 		const pkg = JSON.parse(content);
@@ -270,10 +289,22 @@ export function createMetadataDocument(options) {
  *   provides?: object
  * }} Release document
  */
-export function createReleaseDocument(options) {
+export function createReleaseDocument(options: {
+	version: string;
+	artifacts: Record<string, unknown[]>;
+	requires?: Record<string, unknown>;
+	suggests?: Record<string, unknown>;
+	provides?: Record<string, unknown>;
+}) {
 	const { version, artifacts, requires, suggests, provides } = options;
 
-	const doc = {
+	const doc: {
+		version: string;
+		artifacts: Record<string, unknown[]>;
+		suggests: Record<string, unknown>;
+		requires?: Record<string, unknown>;
+		provides?: Record<string, unknown>;
+	} = {
 		version,
 		artifacts,
 		suggests: suggests || {},
@@ -302,10 +333,10 @@ export function createReleaseDocument(options) {
  *   signature?: string
  * }} Artifact object
  */
-export function createArtifact(options) {
+export function createArtifact(options: { url: string; checksum: string; signature?: string; contentType?: string }) {
 	const { url, checksum, signature, contentType } = options;
 
-	const artifact = { url, checksum };
+	const artifact: { url: string; checksum: string; 'content-type'?: string; signature?: string } = { url, checksum };
 	if (contentType) {
 		artifact['content-type'] = contentType;
 	}
@@ -640,14 +671,14 @@ export async function buildMetadataFromContent(options) {
 	}
 
 	// Build suggests (testedUpTo takes priority, fallback to requiresWp)
-	const suggests = {};
+	const suggests: Record<string, string> = {};
 	const suggestedWp = testedUpTo || requiresWp;
 	if (suggestedWp) {
 		suggests['env:wp'] = `>=${suggestedWp}`;
 	}
 
 	// Build artifacts object (order: banner, icon, screenshot, package)
-	const artifacts = {};
+	const artifacts: Record<string, unknown[]> = {};
 	if (banners.length > 0) {
 		artifacts.banner = banners;
 	}
@@ -739,7 +770,7 @@ export async function buildMetadata(options) {
 		throw new Error(`Plugin ID mismatch: plugin file has "${pluginData.pluginId}" but DID "${did}" was provided`);
 	}
 
-	let readmeData = {};
+	let readmeData: Partial<ReturnType<typeof parseReadmeFile>> = {};
 	try {
 		const readmeContent = await readFile(join(pluginDir, 'readme.txt'), 'utf-8');
 		readmeData = parseReadmeFile(readmeContent);
@@ -747,7 +778,7 @@ export async function buildMetadata(options) {
 		// No readme.txt found
 	}
 
-	let composerData = {};
+	let composerData: ReturnType<typeof parseComposerJson> = {};
 	try {
 		const composerContent = await readFile(join(pluginDir, 'composer.json'), 'utf-8');
 		composerData = parseComposerJson(composerContent);
@@ -755,7 +786,7 @@ export async function buildMetadata(options) {
 		// No composer.json found
 	}
 
-	let packageData = {};
+	let packageData: ReturnType<typeof parsePackageJson> = {};
 	try {
 		const packageContent = await readFile(join(pluginDir, 'package.json'), 'utf-8');
 		packageData = parsePackageJson(packageContent);
