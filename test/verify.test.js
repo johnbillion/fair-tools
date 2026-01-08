@@ -251,7 +251,7 @@ describe('Ed25519Keypair.fromPublicKeyMultibase', () => {
 
 		await assert.rejects(Ed25519Keypair.fromPublicKeyMultibase(tooShort), (err) => {
 			assert.ok(err.message.includes('Invalid key length'));
-			assert.ok(err.message.includes('expected at least 2 bytes'));
+			assert.ok(err.message.includes('expected 34 bytes'));
 			return true;
 		});
 	});

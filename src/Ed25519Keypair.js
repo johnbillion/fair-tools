@@ -80,11 +80,12 @@ export class Ed25519Keypair {
 	 */
 	static async fromPublicKeyMultibase(publicKeyMultibase) {
 		const decoded = multibaseToBytes(publicKeyMultibase);
+		const expectedLength = ED25519_PUBLIC_PREFIX.length + 32;
 
 		// Validate minimum length before accessing array indices
 		if (decoded.length < ED25519_PUBLIC_PREFIX.length) {
 			throw new Error(
-				`Invalid key length: expected at least ${ED25519_PUBLIC_PREFIX.length} bytes, ` +
+				`Invalid key length: expected ${expectedLength} bytes for Ed25519 public key, ` +
 					`got ${decoded.length} bytes`,
 			);
 		}
@@ -98,7 +99,6 @@ export class Ed25519Keypair {
 		}
 
 		// Validate total length (2-byte prefix + 32-byte public key = 34 bytes)
-		const expectedLength = ED25519_PUBLIC_PREFIX.length + 32;
 		if (decoded.length !== expectedLength) {
 			throw new Error(
 				`Invalid key length: expected ${expectedLength} bytes (2-byte prefix + 32-byte key), ` +
