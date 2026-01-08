@@ -76,15 +76,33 @@ export class Ed25519Keypair {
 	 *
 	 * @param {string} publicKeyMultibase - Multibase-encoded public key (z6Mk...)
 	 * @returns {Promise<Ed25519Keypair>}
-	 * @throws {Error} If the key is not an Ed25519 key
+	 * @throws {Error} If the key is not an Ed25519 key or has invalid length
 	 */
 	static async fromPublicKeyMultibase(publicKeyMultibase) {
 		const decoded = multibaseToBytes(publicKeyMultibase);
 
+		// Validate minimum length before accessing array indices
+		if (decoded.length < ED25519_PUBLIC_PREFIX.length) {
+			throw new Error(
+				`Invalid key length: expected at least ${ED25519_PUBLIC_PREFIX.length} bytes, ` +
+					`got ${decoded.length} bytes`,
+			);
+		}
+
+		// Check for Ed25519 multicodec prefix
 		if (decoded[0] !== ED25519_PUBLIC_PREFIX[0] || decoded[1] !== ED25519_PUBLIC_PREFIX[1]) {
 			throw new Error(
 				`Unsupported key type: expected Ed25519 multicodec prefix (0xed01), ` +
 					`got 0x${decoded[0].toString(16).padStart(2, '0')}${decoded[1].toString(16).padStart(2, '0')}`,
+			);
+		}
+
+		// Validate total length (2-byte prefix + 32-byte public key = 34 bytes)
+		const expectedLength = ED25519_PUBLIC_PREFIX.length + 32;
+		if (decoded.length !== expectedLength) {
+			throw new Error(
+				`Invalid key length: expected ${expectedLength} bytes (2-byte prefix + 32-byte key), ` +
+					`got ${decoded.length} bytes`,
 			);
 		}
 

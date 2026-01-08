@@ -242,6 +242,58 @@ describe('Ed25519Keypair.fromPublicKeyMultibase', () => {
 		// Round-trip: publicKeyStr() should return the same multibase
 		assert.strictEqual(keypair.publicKeyStr(), publicKeyMultibase);
 	});
+
+	it('rejects multibase with too few bytes (less than prefix length)', async () => {
+		// Create a multibase string that decodes to only 1 byte
+		// This tests the case where decoded.length < 2
+		const { bytesToMultibase } = await import('@atproto/crypto');
+		const tooShort = bytesToMultibase(new Uint8Array([0xed]), 'base58btc');
+
+		await assert.rejects(Ed25519Keypair.fromPublicKeyMultibase(tooShort), (err) => {
+			assert.ok(err.message.includes('Invalid key length'));
+			assert.ok(err.message.includes('expected at least 2 bytes'));
+			return true;
+		});
+	});
+
+	it('rejects multibase with correct prefix but wrong total length (too short)', async () => {
+		// Create a multibase with correct prefix but only 10 bytes total (should be 34)
+		const { bytesToMultibase } = await import('@atproto/crypto');
+		const tooShort = new Uint8Array(10);
+		tooShort[0] = 0xed;
+		tooShort[1] = 0x01;
+		const multibase = bytesToMultibase(tooShort, 'base58btc');
+
+		await assert.rejects(Ed25519Keypair.fromPublicKeyMultibase(multibase), (err) => {
+			assert.ok(err.message.includes('Invalid key length'));
+			assert.ok(err.message.includes('expected 34 bytes'));
+			assert.ok(err.message.includes('got 10 bytes'));
+			return true;
+		});
+	});
+
+	it('rejects multibase with correct prefix but wrong total length (too long)', async () => {
+		// Create a multibase with correct prefix but 50 bytes total (should be 34)
+		const { bytesToMultibase } = await import('@atproto/crypto');
+		const tooLong = new Uint8Array(50);
+		tooLong[0] = 0xed;
+		tooLong[1] = 0x01;
+		const multibase = bytesToMultibase(tooLong, 'base58btc');
+
+		await assert.rejects(Ed25519Keypair.fromPublicKeyMultibase(multibase), (err) => {
+			assert.ok(err.message.includes('Invalid key length'));
+			assert.ok(err.message.includes('expected 34 bytes'));
+			assert.ok(err.message.includes('got 50 bytes'));
+			return true;
+		});
+	});
+
+	it('rejects empty multibase string', async () => {
+		await assert.rejects(Ed25519Keypair.fromPublicKeyMultibase(''), (err) => {
+			assert.ok(err instanceof Error);
+			return true;
+		});
+	});
 });
 
 describe('verifyArtifactSignature', () => {
