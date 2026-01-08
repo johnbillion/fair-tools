@@ -1,8 +1,10 @@
 import js from '@eslint/js';
 import prettier from 'eslint-config-prettier';
+import tseslint from 'typescript-eslint';
 
-export default [
+export default tseslint.config(
 	js.configs.recommended,
+	...tseslint.configs.recommended,
 	prettier,
 	{
 		languageOptions: {
@@ -16,7 +18,7 @@ export default [
 			},
 		},
 		rules: {
-			'no-unused-vars': [
+			'@typescript-eslint/no-unused-vars': [
 				'error',
 				{
 					argsIgnorePattern: '^_',
@@ -27,6 +29,6 @@ export default [
 		},
 	},
 	{
-		ignores: ['node_modules/'],
+		ignores: ['node_modules/', 'dist/'],
 	},
-];
+);

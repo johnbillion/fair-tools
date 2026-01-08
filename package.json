@@ -9,24 +9,30 @@
 	"repository": {
 		"url": "https://github.com/johnbillion/fair-tools"
 	},
-	"main": "index.js",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
 	"bin": {
-		"fair-tools": "./src/cli/fair-tools.js"
+		"fair-tools": "./dist/src/cli/fair-tools.js"
 	},
 	"exports": {
-		".": "./index.js"
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		}
 	},
 	"files": [
-		"src",
-		"index.js"
+		"dist"
 	],
 	"scripts": {
-		"test": "node --test --test-reporter spec --experimental-test-coverage",
+		"build": "tsc",
+		"dev": "tsc --watch",
+		"test": "node --import tsx --test --test-reporter spec --experimental-test-coverage test/**/*.test.ts",
 		"lint": "eslint .",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
 		"license-check": "jq -r '.packages | to_entries[] | select(.value.dev | not) | select(.value.license | IN(\"MIT\",\"Apache-2.0\",\"ISC\",\"BSD-3-Clause\",\"BSD-2-Clause\",\"(Apache-2.0 AND MIT)\") | not) | \"\\(.key): \\(.value.license)\"' package-lock.json | grep . && exit 1 || exit 0",
-		"fair-tools": "node src/cli/fair-tools.js"
+		"prepublishOnly": "npm run build",
+		"fair-tools": "tsx src/cli/fair-tools.ts"
 	},
 	"keywords": [
 		"fair"
@@ -43,9 +49,13 @@
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.39.2",
+		"@types/node": "^22.0.0",
 		"eslint": "^9.39.2",
 		"eslint-config-prettier": "^10.1.8",
-		"prettier": "^3.7.4"
+		"prettier": "^3.7.4",
+		"tsx": "^4.19.0",
+		"typescript": "^5.9.0",
+		"typescript-eslint": "^8.0.0"
 	},
 	"overrides": {
 		"@did-plc/lib": {
