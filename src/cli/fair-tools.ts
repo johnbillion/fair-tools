@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import '../http.js';
 import { version } from '../utils.js';
 
 type Command = {

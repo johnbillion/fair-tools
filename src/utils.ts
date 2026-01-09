@@ -1,18 +1,16 @@
-import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const packageJson = JSON.parse(readFileSync(join(__dirname, '../../package.json'), 'utf-8'));
+import packageJson from '../package.json' with { type: 'json' };
 
 export const version: string = packageJson.version;
+
+export const userAgent = `fair-tools/${version}`;
+export const timeout = 30000;
 
 /**
  * Shared fetch options for all HTTP requests.
  */
 export const fetchOptions: RequestInit = {
 	headers: {
-		'User-Agent': `fair-tools/${version}`,
+		'User-Agent': userAgent,
 	},
-	signal: AbortSignal.timeout(30000),
+	signal: AbortSignal.timeout(timeout),
 };
