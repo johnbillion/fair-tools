@@ -6,11 +6,13 @@ import {
 	verifyArtifactSignature,
 	validateMetadataStructure,
 	getFairServices,
+	requireFairServices,
 	extractDomainFromAlias,
 	buildAliasResult,
 	ChecksumVerificationError,
 	SignatureVerificationError,
 	MetadataVerificationError,
+	NoServicesError,
 } from '../src/verify.js';
 import type { FetchAliasResult, VerifyDomainResult } from '../src/verify.js';
 import type { DidDocument } from '@did-plc/lib';
@@ -257,6 +259,52 @@ describe('getFairServices', () => {
 		const services = getFairServices(didDocument);
 
 		assert.strictEqual(services.length, 0);
+	});
+});
+
+describe('requireFairServices', () => {
+	it('returns services when FAIR services are present', () => {
+		const didDocument = {
+			id: 'did:plc:test123456789012345678',
+			service: [
+				{ id: '#fairpm_repo', type: 'FairPackageManagementRepo', serviceEndpoint: 'https://example.com/fair.json' },
+			],
+		} as DidDocument;
+
+		const services = requireFairServices(didDocument);
+
+		assert.strictEqual(services.length, 1);
+	});
+
+	it('throws NoServicesError when no FAIR services present', () => {
+		const didDocument = {
+			id: 'did:plc:test123456789012345678',
+			service: [{ id: '#atproto', type: 'AtprotoPersonalDataServer', serviceEndpoint: 'https://bsky.social' }],
+		} as DidDocument;
+
+		assert.throws(
+			() => requireFairServices(didDocument),
+			(err) => {
+				return err instanceof NoServicesError && err.message.includes('No FairPackageManagementRepo');
+			},
+		);
+	});
+
+	it('throws NoServicesError when service array is empty', () => {
+		const didDocument = {
+			id: 'did:plc:test123456789012345678',
+			service: [] as Array<{ type: string; id: string; serviceEndpoint: string }>,
+		} as DidDocument;
+
+		assert.throws(() => requireFairServices(didDocument), NoServicesError);
+	});
+
+	it('throws NoServicesError when service is undefined', () => {
+		const didDocument = {
+			id: 'did:plc:test123456789012345678',
+		} as DidDocument;
+
+		assert.throws(() => requireFairServices(didDocument), NoServicesError);
 	});
 });
 

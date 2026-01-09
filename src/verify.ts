@@ -106,6 +106,11 @@ export class SignatureVerificationError extends Error {}
 export class ChecksumVerificationError extends Error {}
 
 /**
+ * Error thrown when no FAIR service endpoints are found.
+ */
+export class NoServicesError extends Error {}
+
+/**
  * Partial DID document type containing only the fields we use.
  * The actual API response includes many more fields.
  */
@@ -584,14 +589,27 @@ export function getFairServices(didDocument: DidDocument): Array<{ type: string;
 }
 
 /**
+ * Validates that a DID document has at least one FAIR service endpoint.
+ * Throws NoServicesError if none are found.
+ */
+export function requireFairServices(didDocument: DidDocument): Array<{ type: string; serviceEndpoint: string }> {
+	const services = getFairServices(didDocument);
+	if (services.length === 0) {
+		throw new NoServicesError('No FairPackageManagementRepo service endpoints found');
+	}
+	return services;
+}
+
+/**
  * Verifies all FAIR service endpoints for a DID.
+ * Throws NoServicesError if no FAIR services are found.
  */
 export async function verifyFairServices(
 	didDocument: DidDocument,
 	did: string,
 	allReleases = false,
 ): Promise<ServiceResult[]> {
-	const fairServices = getFairServices(didDocument);
+	const fairServices = requireFairServices(didDocument);
 	const results: ServiceResult[] = [];
 
 	for (const service of fairServices) {
@@ -768,13 +786,22 @@ export async function verifyDid(options: VerifyDidOptions): Promise<DidVerificat
 	}
 
 	// 3. Verify service endpoints
-	const serviceResults = await verifyFairServices(didDocument, did, allReleases);
-	result.services = serviceResults;
+	try {
+		const serviceResults = await verifyFairServices(didDocument, did, allReleases);
+		result.services = serviceResults;
 
-	for (const service of serviceResults) {
-		if (!service.valid) {
+		for (const service of serviceResults) {
+			if (!service.valid) {
+				result.valid = false;
+				result.errors.push(`${service.url}: ${service.error}`);
+			}
+		}
+	} catch (err) {
+		if (err instanceof NoServicesError) {
 			result.valid = false;
-			result.errors.push(`${service.url}: ${service.error}`);
+			result.errors.push(err.message);
+		} else {
+			throw err;
 		}
 	}
 

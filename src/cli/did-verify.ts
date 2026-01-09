@@ -82,7 +82,7 @@ if (result.log.valid) {
 // Services
 console.log('\nService Endpoints:');
 if (result.services.length === 0) {
-	console.log('  - No FairPackageManagementRepo services found');
+	console.log('  ✗ No FairPackageManagementRepo services found');
 } else {
 	for (const service of result.services) {
 		console.log(`\n  ${service.url}:`);
