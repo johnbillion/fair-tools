@@ -2,12 +2,22 @@
  * Display utilities for release verification results.
  */
 
+interface VerifiedArtifact {
+	url: string;
+	signatureValid: boolean;
+	checksumValid: boolean;
+	keyId: string | null;
+}
+
+interface VerifiedRelease {
+	version: string;
+	artifacts: VerifiedArtifact[];
+}
+
 /**
  * Display release verification details.
- * @param {object[]} releases
- * @param {boolean} [failed=false] - Whether the releases are from a failed verification
  */
-export function displayReleases(releases, failed = false) {
+export function displayReleases(releases: VerifiedRelease[], failed = false): void {
 	for (const release of releases) {
 		const icon = failed ? '✗' : '✓';
 		console.log(`\n${icon} Release v${release.version}`);

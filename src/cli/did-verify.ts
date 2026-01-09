@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { parseArgs } from 'node:util';
-import { Client } from '@did-plc/lib';
+import { Client, DidDocument } from '@did-plc/lib';
 import { validateDidLog, DidLogFetchError, DidLogValidationError } from '../plc-log.js';
 import { verifyServiceEndpoint, MetadataFetchError, MetadataVerificationError } from '../verify.js';
 import {
@@ -62,9 +62,11 @@ if (!values.did) {
 	process.exit(2);
 }
 
+const did = values.did;
+
 // Validate DID format
 try {
-	validatePlcDid(values.did);
+	validatePlcDid(did);
 } catch (err) {
 	if (err instanceof DidValidationError) {
 		console.error(`Error: ${err.message}`);
@@ -82,20 +84,20 @@ const result: {
 	errors: string[];
 } = {
 	valid: true,
-	did: values.did,
+	did,
 	log: { valid: false },
 	services: [],
 	alias: null,
 	errors: [],
 };
 
-console.log(`Verifying ${values.did}...\n`);
+console.log(`Verifying ${did}...\n`);
 
 // 1. Validate DID log
 console.log('DID Log Validation:');
 
 try {
-	const logResult = await validateDidLog(values.did);
+	const logResult = await validateDidLog(did);
 	result.log = {
 		valid: true,
 		operationCount: logResult.operations.length,
@@ -119,14 +121,14 @@ try {
 }
 
 // 2. Fetch DID document and find FAIR services
-let didDocument;
+let didDocument: DidDocument;
 try {
 	const client = new Client(PLC_DIRECTORY_URL);
-	didDocument = await client.getDocument(values.did);
+	didDocument = await client.getDocument(did);
 } catch (err) {
 	result.valid = false;
-	result.errors.push(`Could not fetch DID document: ${err.message}`);
-	console.log(`\n✗ Could not fetch DID document: ${err.message}`);
+	result.errors.push(`Could not fetch DID document: ${(err as Error).message}`);
+	console.log(`\n✗ Could not fetch DID document: ${(err as Error).message}`);
 	process.exit(2);
 }
 
@@ -146,7 +148,7 @@ if (fairServices.length === 0) {
 
 		try {
 			const releases = await verifyServiceEndpoint(serviceUrl, {
-				did: values.did,
+				did,
 				allReleases: values['all-releases'],
 			});
 
@@ -212,11 +214,11 @@ if (fairServices.length === 0) {
 console.log('\nDomain Aliases:');
 
 try {
-	const alias = await getFairAlias(values.did);
+	const alias = await getFairAlias(did);
 	const domain = alias.replace(/^fair:\/\//, '').replace(/\/$/, '');
 
 	try {
-		await verifyDomainDid(domain, values.did);
+		await verifyDomainDid(domain, did);
 		result.alias = {
 			url: alias,
 			domain,
@@ -230,7 +232,7 @@ try {
 		const errorMsg =
 			err instanceof DnsRecordNotFoundError || err instanceof DnsRecordInvalidError || err instanceof DidMismatchError
 				? err.message
-				: `DNS verification failed: ${err.message}`;
+				: `DNS verification failed: ${(err as Error).message}`;
 
 		result.alias = {
 			url: alias,

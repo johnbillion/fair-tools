@@ -20,6 +20,24 @@ import {
 	decodeMultibaseVerificationKey,
 } from './signing.js';
 
+interface KeyData {
+	did?: string;
+	rotationKeys?: Record<string, string>;
+	verificationKeys?: Record<string, string>;
+}
+
+interface KeyPair {
+	/** did:key:... */
+	publicKey: string;
+	privateKey: Uint8Array;
+}
+
+interface FormatKeyFileContentOptions {
+	did: string;
+	rotationKey: KeyPair;
+	verificationKey: KeyPair;
+}
+
 /**
  * Error thrown when saving a key to a file fails.
  */
@@ -31,7 +49,7 @@ export class SaveKeyError extends Error {}
  * @param {Uint8Array} privateKey - The 32-byte private key
  * @returns {string} The PEM-encoded private key (-----BEGIN EC PRIVATE KEY-----)
  */
-export function encodeRotationKey(privateKey) {
+export function encodeRotationKey(privateKey: Uint8Array): string {
 	const uncompressedPublicKey = secp256k1.getPublicKey(privateKey, false);
 	const publicKeyX = uncompressedPublicKey.slice(1, 33);
 	const publicKeyY = uncompressedPublicKey.slice(33, 65);
@@ -61,7 +79,7 @@ export function encodeRotationKey(privateKey) {
  * @param {Uint8Array} privateKey - The 32-byte private key
  * @returns {string} The PEM-encoded private key (-----BEGIN PRIVATE KEY-----)
  */
-export function encodeVerificationKey(privateKey) {
+export function encodeVerificationKey(privateKey: Uint8Array): string {
 	const publicKey = ed25519.getPublicKey(privateKey);
 	const keyObject = crypto.createPrivateKey({
 		key: {
@@ -98,7 +116,7 @@ export const KEY_DIR_MODE = 0o700;
  * @param {string} did - The DID
  * @returns {string} The full path to the key file
  */
-export function getKeyFilePath(directory, did) {
+export function getKeyFilePath(directory: string, did: string): string {
 	return join(directory, `${did}.json`);
 }
 
@@ -109,21 +127,9 @@ export function getKeyFilePath(directory, did) {
  * PEM strings:
  * - Rotation keys: SEC1 format (-----BEGIN EC PRIVATE KEY-----)
  * - Verification keys: PKCS#8 format (-----BEGIN PRIVATE KEY-----)
- *
- * @param {{
- *   did: string, // did:plc:...
- *   rotationKey: {
- *     publicKey: string, // did:key:zQ3sh...
- *     privateKey: Uint8Array
- *   },
- *   verificationKey: {
- *     publicKey: string, // did:key:z6Mk...
- *     privateKey: Uint8Array
- *   }
- * }} options
  * @returns {string} The JSON content to write
  */
-export function formatKeyFileContent({ did, rotationKey, verificationKey }) {
+export function formatKeyFileContent({ did, rotationKey, verificationKey }: FormatKeyFileContentOptions): string {
 	return JSON.stringify(
 		{
 			did,
@@ -146,7 +152,7 @@ export function formatKeyFileContent({ did, rotationKey, verificationKey }) {
  * @param {string} content - The content to write
  * @returns {Promise<void>}
  */
-export async function writeKeyFile(path, content) {
+export async function writeKeyFile(path: string, content: string): Promise<void> {
 	await writeFile(path, content + '\n', { mode: KEY_FILE_MODE });
 }
 
@@ -155,52 +161,52 @@ export async function writeKeyFile(path, content) {
  *
  * If the file exists and is valid JSON, appends the key to the rotationKeys object.
  * If the file doesn't exist, writes the PEM-encoded key as a standalone file.
- *
- * @param {{
- *   outputFile: string,
- *   key: {
- *     publicKey: string, // did:key:zQ3sh...
- *     privateKey: Uint8Array
- *   }
- * }} opts
  * @returns {Promise<{
  *   appended: boolean
  * }>} Whether the key was appended to existing file
  * @throws {SaveKeyError} If reading or writing fails, or if key already exists
  */
-export async function saveRotationKeyToFile({ outputFile, key }) {
+export async function saveRotationKeyToFile({
+	outputFile,
+	key,
+}: {
+	outputFile: string;
+	key: KeyPair;
+}): Promise<{ appended: boolean }> {
 	const publicKey = key.publicKey;
-	let encodedKey;
+	let encodedKey: string;
 	try {
 		encodedKey = encodeRotationKey(key.privateKey);
 	} catch (err) {
-		throw new SaveKeyError(`Invalid private key: ${err.message}`);
+		throw new SaveKeyError(`Invalid private key: ${(err as Error).message}`);
 	}
-	let outputData = null;
+	let outputData: unknown = null;
 
 	try {
 		const content = await readFile(outputFile, 'utf-8');
 		outputData = JSON.parse(content);
 	} catch (err) {
-		if (err.code !== 'ENOENT') {
+		const error = err as NodeJS.ErrnoException;
+		if (error.code !== 'ENOENT') {
 			if (err instanceof SyntaxError) {
 				throw new SaveKeyError(`Output file is not valid JSON: ${outputFile}`);
 			}
-			throw new SaveKeyError(`Error reading output file: ${err.message}`);
+			throw new SaveKeyError(`Error reading output file: ${error.message}`);
 		}
 		// File doesn't exist - will write PEM key
 	}
 
 	try {
-		if (outputData) {
+		if (outputData !== null && typeof outputData === 'object') {
 			// File exists and is valid JSON - append to keys
-			if (!outputData.rotationKeys) {
-				outputData.rotationKeys = {};
+			const data = outputData as KeyData;
+			if (!data.rotationKeys) {
+				data.rotationKeys = {};
 			}
-			if (outputData.rotationKeys[publicKey]) {
+			if (data.rotationKeys[publicKey]) {
 				throw new SaveKeyError(`Key already exists in file: ${publicKey}`);
 			}
-			outputData.rotationKeys[publicKey] = encodedKey;
+			data.rotationKeys[publicKey] = encodedKey;
 			await writeFile(outputFile, JSON.stringify(outputData, null, '\t') + '\n', {
 				mode: KEY_FILE_MODE,
 			});
@@ -214,7 +220,7 @@ export async function saveRotationKeyToFile({ outputFile, key }) {
 		if (err instanceof SaveKeyError) {
 			throw err;
 		}
-		throw new SaveKeyError(`Error writing output file: ${err.message}`);
+		throw new SaveKeyError(`Error writing output file: ${(err as Error).message}`);
 	}
 }
 
@@ -223,52 +229,52 @@ export async function saveRotationKeyToFile({ outputFile, key }) {
  *
  * If the file exists and is valid JSON, appends the key to the verificationKeys object.
  * If the file doesn't exist, writes the PEM-encoded key as a standalone file.
- *
- * @param {{
- *   outputFile: string,
- *   key: {
- *     publicKey: string, // did:key:z6Mk...
- *     privateKey: Uint8Array
- *   }
- * }} opts
  * @returns {Promise<{
  *   appended: boolean
  * }>} Whether the key was appended to existing file
  * @throws {SaveKeyError} If reading or writing fails, or if key already exists
  */
-export async function saveVerificationKeyToFile({ outputFile, key }) {
+export async function saveVerificationKeyToFile({
+	outputFile,
+	key,
+}: {
+	outputFile: string;
+	key: KeyPair;
+}): Promise<{ appended: boolean }> {
 	const publicKey = key.publicKey;
-	let encodedKey;
+	let encodedKey: string;
 	try {
 		encodedKey = encodeVerificationKey(key.privateKey);
 	} catch (err) {
-		throw new SaveKeyError(`Invalid private key: ${err.message}`);
+		throw new SaveKeyError(`Invalid private key: ${(err as Error).message}`);
 	}
-	let outputData = null;
+	let outputData: unknown = null;
 
 	try {
 		const content = await readFile(outputFile, 'utf-8');
 		outputData = JSON.parse(content);
 	} catch (err) {
-		if (err.code !== 'ENOENT') {
+		const error = err as NodeJS.ErrnoException;
+		if (error.code !== 'ENOENT') {
 			if (err instanceof SyntaxError) {
 				throw new SaveKeyError(`Output file is not valid JSON: ${outputFile}`);
 			}
-			throw new SaveKeyError(`Error reading output file: ${err.message}`);
+			throw new SaveKeyError(`Error reading output file: ${error.message}`);
 		}
 		// File doesn't exist - will write PEM key
 	}
 
 	try {
-		if (outputData) {
+		if (outputData !== null && typeof outputData === 'object') {
 			// File exists and is valid JSON - append to keys
-			if (!outputData.verificationKeys) {
-				outputData.verificationKeys = {};
+			const data = outputData as KeyData;
+			if (!data.verificationKeys) {
+				data.verificationKeys = {};
 			}
-			if (outputData.verificationKeys[publicKey]) {
+			if (data.verificationKeys[publicKey]) {
 				throw new SaveKeyError(`Key already exists in file: ${publicKey}`);
 			}
-			outputData.verificationKeys[publicKey] = encodedKey;
+			data.verificationKeys[publicKey] = encodedKey;
 			await writeFile(outputFile, JSON.stringify(outputData, null, '\t') + '\n', {
 				mode: KEY_FILE_MODE,
 			});
@@ -282,7 +288,7 @@ export async function saveVerificationKeyToFile({ outputFile, key }) {
 		if (err instanceof SaveKeyError) {
 			throw err;
 		}
-		throw new SaveKeyError(`Error writing output file: ${err.message}`);
+		throw new SaveKeyError(`Error writing output file: ${(err as Error).message}`);
 	}
 }
 
@@ -293,7 +299,7 @@ export async function saveVerificationKeyToFile({ outputFile, key }) {
  * @returns {string} The PEM-encoded key
  * @throws {Error} If the format is unrecognized
  */
-export function convertRotationKeyToPEM(value) {
+export function convertRotationKeyToPEM(value: string): string {
 	const trimmed = value.trim();
 
 	if (isMultibaseRotationKey(trimmed)) {
@@ -313,7 +319,7 @@ export function convertRotationKeyToPEM(value) {
  * @returns {string} The PEM-encoded key
  * @throws {Error} If the format is unrecognized
  */
-export function convertVerificationKeyToPEM(value) {
+export function convertVerificationKeyToPEM(value: string): string {
 	const trimmed = value.trim();
 
 	if (isMultibaseVerificationKey(trimmed)) {
@@ -333,14 +339,14 @@ export class MigrateKeysError extends Error {}
 
 /**
  * Result of a key migration operation.
- * @typedef {{
- *   rotationKeysMigrated: number,
- *   verificationKeysMigrated: number,
- *   rotationKeysAlreadyPEM: number,
- *   verificationKeysAlreadyPEM: number,
- *   backupPath: string | null
- * }} MigrateKeysResult
  */
+interface MigrateKeysResult {
+	rotationKeysMigrated: number;
+	verificationKeysMigrated: number;
+	rotationKeysAlreadyPEM: number;
+	verificationKeysAlreadyPEM: number;
+	backupPath: string | null;
+}
 
 /**
  * Migrate a standalone multibase rotation key file to PEM.
@@ -349,27 +355,27 @@ export class MigrateKeysError extends Error {}
  * @param {string} content - The key content (trimmed)
  * @returns {Promise<MigrateKeysResult>}
  */
-async function migrateStandaloneRotationKey(keyFile, content) {
+async function migrateStandaloneRotationKey(keyFile: string, content: string): Promise<MigrateKeysResult> {
 	const backupPath = keyFile + '.bak';
 	try {
 		await copyFile(keyFile, backupPath, constants.COPYFILE_EXCL);
 		await chmod(backupPath, KEY_FILE_MODE);
 	} catch (err) {
-		throw new MigrateKeysError(`Error creating backup: ${err.message}`);
+		throw new MigrateKeysError(`Error creating backup: ${(err as Error).message}`);
 	}
 
-	let pemKey;
+	let pemKey: string;
 	try {
 		pemKey = convertRotationKeyToPEM(content);
 	} catch (err) {
-		throw new MigrateKeysError(`Failed to convert key: ${err.message}`);
+		throw new MigrateKeysError(`Failed to convert key: ${(err as Error).message}`);
 	}
 
 	try {
 		await writeFile(keyFile, pemKey + '\n');
 		await chmod(keyFile, KEY_FILE_MODE);
 	} catch (err) {
-		throw new MigrateKeysError(`Error writing migrated file: ${err.message}`);
+		throw new MigrateKeysError(`Error writing migrated file: ${(err as Error).message}`);
 	}
 
 	return {
@@ -388,27 +394,27 @@ async function migrateStandaloneRotationKey(keyFile, content) {
  * @param {string} content - The key content (trimmed)
  * @returns {Promise<MigrateKeysResult>}
  */
-async function migrateStandaloneVerificationKey(keyFile, content) {
+async function migrateStandaloneVerificationKey(keyFile: string, content: string): Promise<MigrateKeysResult> {
 	const backupPath = keyFile + '.bak';
 	try {
 		await copyFile(keyFile, backupPath, constants.COPYFILE_EXCL);
 		await chmod(backupPath, KEY_FILE_MODE);
 	} catch (err) {
-		throw new MigrateKeysError(`Error creating backup: ${err.message}`);
+		throw new MigrateKeysError(`Error creating backup: ${(err as Error).message}`);
 	}
 
-	let pemKey;
+	let pemKey: string;
 	try {
 		pemKey = convertVerificationKeyToPEM(content);
 	} catch (err) {
-		throw new MigrateKeysError(`Failed to convert key: ${err.message}`);
+		throw new MigrateKeysError(`Failed to convert key: ${(err as Error).message}`);
 	}
 
 	try {
 		await writeFile(keyFile, pemKey + '\n');
 		await chmod(keyFile, KEY_FILE_MODE);
 	} catch (err) {
-		throw new MigrateKeysError(`Error writing migrated file: ${err.message}`);
+		throw new MigrateKeysError(`Error writing migrated file: ${(err as Error).message}`);
 	}
 
 	return {
@@ -427,7 +433,7 @@ async function migrateStandaloneVerificationKey(keyFile, content) {
  * @param {object} keyData - The parsed JSON data
  * @returns {Promise<MigrateKeysResult>}
  */
-async function migrateJsonKeyFile(keyFile, keyData) {
+async function migrateJsonKeyFile(keyFile: string, keyData: KeyData): Promise<MigrateKeysResult> {
 	const rotationKeys = keyData.rotationKeys || {};
 	const verificationKeys = keyData.verificationKeys || {};
 
@@ -442,10 +448,10 @@ async function migrateJsonKeyFile(keyFile, keyData) {
 			rotationKeysAlreadyPEM++;
 		} else {
 			try {
-				keyData.rotationKeys[publicKey] = convertRotationKeyToPEM(privateKey);
+				keyData.rotationKeys![publicKey] = convertRotationKeyToPEM(privateKey);
 				rotationKeysMigrated++;
 			} catch (err) {
-				throw new MigrateKeysError(`Failed to convert rotation key ${publicKey}: ${err.message}`);
+				throw new MigrateKeysError(`Failed to convert rotation key ${publicKey}: ${(err as Error).message}`);
 			}
 		}
 	}
@@ -456,16 +462,16 @@ async function migrateJsonKeyFile(keyFile, keyData) {
 			verificationKeysAlreadyPEM++;
 		} else {
 			try {
-				keyData.verificationKeys[publicKey] = convertVerificationKeyToPEM(privateKey);
+				keyData.verificationKeys![publicKey] = convertVerificationKeyToPEM(privateKey);
 				verificationKeysMigrated++;
 			} catch (err) {
-				throw new MigrateKeysError(`Failed to convert verification key ${publicKey}: ${err.message}`);
+				throw new MigrateKeysError(`Failed to convert verification key ${publicKey}: ${(err as Error).message}`);
 			}
 		}
 	}
 
 	const totalMigrated = rotationKeysMigrated + verificationKeysMigrated;
-	let backupPath = null;
+	let backupPath: string | null = null;
 
 	if (totalMigrated > 0) {
 		backupPath = keyFile + '.bak';
@@ -473,14 +479,14 @@ async function migrateJsonKeyFile(keyFile, keyData) {
 			await copyFile(keyFile, backupPath, constants.COPYFILE_EXCL);
 			await chmod(backupPath, KEY_FILE_MODE);
 		} catch (err) {
-			throw new MigrateKeysError(`Error creating backup: ${err.message}`);
+			throw new MigrateKeysError(`Error creating backup: ${(err as Error).message}`);
 		}
 
 		try {
 			await writeFile(keyFile, JSON.stringify(keyData, null, '\t') + '\n');
 			await chmod(keyFile, KEY_FILE_MODE);
 		} catch (err) {
-			throw new MigrateKeysError(`Error writing migrated file: ${err.message}`);
+			throw new MigrateKeysError(`Error writing migrated file: ${(err as Error).message}`);
 		}
 	}
 
@@ -500,26 +506,21 @@ async function migrateJsonKeyFile(keyFile, keyData) {
  * as well as standalone key files containing a single key.
  *
  * Creates a backup of the original file before modifying it.
- *
- * @param {{
- *   keyFile: string,
- * }} opts
- * @returns {Promise<MigrateKeysResult>}
  * @throws {MigrateKeysError} If migration fails
  */
-export async function migrateKeysToPEM({ keyFile }) {
-	let keyContent;
+export async function migrateKeysToPEM({ keyFile }: { keyFile: string }): Promise<MigrateKeysResult> {
+	let keyContent: string;
 	try {
 		keyContent = await readFile(keyFile, 'utf-8');
 	} catch (err) {
-		throw new MigrateKeysError(`Error reading key file: ${err.message}`);
+		throw new MigrateKeysError(`Error reading key file: ${(err as Error).message}`);
 	}
 
 	const trimmedContent = keyContent.trim();
 
 	// Try to parse as JSON first
 	try {
-		const keyData = JSON.parse(trimmedContent);
+		const keyData = JSON.parse(trimmedContent) as KeyData;
 		return migrateJsonKeyFile(keyFile, keyData);
 	} catch {
 		// Not JSON - check if it's a standalone key file

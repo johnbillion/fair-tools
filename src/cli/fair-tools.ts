@@ -1,6 +1,13 @@
 #!/usr/bin/env node
 
-const commands = {
+type Command = {
+	description: string;
+	load: () => Promise<unknown>;
+};
+
+type CommandTree = Command | { [key: string]: CommandTree };
+
+const commands: { [key: string]: CommandTree } = {
 	did: {
 		create: {
 			description: 'Create a new DID',
@@ -101,18 +108,11 @@ const commands = {
 	},
 };
 
-type Command = {
-	description: string;
-	load: () => Promise<unknown>;
-};
-
-type CommandTree = Command | { [key: string]: CommandTree };
-
 /**
  * Checks if an object is a command definition.
  */
 function isCommand(obj: CommandTree): obj is Command {
-	return obj && typeof (obj as Command).load === 'function';
+	return obj && typeof obj.load === 'function';
 }
 
 type CollectedCommand = Command & { path: string[] };
@@ -135,10 +135,8 @@ function collectCommands(obj: { [key: string]: CommandTree }, prefix: string[] =
 
 /**
  * Displays the main help message with all available commands.
- *
- * @returns {void}
  */
-function showHelp() {
+function showHelp(): void {
 	const allCommands = collectCommands(commands);
 	const maxLen = Math.max(...allCommands.map((c) => c.path.join(' ').length));
 
@@ -154,12 +152,8 @@ Run 'fair-tools <command> --help' for more information on a command.`);
 
 /**
  * Displays help for a subcommand group.
- *
- * @param {Record<string, CommandTree>} obj - Command tree for the subcommand group
- * @param {string[]} path - Path segments to the subcommand group
- * @returns {void}
  */
-function showSubHelp(obj, path) {
+function showSubHelp(obj: { [key: string]: CommandTree }, path: string[]): void {
 	const subCommands = collectCommands(obj, []);
 	const maxLen = Math.max(...subCommands.map((c) => c.path.join(' ').length));
 
@@ -181,10 +175,10 @@ if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
 }
 
 // Walk the command tree
-let current = commands;
+let current: { [key: string]: CommandTree } | CommandTree = commands;
 let depth = 0;
 
-while (depth < args.length) {
+while (depth < args.length && !isCommand(current)) {
 	const arg = args[depth];
 
 	if (arg === '--help' || arg === '-h') {
@@ -205,10 +199,6 @@ while (depth < args.length) {
 
 	current = current[arg];
 	depth++;
-
-	if (isCommand(current)) {
-		break;
-	}
 }
 
 if (!isCommand(current)) {

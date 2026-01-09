@@ -1,12 +1,11 @@
-interface PlcClientError {
-	message: string;
-	status?: number;
-	data?:
-		| string
-		| {
-				message?: string;
-				error?: string;
-		  };
+import { PlcClientError } from '@did-plc/lib';
+
+interface PlcErrorOptions {
+	includeData?: boolean;
+}
+
+interface PlcErrorContext {
+	signerPublicKey?: string;
 }
 
 /**
@@ -16,18 +15,12 @@ interface PlcClientError {
  * - status: HTTP status code
  * - data: Response body from PLC server (often contains error details)
  * - message: Generic axios error message
- *
- * @param {PlcClientError} err - The error to format
- * @param {{
- *   includeData?: boolean
- * }} [options] - Options
- * @returns {string} A formatted error message
  */
-export function formatPlcError(err, { includeData = true } = {}) {
+export function formatPlcError(err: PlcClientError, { includeData = true }: PlcErrorOptions = {}): string {
 	// Check if this is a PlcClientError with additional data
-	if (err.status && err.data && includeData) {
-		const details =
-			typeof err.data === 'string' ? err.data : err.data.message || err.data.error || JSON.stringify(err.data);
+	const data = err.data as string | { message?: string; error?: string } | undefined;
+	if (err.status && data && includeData) {
+		const details = typeof data === 'string' ? data : data.message || data.error || JSON.stringify(data);
 		return `${err.message} (${err.status}): ${details}`;
 	}
 	if (err.status) {
@@ -38,14 +31,8 @@ export function formatPlcError(err, { includeData = true } = {}) {
 
 /**
  * Logs a PLC error with diagnostic hints to stderr.
- *
- * @param {string} prefix - The error prefix (e.g., "Error adding rotation key")
- * @param {PlcClientError} err - The error to log
- * @param {{
- *   signerPublicKey?: string
- * }} [context] - Context for diagnosis
  */
-export function logPlcError(prefix, err, context = {}) {
+export function logPlcError(prefix: string, err: PlcClientError, context: PlcErrorContext = {}): void {
 	const hints = diagnosePlcError(err, context);
 	console.error(`\x1b[31m${prefix}: ${formatPlcError(err, { includeData: hints.length === 0 })}\x1b[0m`);
 	for (const hint of hints) {
@@ -53,19 +40,20 @@ export function logPlcError(prefix, err, context = {}) {
 	}
 }
 
+interface ParsedOperation {
+	rotationKeys?: string[];
+}
+
 /**
  * Extracts the operation JSON from a PLC error message.
- *
- * @param {string} data - The error data string
- * @returns {object|null} The parsed operation or null if not found/invalid
  */
-function extractOperationFromError(data) {
+function extractOperationFromError(data: string): ParsedOperation | null {
 	const jsonMatch = data.match(/: ({.+})$/);
 	if (!jsonMatch) {
 		return null;
 	}
 	try {
-		return JSON.parse(jsonMatch[1]);
+		return JSON.parse(jsonMatch[1]) as ParsedOperation;
 	} catch {
 		return null;
 	}
@@ -77,7 +65,7 @@ function extractOperationFromError(data) {
  * Analyzes the error response to identify common issues and provide
  * helpful suggestions to the user.
  */
-export function diagnosePlcError(err: PlcClientError, context: { signerPublicKey?: string } = {}): string[] {
+export function diagnosePlcError(err: PlcClientError, context: PlcErrorContext = {}): string[] {
 	const hints: string[] = [];
 
 	if (err.status !== 400) {
@@ -85,7 +73,8 @@ export function diagnosePlcError(err: PlcClientError, context: { signerPublicKey
 	}
 
 	// err.data can be a string or an object with a message property
-	const dataString = typeof err.data === 'string' ? err.data : err.data?.message;
+	const data = err.data as string | { message?: string } | undefined;
+	const dataString = typeof data === 'string' ? data : data?.message;
 
 	if (typeof dataString !== 'string') {
 		return hints;

@@ -2,9 +2,10 @@
 
 import { writeFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
+import { PlcClientError } from '@did-plc/lib';
 import { importRotationKeyPair } from '../keys.js';
 import { revokeVerificationKey } from '../did.js';
-import { loadRotationKey, SigningKeyError } from '../signing.js';
+import { loadRotationKey, SigningKeyError, KeyData } from '../signing.js';
 import { logPlcError } from './lib/plc-error.js';
 import { rotationKeyHelp } from './lib/help.js';
 import {
@@ -72,9 +73,12 @@ if (values.cleanup && !values['signing-file']) {
 	process.exit(1);
 }
 
+const did = values.did;
+const revokeKey = values.revoke;
+
 // Validate DID format
 try {
-	validatePlcDid(values.did);
+	validatePlcDid(did);
 } catch (err) {
 	if (err instanceof DidValidationError) {
 		console.error(`Error: ${err.message}`);
@@ -85,7 +89,7 @@ try {
 
 // Validate verification key format
 try {
-	validateVerificationKey(values.revoke);
+	validateVerificationKey(revokeKey);
 } catch (err) {
 	if (err instanceof PublicKeyValidationError) {
 		console.error(`Error: ${err.message}`);
@@ -95,7 +99,8 @@ try {
 }
 
 // Load signing key
-let privateKeyHex, keyData;
+let privateKeyHex: string;
+let keyData: KeyData | null;
 try {
 	({ privateKeyHex, keyData } = await loadRotationKey({
 		signingFile: values['signing-file'],
@@ -110,35 +115,38 @@ try {
 }
 const { keypair: signer, publicKey: signerPublicKey } = await importRotationKeyPair(privateKeyHex);
 
-console.log(`Revoking verification key from DID ${values.did}...`);
-console.log(`  Key to revoke: ${values.revoke}`);
+console.log(`Revoking verification key from DID ${did}...`);
+console.log(`  Key to revoke: ${revokeKey}`);
 console.log(`  Signing with:  ${signerPublicKey}`);
 
 try {
 	await revokeVerificationKey({
-		did: values.did,
-		publicKey: values.revoke,
+		did,
+		publicKey: revokeKey,
 		signer,
 	});
 } catch (err) {
-	logPlcError('Error revoking verification key', err, { signerPublicKey });
-	process.exit(1);
+	if (err instanceof PlcClientError) {
+		logPlcError('Error revoking verification key', err, { signerPublicKey });
+		process.exit(1);
+	}
+	throw err;
 }
 
 console.log('Verification key revoked successfully.');
 
 // Remove the revoked key from the key file if requested
-if (values.cleanup && keyData && keyData.verificationKeys && keyData.verificationKeys[values.revoke]) {
-	delete keyData.verificationKeys[values.revoke];
+if (values.cleanup && keyData?.verificationKeys?.[revokeKey]) {
+	delete keyData.verificationKeys[revokeKey];
 	try {
-		await writeFile(values['signing-file'], JSON.stringify(keyData, null, '\t') + '\n', { mode: 0o600 });
+		await writeFile(values['signing-file']!, JSON.stringify(keyData, null, '\t') + '\n', { mode: 0o600 });
 	} catch (err) {
-		console.error(`Error writing key file: ${err.message}`);
+		console.error(`Error writing key file: ${(err as Error).message}`);
 		process.exit(1);
 	}
 	console.log(`Removed revoked key from ${values['signing-file']}`);
-} else if (keyData && keyData.verificationKeys && keyData.verificationKeys[values.revoke]) {
+} else if (keyData?.verificationKeys?.[revokeKey]) {
 	console.log(`Note: The revoked key still exists in ${values['signing-file']}. Use --cleanup to delete it.`);
 }
 
-console.log(`View at: https://web.plc.directory/did/${values.did}`);
+console.log(`View at: https://web.plc.directory/did/${did}`);

@@ -44,6 +44,16 @@ interface ParsedReadme {
 	screenshots?: Screenshot[];
 }
 
+interface SectionData {
+	content: string;
+	originalTitle: string;
+}
+
+interface TokenizedReadme {
+	headerBlock: string;
+	sections: Map<string, SectionData>;
+}
+
 /**
  * Normalizes a section name to camelCase.
  *
@@ -54,7 +64,7 @@ interface ParsedReadme {
  * @param {string} name - Section name (already lowercase)
  * @returns {string} Normalized name in camelCase
  */
-function normalizeSectionName(name) {
+function normalizeSectionName(name: string): string {
 	// Special case mappings
 	if (name === 'frequently asked questions') {
 		return 'faq';
@@ -71,8 +81,8 @@ function normalizeSectionName(name) {
  * @param {string} content - readme.txt file content
  * @returns {{ headerBlock: string, sections: Map<string, { content: string, originalTitle: string }> }}
  */
-function tokenizeReadme(content) {
-	const sections = new Map();
+function tokenizeReadme(content: string): TokenizedReadme {
+	const sections = new Map<string, SectionData>();
 
 	// Match both WordPress-flavour (== Section ==) and Markdown-flavour (## Section)
 	// Some readmes mix both styles, so we need to find all of them
@@ -83,20 +93,20 @@ function tokenizeReadme(content) {
 	const mdMatches = [...content.matchAll(mdSectionRegex)];
 
 	// Combine and sort by position in the document
-	const allMatches = [...wpMatches, ...mdMatches].sort((a, b) => a.index - b.index);
+	const allMatches = [...wpMatches, ...mdMatches].sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
 
 	if (allMatches.length === 0) {
 		return { headerBlock: content, sections };
 	}
 
 	// Everything before the first section is the header block
-	const headerBlock = content.slice(0, allMatches[0].index).trim();
+	const headerBlock = content.slice(0, allMatches[0].index ?? 0).trim();
 
 	// Extract each section's content, preserving original title for unsupported sections
 	for (let i = 0; i < allMatches.length; i++) {
 		const originalTitle = allMatches[i][1].trim();
 		const name = normalizeSectionName(originalTitle.toLowerCase());
-		const start = allMatches[i].index + allMatches[i][0].length;
+		const start = (allMatches[i].index ?? 0) + allMatches[i][0].length;
 		const end = allMatches[i + 1]?.index ?? content.length;
 		sections.set(name, {
 			content: content.slice(start, end).trim(),
@@ -132,11 +142,8 @@ function parseHeaderFields(headerBlock: string): Record<string, string> {
  * that isn't a title or field definition.
  *
  * Supports both WordPress-flavour (=== Title ===) and Markdown-flavour (# Title).
- *
- * @param {string} headerBlock
- * @returns {string|undefined}
  */
-function parseShortDescription(headerBlock) {
+function parseShortDescription(headerBlock: string): string | undefined {
 	const lines = headerBlock.split('\n');
 	let pastTitle = false;
 
@@ -210,8 +217,8 @@ export function parseReadmeFile(content: string): ParsedReadme {
 
 	// Build sections object with just content (originalTitle used later for unsupported sections)
 	const sectionsContent: ReadmeSections = {};
-	for (const [key, { content }] of rawSections) {
-		sectionsContent[key] = content;
+	for (const [key, { content: sectionContent }] of rawSections) {
+		sectionsContent[key] = sectionContent;
 	}
 
 	// Build result with normalized field names
@@ -242,7 +249,10 @@ export function parseReadmeFile(content: string): ParsedReadme {
 
 	// Parse screenshots section into structured data
 	if (rawSections.has('screenshots')) {
-		result.screenshots = parseScreenshotsSection(rawSections.get('screenshots').content);
+		const screenshotsSection = rawSections.get('screenshots');
+		if (screenshotsSection) {
+			result.screenshots = parseScreenshotsSection(screenshotsSection.content);
+		}
 	}
 
 	// Supported sections per FAIR spec (plus upgradeNotice for WordPress compatibility)
@@ -259,10 +269,10 @@ export function parseReadmeFile(content: string): ParsedReadme {
 
 	// Append unsupported sections to description (WordPress.org behavior)
 	// Process in original order from the readme, using original title to preserve casing
-	for (const [key, { content, originalTitle }] of rawSections) {
+	for (const [key, { content: sectionContent, originalTitle }] of rawSections) {
 		if (!supportedSections.includes(key)) {
 			const descriptionContent = result.sections.description || '';
-			result.sections.description = descriptionContent + `\n\n### ${originalTitle}\n\n${content}`;
+			result.sections.description = descriptionContent + `\n\n### ${originalTitle}\n\n${sectionContent}`;
 			delete result.sections[key];
 		}
 	}
@@ -274,10 +284,12 @@ export function parseReadmeFile(content: string): ParsedReadme {
 
 	// Convert markdown sections to HTML
 	for (const section of Object.keys(result.sections)) {
+		const sectionContent = result.sections[section];
+		if (sectionContent === undefined) continue;
 		// Convert WordPress-flavour subheadings to markdown before parsing
 		// Handles 1-3 equals signs: = Heading =, == Heading ==, === Heading ===
 		// All become #### Heading (h4) as they're subheadings within sections
-		let markdown = result.sections[section].replace(/^={1,3}\s*(.+?)\s*={0,3}\s*$/gm, '#### $1');
+		let markdown = sectionContent.replace(/^={1,3}\s*(.+?)\s*={0,3}\s*$/gm, '#### $1');
 		// Strip trailing hashes from markdown headings (e.g., "### Heading ###" -> "### Heading")
 		// Some readmes use ATX-style closing hashes which marked doesn't handle
 		markdown = markdown.replace(/^(#{1,6}\s+.+?)\s*#{1,6}\s*$/gm, '$1');
@@ -288,8 +300,7 @@ export function parseReadmeFile(content: string): ParsedReadme {
 	}
 
 	// Reorder sections per FAIR spec order
-	/** @type {Record<string, string>} */
-	const orderedSections = {};
+	const orderedSections: ReadmeSections = {};
 	for (const key of supportedSections) {
 		if (result.sections[key] !== undefined) {
 			orderedSections[key] = result.sections[key];

@@ -48,9 +48,11 @@ if (!values.did) {
 	process.exit(1);
 }
 
+const did = values.did;
+
 // Validate DID format
 try {
-	validatePlcDid(values.did);
+	validatePlcDid(did);
 } catch (err) {
 	if (err instanceof DidValidationError) {
 		console.error(`Error: ${err.message}`);
@@ -59,13 +61,13 @@ try {
 	throw err;
 }
 
-console.log(`Fetching DID document for ${values.did}...`);
+console.log(`Fetching DID document for ${did}...`);
 
-let alias;
+let alias: string;
 try {
-	alias = await getFairAlias(values.did);
+	alias = await getFairAlias(did);
 } catch (err) {
-	console.error(`\n✗ ${err.message}`);
+	console.error(`\n✗ ${(err as Error).message}`);
 	process.exit(1);
 }
 
@@ -74,16 +76,16 @@ const domain = alias.replace(/^fair:\/\//, '').replace(/\/$/, '');
 console.log(`\nVerifying ${alias}...`);
 
 try {
-	await verifyDomainDid(domain, values.did);
+	await verifyDomainDid(domain, did);
 	console.log(`\n✓ Domain verified: ${domain}`);
 	console.log(`  DNS record: _fairpm.${domain}`);
-	console.log(`  DID: ${values.did}`);
+	console.log(`  DID: ${did}`);
 } catch (err) {
-	console.error(`\n✗ ${err.message}`);
+	console.error(`\n✗ ${(err as Error).message}`);
 	if (err instanceof DnsRecordNotFoundError || err instanceof DnsRecordInvalidError) {
 		console.error(`\n  To verify this domain, add a TXT record:`);
 		console.error(`    Host: _fairpm.${domain}`);
-		console.error(`    Value: did=${values.did}`);
+		console.error(`    Value: did=${did}`);
 	}
 	process.exit(1);
 }

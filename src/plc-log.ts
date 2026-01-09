@@ -1,19 +1,37 @@
 import { assureValidSig, didForCreateOp, getLastOpWithCid } from '@did-plc/lib';
 import { PLC_DIRECTORY_URL } from './did.js';
 
-/**
- * @typedef {object} ValidatedOperation
- * @property {number} index - Operation index in the log
- * @property {string} cid - Content identifier of the operation
- * @property {string} type - Operation type (e.g., 'plc_operation')
- * @property {string} signingKey - The key that signed this operation
- */
+interface ValidatedOperation {
+	/** Operation index in the log */
+	index: number;
+	/** Content identifier of the operation */
+	cid: string;
+	/** Operation type (e.g., 'plc_operation') */
+	type: string;
+	/** The key that signed this operation */
+	signingKey: string;
+}
 
-/**
- * @typedef {object} ValidationResult
- * @property {string} did - The validated DID
- * @property {ValidatedOperation[]} operations - The validated operations
- */
+interface ValidationResult {
+	/** The validated DID */
+	did: string;
+	/** The validated operations */
+	operations: ValidatedOperation[];
+}
+
+// PlcOperation is intentionally loosely typed here because the @did-plc/lib
+// functions accept operations with various optional fields depending on the
+// operation type (create, plc_operation, plc_tombstone). We use type assertions
+// when calling the library functions.
+interface PlcOperation {
+	type: string;
+	prev: string | null;
+	rotationKeys: string[];
+	sig?: string;
+	[key: string]: unknown;
+}
+
+type LibraryOperation = Parameters<typeof didForCreateOp>[0];
 
 /**
  * Error thrown when DID log validation fails.
@@ -33,14 +51,14 @@ export class DidLogFetchError extends Error {}
  * @returns {Promise<object[]>} The array of operations
  * @throws {DidLogFetchError} If the log cannot be fetched
  */
-export async function fetchDidLog(did, plcUrl = PLC_DIRECTORY_URL) {
+export async function fetchDidLog(did: string, plcUrl = PLC_DIRECTORY_URL): Promise<PlcOperation[]> {
 	const url = `${plcUrl}/${did}/log`;
 
-	let response;
+	let response: Response;
 	try {
 		response = await fetch(url);
 	} catch (err) {
-		throw new DidLogFetchError(`Failed to fetch DID log: ${err.message}`);
+		throw new DidLogFetchError(`Failed to fetch DID log: ${(err as Error).message}`);
 	}
 
 	if (!response.ok) {
@@ -48,9 +66,9 @@ export async function fetchDidLog(did, plcUrl = PLC_DIRECTORY_URL) {
 	}
 
 	try {
-		return await response.json();
+		return (await response.json()) as PlcOperation[];
 	} catch (err) {
-		throw new DidLogFetchError(`Failed to parse DID log response: ${err.message}`);
+		throw new DidLogFetchError(`Failed to parse DID log response: ${(err as Error).message}`);
 	}
 }
 
@@ -78,12 +96,12 @@ export async function fetchDidLog(did, plcUrl = PLC_DIRECTORY_URL) {
  * @returns {Promise<ValidationResult>}
  * @throws {DidLogValidationError} If validation fails
  */
-export async function validateOperations(did, ops) {
+export async function validateOperations(did: string, ops: PlcOperation[]): Promise<ValidationResult> {
 	if (!Array.isArray(ops) || ops.length === 0) {
 		throw new DidLogValidationError('DID log is empty or invalid');
 	}
 
-	const validatedOps = [];
+	const validatedOps: ValidatedOperation[] = [];
 
 	try {
 		// Validate genesis operation
@@ -94,16 +112,16 @@ export async function validateOperations(did, ops) {
 		}
 
 		// Verify the DID is correctly derived from the genesis operation
-		const computedDid = await didForCreateOp(genesisOp);
+		const computedDid = await didForCreateOp(genesisOp as LibraryOperation);
 		if (computedDid !== did) {
 			throw new DidLogValidationError(`DID mismatch: expected ${did}, computed ${computedDid}`);
 		}
 
 		// Verify genesis signature against its own rotation keys and get the signing key
-		const genesisSigningKey = await assureValidSig(genesisOp.rotationKeys, genesisOp);
+		const genesisSigningKey = await assureValidSig(genesisOp.rotationKeys, genesisOp as LibraryOperation);
 
 		// Get CID of genesis operation
-		const genesisWithCid = await getLastOpWithCid(ops.slice(0, 1));
+		const genesisWithCid = await getLastOpWithCid(ops.slice(0, 1) as LibraryOperation[]);
 		let prevCid = genesisWithCid.cid;
 
 		validatedOps.push({
@@ -133,13 +151,13 @@ export async function validateOperations(did, ops) {
 			}
 
 			// Verify signature against current rotation keys (from previous state) and get signing key
-			const signingKey = await assureValidSig(currentRotationKeys, op);
+			const signingKey = await assureValidSig(currentRotationKeys, op as LibraryOperation);
 
 			// Update rotation keys for next iteration
 			currentRotationKeys = op.rotationKeys;
 
 			// Get CID of this operation for next iteration
-			const opWithCid = await getLastOpWithCid(ops.slice(0, i + 1));
+			const opWithCid = await getLastOpWithCid(ops.slice(0, i + 1) as LibraryOperation[]);
 			prevCid = opWithCid.cid;
 
 			validatedOps.push({
@@ -158,7 +176,7 @@ export async function validateOperations(did, ops) {
 		if (err instanceof DidLogValidationError) {
 			throw err;
 		}
-		throw new DidLogValidationError(`DID log validation failed: ${err.message}`);
+		throw new DidLogValidationError(`DID log validation failed: ${(err as Error).message}`);
 	}
 }
 
@@ -171,7 +189,7 @@ export async function validateOperations(did, ops) {
  * @throws {DidLogFetchError} If the log cannot be fetched
  * @throws {DidLogValidationError} If validation fails
  */
-export async function validateDidLog(did, plcUrl = PLC_DIRECTORY_URL) {
+export async function validateDidLog(did: string, plcUrl = PLC_DIRECTORY_URL): Promise<ValidationResult> {
 	const ops = await fetchDidLog(did, plcUrl);
 	return validateOperations(did, ops);
 }

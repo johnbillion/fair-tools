@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
 import { parseArgs } from 'node:util';
+import { PlcClientError } from '@did-plc/lib';
 import { importRotationKeyPair, generateRotationKeyPair } from '../keys.js';
 import { addRotationKey } from '../did.js';
-import { loadRotationKey, SigningKeyError } from '../signing.js';
+import { loadRotationKey, SigningKeyError, KeyData } from '../signing.js';
 import { saveRotationKeyToFile, SaveKeyError } from '../keyfile.js';
 import { logPlcError } from './lib/plc-error.js';
 import { rotationKeyHelp } from './lib/help.js';
@@ -55,9 +56,11 @@ if (!values.did) {
 	process.exit(1);
 }
 
+const did = values.did;
+
 // Validate DID format
 try {
-	validatePlcDid(values.did);
+	validatePlcDid(did);
 } catch (err) {
 	if (err instanceof DidValidationError) {
 		console.error(`Error: ${err.message}`);
@@ -67,7 +70,8 @@ try {
 }
 
 // Load signing key
-let privateKeyHex, keyData;
+let privateKeyHex: string;
+let keyData: KeyData | null;
 try {
 	({ privateKeyHex, keyData } = await loadRotationKey({
 		signingFile: values['signing-file'],
@@ -92,21 +96,24 @@ if (!values['output-file'] && !keyData) {
 console.log('Generating new rotation key...');
 const newRotationKey = await generateRotationKeyPair();
 
-console.log(`Adding rotation key to DID ${values.did}...`);
+console.log(`Adding rotation key to DID ${did}...`);
 
 try {
 	await addRotationKey({
-		did: values.did,
+		did,
 		rotationKey: newRotationKey.publicKey,
 		signer,
 	});
 } catch (err) {
-	logPlcError('Error adding rotation key', err, { signerPublicKey });
-	process.exit(1);
+	if (err instanceof PlcClientError) {
+		logPlcError('Error adding rotation key', err, { signerPublicKey });
+		process.exit(1);
+	}
+	throw err;
 }
 
 // Save the new key
-const outputFile = values['output-file'] || values['signing-file'];
+const outputFile = values['output-file'] || values['signing-file']!;
 try {
 	const { appended } = await saveRotationKeyToFile({
 		outputFile,
@@ -131,4 +138,4 @@ try {
 
 console.log('Rotation key added successfully.');
 console.log(`Public key: ${newRotationKey.publicKey}`);
-console.log(`View at: https://web.plc.directory/did/${values.did}`);
+console.log(`View at: https://web.plc.directory/did/${did}`);

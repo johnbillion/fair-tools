@@ -2,6 +2,7 @@
 
 import { stat, mkdir } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
+import { PlcClientError } from '@did-plc/lib';
 import { generateRotationKeyPair, generateVerificationKeyPair } from '../keys.js';
 import { createDID } from '../did.js';
 import { KEY_DIR_MODE, getKeyFilePath, formatKeyFileContent, writeKeyFile } from '../keyfile.js';
@@ -37,16 +38,18 @@ if (!values.directory) {
 	process.exit(1);
 }
 
+const directory = values.directory;
+
 // Ensure directory exists
 try {
-	const dirStat = await stat(values.directory);
+	const dirStat = await stat(directory);
 	if (!dirStat.isDirectory()) {
-		console.error(`Error: ${values.directory} is not a directory`);
+		console.error(`Error: ${directory} is not a directory`);
 		process.exit(1);
 	}
 } catch (err) {
-	if (err.code === 'ENOENT') {
-		await mkdir(values.directory, { recursive: true, mode: KEY_DIR_MODE });
+	if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+		await mkdir(directory, { recursive: true, mode: KEY_DIR_MODE });
 	} else {
 		throw err;
 	}
@@ -59,7 +62,7 @@ console.log('Generating verification key...');
 const verificationKey = await generateVerificationKeyPair();
 
 console.log('Creating DID and publishing to plc.directory...');
-let did;
+let did: string;
 try {
 	did = await createDID({
 		verificationKey: verificationKey.publicKey,
@@ -67,12 +70,15 @@ try {
 		keypair: rotationKey.keypair,
 	});
 } catch (err) {
-	logPlcError('Error creating DID', err);
-	process.exit(1);
+	if (err instanceof PlcClientError) {
+		logPlcError('Error creating DID', err);
+		process.exit(1);
+	}
+	throw err;
 }
 
 // Determine output path
-const outputPath = getKeyFilePath(values.directory, did);
+const outputPath = getKeyFilePath(directory, did);
 
 // Check that the file doesn't already exist
 try {
@@ -80,16 +86,20 @@ try {
 	console.error(`Error: Output file already exists: ${outputPath}`);
 	process.exit(1);
 } catch (err) {
-	if (err.code !== 'ENOENT') {
+	if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
 		throw err;
 	}
 }
 
-const output = formatKeyFileContent({ did, rotationKey, verificationKey });
+const output = formatKeyFileContent({
+	did,
+	rotationKey,
+	verificationKey,
+});
 try {
 	await writeKeyFile(outputPath, output);
 } catch (err) {
-	console.error(`Error writing key file: ${err.message}`);
+	console.error(`Error writing key file: ${(err as Error).message}`);
 	process.exit(1);
 }
 

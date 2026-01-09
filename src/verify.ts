@@ -4,6 +4,36 @@
  * Verifies metadata documents, release signatures, and checksums.
  */
 
+interface VerificationKey {
+	id: string;
+	publicKeyMultibase: string;
+}
+
+interface Artifact {
+	url: string;
+	signature?: string;
+	checksum?: string;
+}
+
+interface Release {
+	version: string;
+	artifacts?: {
+		package?: Artifact[];
+	};
+}
+
+export interface Metadata {
+	'@context'?: string;
+	id?: string;
+	releases?: Release[];
+}
+
+interface VerificationOptions {
+	did: string;
+	allReleases?: boolean;
+	plcUrl?: string;
+}
+
 interface ArtifactVerificationResult {
 	url: string;
 	keyId: string | null;
@@ -23,7 +53,6 @@ import { PLC_DIRECTORY_URL } from './did.js';
 
 /**
  * Error thrown when metadata verification fails.
- * @property {ReleaseVerificationResult[]} [result] - Detailed verification result when available
  */
 export class MetadataVerificationError extends Error {
 	result?: ReleaseVerificationResult[];
@@ -35,7 +64,6 @@ export class MetadataVerificationError extends Error {
 
 /**
  * Error thrown when release verification fails.
- * @property {ReleaseVerificationResult} [result] - Detailed verification result when available
  */
 export class ReleaseVerificationError extends Error {
 	result?: ReleaseVerificationResult;
@@ -66,21 +94,26 @@ export class SignatureVerificationError extends Error {}
 export class ChecksumVerificationError extends Error {}
 
 /**
+ * Partial DID document type containing only the fields we use.
+ * The actual API response includes many more fields.
+ */
+interface PartialDidDocument {
+	verificationMethod?: VerificationKey[];
+	[key: string]: unknown;
+}
+
+/**
  * Fetches a DID document from the PLC directory.
- *
- * @param {string} did - The DID to fetch
- * @param {string} [plcUrl] - The PLC directory URL
- * @returns {Promise<object>} The DID document
  * @throws {MetadataFetchError} If the document cannot be fetched
  */
-export async function fetchDidDocument(did, plcUrl = PLC_DIRECTORY_URL) {
+async function fetchDidDocument(did: string, plcUrl = PLC_DIRECTORY_URL): Promise<PartialDidDocument> {
 	const url = `${plcUrl}/${did}`;
 
-	let response;
+	let response: Response;
 	try {
 		response = await fetch(url);
 	} catch (err) {
-		throw new MetadataFetchError(`Failed to fetch DID document: ${err.message}`);
+		throw new MetadataFetchError(`Failed to fetch DID document: ${(err as Error).message}`);
 	}
 
 	if (!response.ok) {
@@ -88,9 +121,9 @@ export async function fetchDidDocument(did, plcUrl = PLC_DIRECTORY_URL) {
 	}
 
 	try {
-		return await response.json();
+		return (await response.json()) as PartialDidDocument;
 	} catch (err) {
-		throw new MetadataFetchError(`Failed to parse DID document: ${err.message}`);
+		throw new MetadataFetchError(`Failed to parse DID document: ${(err as Error).message}`);
 	}
 }
 
@@ -98,25 +131,18 @@ export async function fetchDidDocument(did, plcUrl = PLC_DIRECTORY_URL) {
  * Extracts verification keys from a DID document.
  *
  * Looks for verification methods with IDs containing 'fair' (e.g., #fair, #fair2).
- *
- * @param {object} didDocument - The DID document
- * @returns {Array<{id: string, publicKeyMultibase: string}>} The verification keys
  */
-export function extractVerificationKeys(didDocument) {
+export function extractVerificationKeys(didDocument: PartialDidDocument): VerificationKey[] {
 	const verificationMethods = didDocument.verificationMethod || [];
 	return verificationMethods.filter((vm) => vm.id && vm.id.includes('#fair'));
 }
 
 /**
  * Fetches verification keys for a DID.
- *
- * @param {string} did - The DID to get keys for
- * @param {string} [plcUrl] - The PLC directory URL
- * @returns {Promise<Array<{id: string, publicKeyMultibase: string}>>} The verification keys
  * @throws {MetadataFetchError} If keys cannot be fetched
  * @throws {MetadataVerificationError} If no verification keys are found
  */
-export async function getVerificationKeys(did, plcUrl = PLC_DIRECTORY_URL) {
+export async function getVerificationKeys(did: string, plcUrl = PLC_DIRECTORY_URL): Promise<VerificationKey[]> {
 	const document = await fetchDidDocument(did, plcUrl);
 	const keys = extractVerificationKeys(document);
 
@@ -133,11 +159,14 @@ export async function getVerificationKeys(did, plcUrl = PLC_DIRECTORY_URL) {
  * @param {Buffer|Uint8Array} data - The artifact data
  * @param {string} signature - The base64url-encoded signature
  * @param {Array<{id: string, publicKeyMultibase: string}>} verificationKeys - Keys to verify against
- * @returns {Promise<string>} The key ID that verified the signature
  * @throws {SignatureVerificationError} If signature doesn't match any key
  */
-export async function verifyArtifactSignature(data, signature, verificationKeys) {
-	const errors = [];
+export async function verifyArtifactSignature(
+	data: Buffer | Uint8Array,
+	signature: string,
+	verificationKeys: VerificationKey[],
+): Promise<string> {
+	const errors: string[] = [];
 
 	for (const key of verificationKeys) {
 		try {
@@ -147,7 +176,7 @@ export async function verifyArtifactSignature(data, signature, verificationKeys)
 				return key.id;
 			}
 		} catch (err) {
-			errors.push(`${key.id}: ${err.message}`);
+			errors.push(`${key.id}: ${(err as Error).message}`);
 		}
 	}
 
@@ -165,7 +194,7 @@ export async function verifyArtifactSignature(data, signature, verificationKeys)
  * @param {string} checksum - The checksum in format 'algorithm:hash'
  * @throws {ChecksumVerificationError} If checksum doesn't match
  */
-export function verifyArtifactChecksum(data, checksum) {
+export function verifyArtifactChecksum(data: Buffer | Uint8Array, checksum: string): void {
 	const [algorithm, expectedHash] = checksum.split(':');
 
 	if (algorithm !== 'sha256') {
@@ -175,7 +204,7 @@ export function verifyArtifactChecksum(data, checksum) {
 	const actualHashBuffer = createHash(algorithm).update(data).digest();
 	const expectedHashBuffer = Buffer.from(expectedHash, 'hex');
 
-	let match;
+	let match: boolean;
 	try {
 		match = timingSafeEqual(actualHashBuffer, expectedHashBuffer);
 	} catch {
@@ -193,15 +222,14 @@ export function verifyArtifactChecksum(data, checksum) {
  * Fetches artifact data from a URL.
  *
  * @param {string} url - The artifact URL
- * @returns {Promise<Buffer>} The artifact data
  * @throws {ArtifactFetchError} If the artifact cannot be fetched
  */
-export async function fetchArtifact(url) {
-	let response;
+export async function fetchArtifact(url: string): Promise<Buffer> {
+	let response: Response;
 	try {
 		response = await fetch(url);
 	} catch (err) {
-		throw new ArtifactFetchError(`Failed to fetch artifact: ${err.message}`);
+		throw new ArtifactFetchError(`Failed to fetch artifact: ${(err as Error).message}`);
 	}
 
 	if (!response.ok) {
@@ -212,7 +240,7 @@ export async function fetchArtifact(url) {
 		const arrayBuffer = await response.arrayBuffer();
 		return Buffer.from(arrayBuffer);
 	} catch (err) {
-		throw new ArtifactFetchError(`Failed to read artifact data: ${err.message}`);
+		throw new ArtifactFetchError(`Failed to read artifact data: ${(err as Error).message}`);
 	}
 }
 
@@ -221,15 +249,14 @@ export async function fetchArtifact(url) {
  *
  * Only 'package' type artifacts require signature verification.
  * Other artifact types (banner, icon, screenshot) are not verified.
- *
- * @param {object} release - The release object from metadata
- * @param {Array<{id: string, publicKeyMultibase: string}>} verificationKeys - Keys to verify against
- * @returns {Promise<ReleaseVerificationResult>}
  * @throws {ReleaseVerificationError} If verification fails (includes result with details)
  */
-export async function verifyRelease(release, verificationKeys) {
-	const artifacts = [];
-	const errors = [];
+export async function verifyRelease(
+	release: Release,
+	verificationKeys: VerificationKey[],
+): Promise<ReleaseVerificationResult> {
+	const artifacts: ArtifactVerificationResult[] = [];
+	const errors: string[] = [];
 
 	// Only verify 'package' artifacts - other types don't require signatures
 	const packageArtifacts = release.artifacts?.package || [];
@@ -268,11 +295,11 @@ export async function verifyRelease(release, verificationKeys) {
 		}
 
 		// Fetch the artifact
-		let data;
+		let data: Buffer;
 		try {
 			data = await fetchArtifact(artifact.url);
 		} catch (err) {
-			errors.push(`Failed to fetch ${artifact.url}: ${err.message}`);
+			errors.push(`Failed to fetch ${artifact.url}: ${(err as Error).message}`);
 			artifacts.push({
 				url: artifact.url,
 				keyId: null,
@@ -285,20 +312,20 @@ export async function verifyRelease(release, verificationKeys) {
 		// Verify signature and checksum
 		let signatureValid = false;
 		let checksumValid = false;
-		let keyId = null;
+		let keyId: string | null = null;
 
 		try {
 			keyId = await verifyArtifactSignature(data, artifact.signature, verificationKeys);
 			signatureValid = true;
 		} catch (err) {
-			errors.push(err.message);
+			errors.push((err as Error).message);
 		}
 
 		try {
 			verifyArtifactChecksum(data, artifact.checksum);
 			checksumValid = true;
 		} catch (err) {
-			errors.push(err.message);
+			errors.push((err as Error).message);
 		}
 
 		artifacts.push({
@@ -320,21 +347,18 @@ export async function verifyRelease(release, verificationKeys) {
 
 /**
  * Fetches FAIR metadata from a URL.
- *
- * @param {string} url - The metadata URL (must be HTTPS)
- * @returns {Promise<object>} The metadata document
  * @throws {MetadataFetchError} If the URL is not HTTPS or the metadata cannot be fetched
  */
-export async function fetchFairMetadata(url) {
+export async function fetchFairMetadata(url: string): Promise<Metadata> {
 	if (!url.startsWith('https://')) {
 		throw new MetadataFetchError('Metadata URL must use HTTPS');
 	}
 
-	let response;
+	let response: Response;
 	try {
 		response = await fetch(url);
 	} catch (err) {
-		throw new MetadataFetchError(`Failed to fetch metadata: ${err.message}`);
+		throw new MetadataFetchError(`Failed to fetch metadata: ${(err as Error).message}`);
 	}
 
 	if (!response.ok) {
@@ -342,21 +366,18 @@ export async function fetchFairMetadata(url) {
 	}
 
 	try {
-		return await response.json();
+		return (await response.json()) as Metadata;
 	} catch (err) {
-		throw new MetadataFetchError(`Failed to parse metadata: ${err.message}`);
+		throw new MetadataFetchError(`Failed to parse metadata: ${(err as Error).message}`);
 	}
 }
 
 /**
  * Validates the structure of a FAIR metadata document.
- *
- * @param {object} metadata - The metadata document
- * @param {string} expectedDid - The expected DID
  * @throws {MetadataVerificationError} If validation fails
  */
-export function validateMetadataStructure(metadata, expectedDid) {
-	const errors = [];
+export function validateMetadataStructure(metadata: Metadata, expectedDid: string): void {
+	const errors: string[] = [];
 
 	// Check context
 	if (!('@context' in metadata)) {
@@ -386,14 +407,13 @@ export function validateMetadataStructure(metadata, expectedDid) {
 
 /**
  * Verifies a FAIR metadata document.
- *
- * @param {object} metadata - The metadata document
- * @param {VerificationOptions} options - Verification options
- * @returns {Promise<ReleaseVerificationResult[]>}
  * @throws {MetadataVerificationError} If verification fails (includes result with details)
  * @throws {MetadataFetchError} If verification keys cannot be fetched
  */
-export async function verifyMetadata(metadata, options) {
+export async function verifyMetadata(
+	metadata: Metadata,
+	options: VerificationOptions,
+): Promise<ReleaseVerificationResult[]> {
 	const { did, allReleases = false, plcUrl = PLC_DIRECTORY_URL } = options;
 
 	// Validate metadata structure
@@ -410,8 +430,8 @@ export async function verifyMetadata(metadata, options) {
 		throw new MetadataVerificationError('No releases to verify');
 	}
 
-	const releaseResults = [];
-	const errors = [];
+	const releaseResults: ReleaseVerificationResult[] = [];
+	const errors: string[] = [];
 
 	// Verify releases
 	for (const release of releasesToVerify) {
@@ -420,7 +440,9 @@ export async function verifyMetadata(metadata, options) {
 			releaseResults.push(releaseResult);
 		} catch (err) {
 			if (err instanceof ReleaseVerificationError) {
-				releaseResults.push(err.result);
+				if (err.result) {
+					releaseResults.push(err.result);
+				}
 				errors.push(`v${release.version}: ${err.message}`);
 			} else {
 				throw err;
@@ -437,15 +459,14 @@ export async function verifyMetadata(metadata, options) {
 
 /**
  * Verifies a specific release version from metadata.
- *
- * @param {object} metadata - The metadata document
- * @param {string} version - The version to verify
- * @param {VerificationOptions} options - Verification options
- * @returns {Promise<ReleaseVerificationResult[]>}
  * @throws {MetadataVerificationError} If verification fails (includes result with details)
  * @throws {MetadataFetchError} If verification keys cannot be fetched
  */
-export async function verifyMetadataRelease(metadata, version, options) {
+export async function verifyMetadataRelease(
+	metadata: Metadata,
+	version: string,
+	options: VerificationOptions,
+): Promise<ReleaseVerificationResult[]> {
 	const { did, plcUrl = PLC_DIRECTORY_URL } = options;
 
 	// Validate metadata structure
@@ -468,7 +489,7 @@ export async function verifyMetadataRelease(metadata, version, options) {
 		return [releaseResult];
 	} catch (err) {
 		if (err instanceof ReleaseVerificationError) {
-			throw new MetadataVerificationError(`v${version}: ${err.message}`, [err.result]);
+			throw new MetadataVerificationError(`v${version}: ${err.message}`, err.result ? [err.result] : undefined);
 		}
 		throw err;
 	}
@@ -478,13 +499,12 @@ export async function verifyMetadataRelease(metadata, version, options) {
  * Verifies a service endpoint URL.
  *
  * Fetches metadata from the URL and verifies it matches the expected DID.
- *
- * @param {string} url - The service endpoint URL (must be HTTPS)
- * @param {VerificationOptions} options - Verification options
- * @returns {Promise<ReleaseVerificationResult[]>}
  * @throws {MetadataFetchError} If metadata cannot be fetched
  */
-export async function verifyServiceEndpoint(url, options) {
+export async function verifyServiceEndpoint(
+	url: string,
+	options: VerificationOptions,
+): Promise<ReleaseVerificationResult[]> {
 	const { did, allReleases = false, plcUrl = PLC_DIRECTORY_URL } = options;
 
 	const metadata = await fetchFairMetadata(url);

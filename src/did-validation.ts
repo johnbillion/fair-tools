@@ -44,7 +44,7 @@ const SECP256K1_DID_KEY_LENGTH = 57;
  * @param {string} did - The DID to validate
  * @throws {DidValidationError} If the DID doesn't start with 'did:plc:' or has incorrect length
  */
-export function validatePlcDid(did) {
+export function validatePlcDid(did: string): void {
 	if (!did.startsWith('did:plc:')) {
 		throw new DidValidationError(`Invalid DID format. DID must start with 'did:plc:' prefix.`);
 	}
@@ -59,7 +59,7 @@ export function validatePlcDid(did) {
  * @param {string} key - The verification key to validate (did:key:z6Mk...)
  * @throws {PublicKeyValidationError} If the key format is invalid
  */
-export function validateVerificationKey(key) {
+export function validateVerificationKey(key: string): void {
 	if (!key.startsWith('did:key:')) {
 		throw new PublicKeyValidationError(`Invalid verification key format. Key must start with 'did:key:' prefix.`);
 	}
@@ -89,7 +89,7 @@ export function validateVerificationKey(key) {
  * @param {string} key - The rotation key to validate (did:key:zQ3sh...)
  * @throws {PublicKeyValidationError} If the key format is invalid
  */
-export function validateRotationKey(key) {
+export function validateRotationKey(key: string): void {
 	if (!key.startsWith('did:key:')) {
 		throw new PublicKeyValidationError(`Invalid rotation key format. Key must start with 'did:key:' prefix.`);
 	}

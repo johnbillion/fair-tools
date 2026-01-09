@@ -29,6 +29,16 @@ const PKCS8_PRIVATE_KEY_HEADER = '-----BEGIN PRIVATE KEY-----';
 
 export class SigningKeyError extends Error {}
 
+export interface KeyData {
+	rotationKeys?: Record<string, string>;
+	verificationKeys?: Record<string, string>;
+}
+
+interface LoadKeyResult {
+	privateKeyHex: string;
+	keyData: KeyData | null;
+}
+
 /**
  * Decode a multibase base58btc rotation private key string (32-byte key).
  *
@@ -36,11 +46,11 @@ export class SigningKeyError extends Error {}
  * @returns {Uint8Array} - The 32-byte private key
  * @throws {SigningKeyError} If the key format is invalid
  */
-export function decodeMultibaseRotationKey(key) {
-	let decoded;
+export function decodeMultibaseRotationKey(key: string): Uint8Array {
+	let decoded: Uint8Array;
 	try {
 		decoded = base58btc.decode(key);
-	} catch (_err) {
+	} catch {
 		throw new SigningKeyError('Invalid key format. The key could not be decoded.');
 	}
 
@@ -79,11 +89,11 @@ export function decodeMultibaseRotationKey(key) {
  * @returns {Uint8Array} - The 32-byte private key seed
  * @throws {SigningKeyError} If the key format is invalid
  */
-export function decodeMultibaseVerificationKey(key) {
-	let decoded;
+export function decodeMultibaseVerificationKey(key: string): Uint8Array {
+	let decoded: Uint8Array;
 	try {
 		decoded = base58btc.decode(key);
-	} catch (_err) {
+	} catch {
 		throw new SigningKeyError('Invalid key format. The key could not be decoded.');
 	}
 
@@ -120,8 +130,8 @@ export function decodeMultibaseVerificationKey(key) {
  * @returns {Uint8Array} - The 32-byte raw private key
  * @throws {SigningKeyError} If the PEM format is invalid
  */
-function decodeECPrivateKeyPEM(key) {
-	let keyObject;
+function decodeECPrivateKeyPEM(key: string): Uint8Array {
+	let keyObject: crypto.KeyObject;
 	try {
 		keyObject = crypto.createPrivateKey({
 			key,
@@ -155,8 +165,8 @@ function decodeECPrivateKeyPEM(key) {
  * @returns {Uint8Array} - The 32-byte raw private key
  * @throws {SigningKeyError} If the PEM format is invalid
  */
-function decodePKCS8PrivateKeyPEM(key) {
-	let keyObject;
+function decodePKCS8PrivateKeyPEM(key: string): Uint8Array {
+	let keyObject: crypto.KeyObject;
 	try {
 		keyObject = crypto.createPrivateKey({
 			key,
@@ -185,41 +195,29 @@ function decodePKCS8PrivateKeyPEM(key) {
 
 /**
  * Check if content looks like a PEM-encoded EC private key (rotation key).
- *
- * @param {string} content - The content to check
- * @returns {boolean}
  */
-export function isECPrivateKeyPEM(content) {
+export function isECPrivateKeyPEM(content: string): boolean {
 	return content.startsWith(EC_PRIVATE_KEY_HEADER);
 }
 
 /**
  * Check if content looks like a PEM-encoded PKCS#8 private key (verification key).
- *
- * @param {string} content - The content to check
- * @returns {boolean}
  */
-export function isPKCS8PrivateKeyPEM(content) {
+export function isPKCS8PrivateKeyPEM(content: string): boolean {
 	return content.startsWith(PKCS8_PRIVATE_KEY_HEADER);
 }
 
 /**
  * Check if content looks like a 32-byte hex-encoded private key.
- *
- * @param {string} content - The content to check
- * @returns {boolean}
  */
-export function isHexPrivateKey(content) {
+export function isHexPrivateKey(content: string): boolean {
 	return /^[a-f0-9]{64}$/i.test(content);
 }
 
 /**
  * Check if content looks like a multibase-encoded rotation key (secp256k1).
- *
- * @param {string} content - The content to check
- * @returns {boolean}
  */
-export function isMultibaseRotationKey(content) {
+export function isMultibaseRotationKey(content: string): boolean {
 	if (!content.startsWith('z')) {
 		return false;
 	}
@@ -237,11 +235,8 @@ export function isMultibaseRotationKey(content) {
 
 /**
  * Check if content looks like a multibase-encoded verification key (Ed25519).
- *
- * @param {string} content - The content to check
- * @returns {boolean}
  */
-export function isMultibaseVerificationKey(content) {
+export function isMultibaseVerificationKey(content: string): boolean {
 	if (!content.startsWith('z')) {
 		return false;
 	}
@@ -264,7 +259,7 @@ export function isMultibaseVerificationKey(content) {
  * @returns {string} - The hex key
  * @throws {SigningKeyError} If the format is invalid or unrecognized
  */
-function parseAsRotationKey(content) {
+function parseAsRotationKey(content: string): string {
 	const trimmed = content.trim();
 
 	// Try PEM format first (EC PRIVATE KEY for secp256k1)
@@ -301,7 +296,7 @@ function parseAsRotationKey(content) {
  * @returns {string} - The hex key
  * @throws {SigningKeyError} If the format is invalid or unrecognized
  */
-function parseAsVerificationKey(content) {
+function parseAsVerificationKey(content: string): string {
 	const trimmed = content.trim();
 
 	// Try PEM format first (PKCS#8 for Ed25519)
@@ -331,6 +326,12 @@ function parseAsVerificationKey(content) {
 	throw new SigningKeyError('Unrecognized key format. Expected a PEM, multibase, or hex encoded verification key.');
 }
 
+interface LoadRotationKeyOptions {
+	signingFile?: string;
+	signingKey?: string;
+	envVar?: string;
+}
+
 /**
  * Load a rotation key from a key file or environment variable.
  *
@@ -345,23 +346,23 @@ function parseAsVerificationKey(content) {
  *   signingKey?: string, // ignored for standalone key files
  *   envVar?: string // defaults to 'FAIR_ROTATION_KEY'
  * }} opts
- * @returns {Promise<{
- *   privateKeyHex: string,
- *   keyData: object | null
- * }>}
  * @throws {SigningKeyError} If key cannot be loaded
  */
-export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_ROTATION_KEY' }) {
+export async function loadRotationKey({
+	signingFile,
+	signingKey,
+	envVar = 'FAIR_ROTATION_KEY',
+}: LoadRotationKeyOptions): Promise<LoadKeyResult> {
 	if (signingKey && !signingFile) {
 		throw new SigningKeyError('Cannot specify a signing key without a signing file');
 	}
 
 	if (signingFile) {
-		let keyContent;
+		let keyContent: string;
 		try {
 			keyContent = await readFile(signingFile, 'utf-8');
 		} catch (err) {
-			throw new SigningKeyError(`Error reading key file: ${err.message}`);
+			throw new SigningKeyError(`Error reading key file: ${(err as Error).message}`);
 		}
 
 		// Try PEM, multibase, or hex format first (standalone key file)
@@ -375,9 +376,9 @@ export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_
 		}
 
 		// Try JSON
-		let keyData;
+		let keyData: KeyData;
 		try {
-			keyData = JSON.parse(keyContent);
+			keyData = JSON.parse(keyContent) as KeyData;
 		} catch {
 			throw new SigningKeyError('Key file must be valid JSON or a standalone key (PEM, multibase, or hex)');
 		}
@@ -389,7 +390,7 @@ export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_
 			throw new SigningKeyError('Key file must contain at least one rotation key');
 		}
 
-		let privateKeyHex;
+		let privateKeyHex: string;
 		if (signingKey) {
 			const rawValue = rotationKeys[signingKey];
 			if (!rawValue) {
@@ -415,6 +416,12 @@ export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_
 	return { privateKeyHex, keyData: null };
 }
 
+interface LoadVerificationKeyOptions {
+	signingFile?: string;
+	signingKey?: string;
+	envVar?: string;
+}
+
 /**
  * Load a verification key from a key file or environment variable.
  *
@@ -429,23 +436,23 @@ export async function loadRotationKey({ signingFile, signingKey, envVar = 'FAIR_
  *   signingKey?: string, // ignored for standalone key files
  *   envVar?: string // defaults to 'FAIR_VERIFICATION_KEY'
  * }} opts
- * @returns {Promise<{
- *   privateKeyHex: string,
- *   keyData: object | null
- * }>}
  * @throws {SigningKeyError} If key cannot be loaded
  */
-export async function loadVerificationKey({ signingFile, signingKey, envVar = 'FAIR_VERIFICATION_KEY' }) {
+export async function loadVerificationKey({
+	signingFile,
+	signingKey,
+	envVar = 'FAIR_VERIFICATION_KEY',
+}: LoadVerificationKeyOptions): Promise<LoadKeyResult> {
 	if (signingKey && !signingFile) {
 		throw new SigningKeyError('Cannot specify a signing key without a signing file');
 	}
 
 	if (signingFile) {
-		let keyContent;
+		let keyContent: string;
 		try {
 			keyContent = await readFile(signingFile, 'utf-8');
 		} catch (err) {
-			throw new SigningKeyError(`Error reading key file: ${err.message}`);
+			throw new SigningKeyError(`Error reading key file: ${(err as Error).message}`);
 		}
 
 		// Try PEM, multibase, or hex format first (standalone key file)
@@ -459,9 +466,9 @@ export async function loadVerificationKey({ signingFile, signingKey, envVar = 'F
 		}
 
 		// Try JSON
-		let keyData;
+		let keyData: KeyData;
 		try {
-			keyData = JSON.parse(keyContent);
+			keyData = JSON.parse(keyContent) as KeyData;
 		} catch {
 			throw new SigningKeyError('Key file must be valid JSON or a standalone key (PEM, multibase, or hex)');
 		}
@@ -473,7 +480,7 @@ export async function loadVerificationKey({ signingFile, signingKey, envVar = 'F
 			throw new SigningKeyError('Key file must contain at least one verification key');
 		}
 
-		let privateKeyHex;
+		let privateKeyHex: string;
 		if (signingKey) {
 			const rawValue = verificationKeys[signingKey];
 			if (!rawValue) {
@@ -499,6 +506,13 @@ export async function loadVerificationKey({ signingFile, signingKey, envVar = 'F
 	return { privateKeyHex, keyData: null };
 }
 
+interface LoadRotationKeyForRevocationOptions {
+	signingFile?: string;
+	signingKey?: string;
+	revokeKey: string;
+	envVar?: string;
+}
+
 /**
  * Load a rotation key for revoking another rotation key.
  * Auto-selects a key that isn't the one being revoked (for JSON files only).
@@ -515,10 +529,6 @@ export async function loadVerificationKey({ signingFile, signingKey, envVar = 'F
  *   revokeKey: string, // the key being revoked (to avoid using it for signing)
  *   envVar?: string // defaults to 'FAIR_ROTATION_KEY'
  * }} opts
- * @returns {Promise<{
- *   privateKeyHex: string,
- *   keyData: object | null
- * }>}
  * @throws {SigningKeyError} If key cannot be loaded
  */
 export async function loadRotationKeyForRevocation({
@@ -526,13 +536,13 @@ export async function loadRotationKeyForRevocation({
 	signingKey,
 	revokeKey,
 	envVar = 'FAIR_ROTATION_KEY',
-}) {
+}: LoadRotationKeyForRevocationOptions): Promise<LoadKeyResult> {
 	if (signingFile) {
-		let keyContent;
+		let keyContent: string;
 		try {
 			keyContent = await readFile(signingFile, 'utf-8');
 		} catch (err) {
-			throw new SigningKeyError(`Error reading key file: ${err.message}`);
+			throw new SigningKeyError(`Error reading key file: ${(err as Error).message}`);
 		}
 
 		// Try PEM, multibase, or hex format first (standalone key file)
@@ -546,9 +556,9 @@ export async function loadRotationKeyForRevocation({
 		}
 
 		// Try JSON
-		let keyData;
+		let keyData: KeyData;
 		try {
-			keyData = JSON.parse(keyContent);
+			keyData = JSON.parse(keyContent) as KeyData;
 		} catch {
 			throw new SigningKeyError('Key file must be valid JSON or a standalone key (PEM, multibase, or hex)');
 		}
@@ -560,7 +570,7 @@ export async function loadRotationKeyForRevocation({
 			throw new SigningKeyError('Key file must contain at least one rotation key');
 		}
 
-		let signerPublicKey;
+		let signerPublicKey: string | undefined;
 		if (signingKey) {
 			if (!rotationKeys[signingKey]) {
 				throw new SigningKeyError(`Signing key ${signingKey} not found in key file`);

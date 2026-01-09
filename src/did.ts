@@ -1,22 +1,13 @@
-import { addSignature, Client, didForCreateOp } from '@did-plc/lib';
-
-/**
- * @typedef {import('@atproto/crypto').Secp256k1Keypair} Secp256k1Keypair
- * @typedef {import('@did-plc/lib').UnsignedOperation} UnsignedOperation
- * @typedef {import('@did-plc/lib').Operation} Operation
- */
+import { addSignature, Client, didForCreateOp, UnsignedOperation, Operation } from '@did-plc/lib';
+import { Secp256k1Keypair } from '@atproto/crypto';
 
 /**
  * Default PLC directory URL.
- *
- * @type {string}
  */
 export const PLC_DIRECTORY_URL = 'https://plc.directory';
 
 /**
  * FAIR package management repo service type.
- *
- * @type {string}
  */
 export const FAIR_SERVICE_TYPE = 'FairPackageManagementRepo';
 
@@ -24,10 +15,13 @@ export const FAIR_SERVICE_TYPE = 'FairPackageManagementRepo';
  * FAIR service ID used in DID documents.
  *
  * Must not include the leading '#' character.
- *
- * @type {string}
  */
 export const FAIR_SERVICE_ID = 'fairpm_repo';
+
+interface GenesisOperationOptions {
+	verificationKey: string;
+	rotationKeys: string[];
+}
 
 /**
  * Creates an unsigned PLC DID genesis operation.
@@ -35,28 +29,16 @@ export const FAIR_SERVICE_ID = 'fairpm_repo';
  * This creates the initial operation for a new PLC DID for a FAIR package.
  * The operation does NOT include the FAIR service - this should be
  * added in a subsequent update operation after the DID is created.
- *
- * @param {{
- *   verificationKey: string, // did:key:z6Mk...
- *   rotationKeys: string[] // did:key:zQ3sh...
- * }} opts
- * @returns {UnsignedOperation} The unsigned genesis operation
  */
-function createGenesisOperation({
-	verificationKey,
-	rotationKeys,
-}: {
-	verificationKey: string;
-	rotationKeys: string[];
-}) {
+function createGenesisOperation({ verificationKey, rotationKeys }: GenesisOperationOptions): UnsignedOperation {
 	return {
 		type: 'plc_operation' as const,
 		verificationMethods: {
 			fair: verificationKey,
 		},
 		rotationKeys,
-		alsoKnownAs: [] as string[],
-		services: {} as Record<string, { type: string; endpoint: string }>,
+		alsoKnownAs: [],
+		services: {},
 		prev: null,
 	};
 }
@@ -67,18 +49,18 @@ function createGenesisOperation({
  * This creates the initial operation for a new PLC DID for a FAIR package.
  * The operation does NOT include the FAIR service - this should be
  * added in a subsequent updateDID() operation after the DID is created.
- *
- * @param {{
- *   verificationKey: string, // did:key:z6Mk...
- *   rotationKey: string, // did:key:zQ3sh...
- *   keypair: Secp256k1Keypair
- * }} opts
- * @returns {Promise<{
- *   op: Operation,
- *   did: string
- * }>}
  */
-export async function generateDID({ verificationKey, rotationKey, keypair }) {
+interface GenerateDIDOptions {
+	verificationKey: string;
+	rotationKey: string;
+	keypair: Secp256k1Keypair;
+}
+
+export async function generateDID({
+	verificationKey,
+	rotationKey,
+	keypair,
+}: GenerateDIDOptions): Promise<{ op: Operation; did: string }> {
 	const unsigned = createGenesisOperation({
 		verificationKey,
 		rotationKeys: [rotationKey],
@@ -90,25 +72,85 @@ export async function generateDID({ verificationKey, rotationKey, keypair }) {
 
 /**
  * Creates a PLC directory client.
- *
- * @param {string} [url] - The PLC directory URL (defaults to https://plc.directory)
- * @returns {Client} The PLC client
  */
-function createPlcClient(url = PLC_DIRECTORY_URL) {
+function createPlcClient(url = PLC_DIRECTORY_URL): Client {
 	return new Client(url);
+}
+
+interface SubmitDIDOptions {
+	/** The genesis operation */
+	op: Operation;
+	/** The DID identifier (did:plc:...) */
+	did: string;
+	plcUrl?: string;
+}
+
+interface CreateDIDOptions {
+	/** The verification key (did:key:z6Mk...) */
+	verificationKey: string;
+	/** The rotation key (did:key:zQ3sh...) */
+	rotationKey: string;
+	keypair: Secp256k1Keypair;
+	plcUrl?: string;
+}
+
+interface DidUpdateOptions {
+	/** The DID identifier (did:plc:...) */
+	did: string;
+	/** Must be a rotation key */
+	signer: Secp256k1Keypair;
+	plcUrl?: string;
+}
+
+interface UpdateDIDOptions extends DidUpdateOptions {
+	serviceUrl: string;
+}
+
+interface AddVerificationKeyOptions extends DidUpdateOptions {
+	/** The verification key (did:key:z6Mk...) */
+	verificationKey: string;
+}
+
+interface AddRotationKeyOptions extends DidUpdateOptions {
+	/** The rotation key (did:key:zQ3sh...) */
+	rotationKey: string;
+}
+
+interface RevokeVerificationKeyOptions extends DidUpdateOptions {
+	publicKey: string;
+}
+
+interface RevokeRotationKeyOptions extends DidUpdateOptions {
+	/** The rotation key (did:key:zQ3sh...) */
+	rotationKey: string;
+}
+
+interface AddAlsoKnownAsOptions extends DidUpdateOptions {
+	url: string;
+}
+
+interface ReplaceAlsoKnownAsOptions extends DidUpdateOptions {
+	oldUrl: string;
+	newUrl: string;
+}
+
+interface ReplaceServiceUrlOptions extends DidUpdateOptions {
+	oldUrl: string;
+	newUrl: string;
+}
+
+interface RemoveServiceUrlOptions extends DidUpdateOptions {
+	url: string;
+}
+
+interface RemoveAlsoKnownAsOptions extends DidUpdateOptions {
+	url: string;
 }
 
 /**
  * Submits a genesis operation to the PLC directory.
- *
- * @param {{
- *   op: Operation,
- *   did: string, // did:plc:...
- *   plcUrl?: string // defaults to https://plc.directory
- * }} opts
- * @returns {Promise<void>}
  */
-async function submitDID({ op, did, plcUrl = PLC_DIRECTORY_URL }) {
+async function submitDID({ op, did, plcUrl = PLC_DIRECTORY_URL }: SubmitDIDOptions): Promise<void> {
 	const client = createPlcClient(plcUrl);
 	await client.sendOperation(did, op);
 }
@@ -118,16 +160,13 @@ async function submitDID({ op, did, plcUrl = PLC_DIRECTORY_URL }) {
  *
  * This creates the DID without a FAIR service initially. Use updateDID()
  * to add the service URL after the DID is created.
- *
- * @param {{
- *   verificationKey: string, // did:key:z6Mk...
- *   rotationKey: string, // did:key:zQ3sh...
- *   keypair: Secp256k1Keypair,
- *   plcUrl?: string // defaults to https://plc.directory
- * }} opts
- * @returns {Promise<string>} The created DID
  */
-export async function createDID({ verificationKey, rotationKey, keypair, plcUrl = PLC_DIRECTORY_URL }) {
+export async function createDID({
+	verificationKey,
+	rotationKey,
+	keypair,
+	plcUrl = PLC_DIRECTORY_URL,
+}: CreateDIDOptions): Promise<string> {
 	const { op, did } = await generateDID({
 		verificationKey,
 		rotationKey,
@@ -139,12 +178,8 @@ export async function createDID({ verificationKey, rotationKey, keypair, plcUrl 
 
 /**
  * Creates an updated operation with the FAIR service URL set.
- *
- * @param {UnsignedOperation} lastOp - The previous operation
- * @param {string} serviceUrl - The FAIR service endpoint URL
- * @returns {UnsignedOperation} The updated operation
  */
-export function updateServiceUrlInOp(lastOp, serviceUrl) {
+export function updateServiceUrlInOp(lastOp: UnsignedOperation, serviceUrl: string): UnsignedOperation {
 	return {
 		...lastOp,
 		services: {
@@ -162,27 +197,22 @@ export function updateServiceUrlInOp(lastOp, serviceUrl) {
  *
  * This adds or updates the FAIR package management service endpoint
  * in the DID document.
- *
- * @param {{
- *   did: string, // did:plc:...
- *   serviceUrl: string,
- *   signer: Secp256k1Keypair, // must be a rotation key
- *   plcUrl?: string // defaults to https://plc.directory
- * }} opts
- * @returns {Promise<void>}
  */
-export async function updateDID({ did, serviceUrl, signer, plcUrl = PLC_DIRECTORY_URL }) {
+export async function updateDID({
+	did,
+	serviceUrl,
+	signer,
+	plcUrl = PLC_DIRECTORY_URL,
+}: UpdateDIDOptions): Promise<void> {
 	const client = createPlcClient(plcUrl);
 	await client.updateData(did, signer, (lastOp) => updateServiceUrlInOp(lastOp, serviceUrl));
 }
 
 /**
  * Generates a unique key ID for a verification method.
- *
- * @param {Record<string, string>} verificationMethods - Existing verification methods
  * @returns {string} A unique key ID
  */
-export function generateVerificationKeyId(verificationMethods) {
+export function generateVerificationKeyId(verificationMethods: Record<string, string>): string {
 	if (!verificationMethods.fair) {
 		return 'fair';
 	}
@@ -200,7 +230,7 @@ export function generateVerificationKeyId(verificationMethods) {
  * @param {string} verificationKey - The new verification key (did:key format)
  * @returns {UnsignedOperation} The updated operation
  */
-export function addVerificationKeyToOp(lastOp, verificationKey) {
+export function addVerificationKeyToOp(lastOp: UnsignedOperation, verificationKey: string): UnsignedOperation {
 	const keyId = generateVerificationKeyId(lastOp.verificationMethods);
 	return {
 		...lastOp,
@@ -215,16 +245,13 @@ export function addVerificationKeyToOp(lastOp, verificationKey) {
  * Adds a new verification key to an existing DID.
  *
  * The new key is added with a unique ID (fair, fair2, fair3, etc.).
- *
- * @param {{
- *   did: string, // did:plc:...
- *   verificationKey: string, // did:key:z6Mk...
- *   signer: Secp256k1Keypair, // must be a rotation key
- *   plcUrl?: string // defaults to https://plc.directory
- * }} opts
- * @returns {Promise<void>}
  */
-export async function addVerificationKey({ did, verificationKey, signer, plcUrl = PLC_DIRECTORY_URL }) {
+export async function addVerificationKey({
+	did,
+	verificationKey,
+	signer,
+	plcUrl = PLC_DIRECTORY_URL,
+}: AddVerificationKeyOptions): Promise<void> {
 	const client = createPlcClient(plcUrl);
 	await client.updateData(did, signer, (lastOp) => addVerificationKeyToOp(lastOp, verificationKey));
 }
@@ -237,7 +264,7 @@ export async function addVerificationKey({ did, verificationKey, signer, plcUrl 
  * @returns {UnsignedOperation} The updated operation
  * @throws {Error} If the rotation key already exists
  */
-export function addRotationKeyToOp(lastOp, rotationKey) {
+export function addRotationKeyToOp(lastOp: UnsignedOperation, rotationKey: string): UnsignedOperation {
 	if (lastOp.rotationKeys.includes(rotationKey)) {
 		throw new Error(`Rotation key already exists: ${rotationKey}`);
 	}
@@ -260,7 +287,12 @@ export function addRotationKeyToOp(lastOp, rotationKey) {
  * }} opts
  * @returns {Promise<void>}
  */
-export async function addRotationKey({ did, rotationKey, signer, plcUrl = PLC_DIRECTORY_URL }) {
+export async function addRotationKey({
+	did,
+	rotationKey,
+	signer,
+	plcUrl = PLC_DIRECTORY_URL,
+}: AddRotationKeyOptions): Promise<void> {
 	const client = createPlcClient(plcUrl);
 	await client.updateData(did, signer, (lastOp) => addRotationKeyToOp(lastOp, rotationKey));
 }
@@ -273,7 +305,7 @@ export async function addRotationKey({ did, rotationKey, signer, plcUrl = PLC_DI
  * @returns {UnsignedOperation} The updated operation
  * @throws {Error} If the verification key is not found
  */
-export function revokeVerificationKeyFromOp(lastOp, publicKey) {
+export function revokeVerificationKeyFromOp(lastOp: UnsignedOperation, publicKey: string): UnsignedOperation {
 	const keyId = Object.entries(lastOp.verificationMethods).find(([, value]) => value === publicKey)?.[0];
 	if (!keyId) {
 		throw new Error(`Verification key ${publicKey} not found in DID`);
@@ -289,16 +321,13 @@ export function revokeVerificationKeyFromOp(lastOp, publicKey) {
  * Revokes a verification key from an existing DID.
  *
  * Removes the specified verification method from the DID document.
- *
- * @param {{
- *   did: string, // did:plc:...
- *   publicKey: string, // did:key:z6Mk... to revoke
- *   signer: Secp256k1Keypair, // must be a rotation key
- *   plcUrl?: string // defaults to https://plc.directory
- * }} opts
- * @returns {Promise<void>}
  */
-export async function revokeVerificationKey({ did, publicKey, signer, plcUrl = PLC_DIRECTORY_URL }) {
+export async function revokeVerificationKey({
+	did,
+	publicKey,
+	signer,
+	plcUrl = PLC_DIRECTORY_URL,
+}: RevokeVerificationKeyOptions): Promise<void> {
 	const client = createPlcClient(plcUrl);
 	await client.updateData(did, signer, (lastOp) => revokeVerificationKeyFromOp(lastOp, publicKey));
 }
@@ -311,7 +340,7 @@ export async function revokeVerificationKey({ did, publicKey, signer, plcUrl = P
  * @returns {UnsignedOperation} The updated operation
  * @throws {Error} If the rotation key is not found or is the last one
  */
-export function revokeRotationKeyFromOp(lastOp, rotationKey) {
+export function revokeRotationKeyFromOp(lastOp: UnsignedOperation, rotationKey: string): UnsignedOperation {
 	if (!lastOp.rotationKeys.includes(rotationKey)) {
 		throw new Error(`Rotation key ${rotationKey} not found in DID`);
 	}
@@ -339,7 +368,12 @@ export function revokeRotationKeyFromOp(lastOp, rotationKey) {
  * }} opts
  * @returns {Promise<void>}
  */
-export async function revokeRotationKey({ did, rotationKey, signer, plcUrl = PLC_DIRECTORY_URL }) {
+export async function revokeRotationKey({
+	did,
+	rotationKey,
+	signer,
+	plcUrl = PLC_DIRECTORY_URL,
+}: RevokeRotationKeyOptions): Promise<void> {
 	const signerPublicKey = signer.did();
 	if (rotationKey === signerPublicKey) {
 		throw new Error('Cannot revoke the rotation key used to sign this operation');
@@ -356,7 +390,7 @@ export async function revokeRotationKey({ did, rotationKey, signer, plcUrl = PLC
  * @returns {UnsignedOperation} The updated operation
  * @throws {Error} If the URL already exists in alsoKnownAs
  */
-export function addAlsoKnownAsToOp(lastOp, url) {
+export function addAlsoKnownAsToOp(lastOp: UnsignedOperation, url: string): UnsignedOperation {
 	const existing = lastOp.alsoKnownAs || [];
 	if (existing.includes(url)) {
 		throw new Error(`URL already exists in alsoKnownAs: ${url}`);
@@ -371,16 +405,13 @@ export function addAlsoKnownAsToOp(lastOp, url) {
  * Adds a new URL to the alsoKnownAs field of an existing DID.
  *
  * The URL is appended to the existing alsoKnownAs array.
- *
- * @param {{
- *   did: string, // did:plc:...
- *   url: string,
- *   signer: Secp256k1Keypair, // must be a rotation key
- *   plcUrl?: string // defaults to https://plc.directory
- * }} opts
- * @returns {Promise<void>}
  */
-export async function addAlsoKnownAs({ did, url, signer, plcUrl = PLC_DIRECTORY_URL }) {
+export async function addAlsoKnownAs({
+	did,
+	url,
+	signer,
+	plcUrl = PLC_DIRECTORY_URL,
+}: AddAlsoKnownAsOptions): Promise<void> {
 	const client = createPlcClient(plcUrl);
 	await client.updateData(did, signer, (lastOp) => addAlsoKnownAsToOp(lastOp, url));
 }
@@ -397,7 +428,7 @@ export async function addAlsoKnownAs({ did, url, signer, plcUrl = PLC_DIRECTORY_
  * @returns {UnsignedOperation} The updated operation
  * @throws {Error} If the old URL doesn't exist or new URL already exists
  */
-export function replaceAlsoKnownAsInOp(lastOp, oldUrl, newUrl) {
+export function replaceAlsoKnownAsInOp(lastOp: UnsignedOperation, oldUrl: string, newUrl: string): UnsignedOperation {
 	const existing = lastOp.alsoKnownAs || [];
 	const index = existing.indexOf(oldUrl);
 	if (index === -1) {
@@ -419,17 +450,14 @@ export function replaceAlsoKnownAsInOp(lastOp, oldUrl, newUrl) {
  *
  * This verifies the old URL exists before updating, to prevent
  * accidental overwrites.
- *
- * @param {{
- *   did: string, // did:plc:...
- *   oldUrl: string,
- *   newUrl: string,
- *   signer: Secp256k1Keypair, // must be a rotation key
- *   plcUrl?: string // defaults to https://plc.directory
- * }} opts
- * @returns {Promise<void>}
  */
-export async function replaceAlsoKnownAs({ did, oldUrl, newUrl, signer, plcUrl = PLC_DIRECTORY_URL }) {
+export async function replaceAlsoKnownAs({
+	did,
+	oldUrl,
+	newUrl,
+	signer,
+	plcUrl = PLC_DIRECTORY_URL,
+}: ReplaceAlsoKnownAsOptions): Promise<void> {
 	const client = createPlcClient(plcUrl);
 	await client.updateData(did, signer, (lastOp) => replaceAlsoKnownAsInOp(lastOp, oldUrl, newUrl));
 }
@@ -446,7 +474,7 @@ export async function replaceAlsoKnownAs({ did, oldUrl, newUrl, signer, plcUrl =
  * @returns {UnsignedOperation} The updated operation
  * @throws {Error} If the FAIR service doesn't exist or oldUrl doesn't match
  */
-export function replaceServiceUrlInOp(lastOp, oldUrl, newUrl) {
+export function replaceServiceUrlInOp(lastOp: UnsignedOperation, oldUrl: string, newUrl: string): UnsignedOperation {
 	const existingService = lastOp.services?.[FAIR_SERVICE_ID];
 	if (!existingService) {
 		throw new Error(`FAIR service not found in DID`);
@@ -472,17 +500,14 @@ export function replaceServiceUrlInOp(lastOp, oldUrl, newUrl) {
  * This verifies the old URL matches before updating, to prevent
  * accidental overwrites. Use updateDID() if you want to set the
  * URL without verifying the current value.
- *
- * @param {{
- *   did: string, // did:plc:...
- *   oldUrl: string,
- *   newUrl: string,
- *   signer: Secp256k1Keypair, // must be a rotation key
- *   plcUrl?: string // defaults to https://plc.directory
- * }} opts
- * @returns {Promise<void>}
  */
-export async function replaceServiceUrl({ did, oldUrl, newUrl, signer, plcUrl = PLC_DIRECTORY_URL }) {
+export async function replaceServiceUrl({
+	did,
+	oldUrl,
+	newUrl,
+	signer,
+	plcUrl = PLC_DIRECTORY_URL,
+}: ReplaceServiceUrlOptions): Promise<void> {
 	const client = createPlcClient(plcUrl);
 	await client.updateData(did, signer, (lastOp) => replaceServiceUrlInOp(lastOp, oldUrl, newUrl));
 }
@@ -498,7 +523,7 @@ export async function replaceServiceUrl({ did, oldUrl, newUrl, signer, plcUrl = 
  * @returns {UnsignedOperation} The updated operation
  * @throws {Error} If the FAIR service doesn't exist or URL doesn't match
  */
-export function removeServiceUrlFromOp(lastOp, url) {
+export function removeServiceUrlFromOp(lastOp: UnsignedOperation, url: string): UnsignedOperation {
 	const existingService = lastOp.services?.[FAIR_SERVICE_ID];
 	if (!existingService) {
 		throw new Error(`FAIR service not found in DID`);
@@ -518,16 +543,13 @@ export function removeServiceUrlFromOp(lastOp, url) {
  *
  * This verifies the URL matches before removing, to prevent
  * accidental removals.
- *
- * @param {{
- *   did: string, // did:plc:...
- *   url: string, // service endpoint URL to verify before removal
- *   signer: Secp256k1Keypair, // must be a rotation key
- *   plcUrl?: string // defaults to https://plc.directory
- * }} opts
- * @returns {Promise<void>}
  */
-export async function removeServiceUrl({ did, url, signer, plcUrl = PLC_DIRECTORY_URL }) {
+export async function removeServiceUrl({
+	did,
+	url,
+	signer,
+	plcUrl = PLC_DIRECTORY_URL,
+}: RemoveServiceUrlOptions): Promise<void> {
 	const client = createPlcClient(plcUrl);
 	await client.updateData(did, signer, (lastOp) => removeServiceUrlFromOp(lastOp, url));
 }
@@ -543,7 +565,7 @@ export async function removeServiceUrl({ did, url, signer, plcUrl = PLC_DIRECTOR
  * @returns {UnsignedOperation} The updated operation
  * @throws {Error} If the URL doesn't exist in alsoKnownAs
  */
-export function removeAlsoKnownAsFromOp(lastOp, url) {
+export function removeAlsoKnownAsFromOp(lastOp: UnsignedOperation, url: string): UnsignedOperation {
 	const existing = lastOp.alsoKnownAs || [];
 	if (!existing.includes(url)) {
 		throw new Error(`URL not found in alsoKnownAs: ${url}`);
@@ -558,16 +580,13 @@ export function removeAlsoKnownAsFromOp(lastOp, url) {
  * Removes a URL from the alsoKnownAs field of an existing DID.
  *
  * This verifies the URL exists before removing, to prevent errors.
- *
- * @param {{
- *   did: string, // did:plc:...
- *   url: string,
- *   signer: Secp256k1Keypair, // must be a rotation key
- *   plcUrl?: string // defaults to https://plc.directory
- * }} opts
- * @returns {Promise<void>}
  */
-export async function removeAlsoKnownAs({ did, url, signer, plcUrl = PLC_DIRECTORY_URL }) {
+export async function removeAlsoKnownAs({
+	did,
+	url,
+	signer,
+	plcUrl = PLC_DIRECTORY_URL,
+}: RemoveAlsoKnownAsOptions): Promise<void> {
 	const client = createPlcClient(plcUrl);
 	await client.updateData(did, signer, (lastOp) => removeAlsoKnownAsFromOp(lastOp, url));
 }

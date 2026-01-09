@@ -50,17 +50,21 @@ Exit codes:
 }
 
 // Validate required options
-const required = ['did', 'url'];
-const missing = required.filter((opt) => !values[opt]);
-if (missing.length > 0) {
-	console.error(`Error: Missing required options: ${missing.map((o) => `--${o}`).join(', ')}`);
+if (!values.did || !values.url) {
+	const missing = [];
+	if (!values.did) missing.push('--did');
+	if (!values.url) missing.push('--url');
+	console.error(`Error: Missing required options: ${missing.join(', ')}`);
 	console.error('Run with --help for usage information.');
 	process.exit(2);
 }
 
+const did = values.did;
+const url = values.url;
+
 // Validate DID format
 try {
-	validatePlcDid(values.did);
+	validatePlcDid(did);
 } catch (err) {
 	if (err instanceof DidValidationError) {
 		console.error(`Error: ${err.message}`);
@@ -69,12 +73,12 @@ try {
 	throw err;
 }
 
-console.log(`Verifying service endpoint for ${values.did}...`);
-console.log(`URL: ${values.url}`);
+console.log(`Verifying service endpoint for ${did}...`);
+console.log(`URL: ${url}`);
 
 try {
-	const releases = await verifyServiceEndpoint(values.url, {
-		did: values.did,
+	const releases = await verifyServiceEndpoint(url, {
+		did,
 		allReleases: values['all-releases'],
 	});
 

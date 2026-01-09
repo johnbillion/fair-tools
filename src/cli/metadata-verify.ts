@@ -2,7 +2,13 @@
 
 import { parseArgs } from 'node:util';
 import { readFile } from 'node:fs/promises';
-import { fetchFairMetadata, verifyMetadata, MetadataFetchError, MetadataVerificationError } from '../verify.js';
+import {
+	fetchFairMetadata,
+	verifyMetadata,
+	MetadataFetchError,
+	MetadataVerificationError,
+	Metadata,
+} from '../verify.js';
 import { validatePlcDid, DidValidationError } from '../did-validation.js';
 import { displayReleases } from './lib/display-releases.js';
 
@@ -66,9 +72,11 @@ if (values.url && values.file) {
 	process.exit(2);
 }
 
+const did = values.did;
+
 // Validate DID format
 try {
-	validatePlcDid(values.did);
+	validatePlcDid(did);
 } catch (err) {
 	if (err instanceof DidValidationError) {
 		console.error(`Error: ${err.message}`);
@@ -79,12 +87,12 @@ try {
 
 const source = values.url || values.file;
 
-console.log(`Verifying metadata for ${values.did}...`);
+console.log(`Verifying metadata for ${did}...`);
 console.log(`Source: ${source}`);
 
 try {
 	// Load or fetch metadata
-	let metadata;
+	let metadata: Metadata;
 	if (values.url) {
 		try {
 			metadata = await fetchFairMetadata(values.url);
@@ -96,24 +104,24 @@ try {
 			throw err;
 		}
 	} else {
-		let content;
+		let content: string;
 		try {
-			content = await readFile(values.file, 'utf-8');
+			content = await readFile(values.file!, 'utf-8');
 		} catch (err) {
-			console.error(`\n✗ Failed to read file: ${err.message}`);
+			console.error(`\n✗ Failed to read file: ${(err as Error).message}`);
 			process.exit(2);
 		}
 		try {
 			metadata = JSON.parse(content);
 		} catch (err) {
-			console.error(`\n✗ Invalid JSON: ${err.message}`);
+			console.error(`\n✗ Invalid JSON: ${(err as Error).message}`);
 			process.exit(2);
 		}
 	}
 
 	// Verify the metadata
 	const releases = await verifyMetadata(metadata, {
-		did: values.did,
+		did,
 		allReleases: values['all-releases'],
 	});
 

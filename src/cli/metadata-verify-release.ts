@@ -2,7 +2,13 @@
 
 import { parseArgs } from 'node:util';
 import { readFile } from 'node:fs/promises';
-import { fetchFairMetadata, verifyMetadataRelease, MetadataFetchError, MetadataVerificationError } from '../verify.js';
+import {
+	fetchFairMetadata,
+	verifyMetadataRelease,
+	MetadataFetchError,
+	MetadataVerificationError,
+	Metadata,
+} from '../verify.js';
 import { validatePlcDid, DidValidationError } from '../did-validation.js';
 import { displayReleases } from './lib/display-releases.js';
 
@@ -48,10 +54,11 @@ Exit codes:
 }
 
 // Validate required options
-const required = ['did', 'version'];
-const missing = required.filter((opt) => !values[opt]);
-if (missing.length > 0) {
-	console.error(`Error: Missing required options: ${missing.map((o) => `--${o}`).join(', ')}`);
+if (!values.did || !values.version) {
+	const missing = [];
+	if (!values.did) missing.push('--did');
+	if (!values.version) missing.push('--version');
+	console.error(`Error: Missing required options: ${missing.join(', ')}`);
 	console.error('Run with --help for usage information.');
 	process.exit(2);
 }
@@ -68,9 +75,12 @@ if (values.url && values.file) {
 	process.exit(2);
 }
 
+const did = values.did;
+const version = values.version;
+
 // Validate DID format
 try {
-	validatePlcDid(values.did);
+	validatePlcDid(did);
 } catch (err) {
 	if (err instanceof DidValidationError) {
 		console.error(`Error: ${err.message}`);
@@ -81,12 +91,12 @@ try {
 
 const source = values.url || values.file;
 
-console.log(`Verifying release v${values.version} for ${values.did}...`);
+console.log(`Verifying release v${version} for ${did}...`);
 console.log(`Source: ${source}`);
 
 try {
 	// Load or fetch metadata
-	let metadata;
+	let metadata: Metadata;
 	if (values.url) {
 		try {
 			metadata = await fetchFairMetadata(values.url);
@@ -98,27 +108,27 @@ try {
 			throw err;
 		}
 	} else {
-		let content;
+		let content: string;
 		try {
-			content = await readFile(values.file, 'utf-8');
+			content = await readFile(values.file!, 'utf-8');
 		} catch (err) {
-			console.error(`\n✗ Failed to read file: ${err.message}`);
+			console.error(`\n✗ Failed to read file: ${(err as Error).message}`);
 			process.exit(2);
 		}
 		try {
 			metadata = JSON.parse(content);
 		} catch (err) {
-			console.error(`\n✗ Invalid JSON: ${err.message}`);
+			console.error(`\n✗ Invalid JSON: ${(err as Error).message}`);
 			process.exit(2);
 		}
 	}
 
 	// Verify the specific release
-	const releases = await verifyMetadataRelease(metadata, values.version, {
-		did: values.did,
+	const releases = await verifyMetadataRelease(metadata, version, {
+		did,
 	});
 
-	console.log(`\n✓ Release v${values.version} verification passed`);
+	console.log(`\n✓ Release v${version} verification passed`);
 	displayReleases(releases);
 } catch (err) {
 	if (err instanceof MetadataVerificationError) {

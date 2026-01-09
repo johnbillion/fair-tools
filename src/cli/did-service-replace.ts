@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { parseArgs } from 'node:util';
+import { PlcClientError } from '@did-plc/lib';
 import { importRotationKeyPair } from '../keys.js';
 import { replaceServiceUrl } from '../did.js';
 import { loadRotationKey, SigningKeyError } from '../signing.js';
@@ -49,17 +50,23 @@ Optional:
 }
 
 // Validate required options
-const required = ['did', 'old-url', 'new-url'];
-const missing = required.filter((opt) => !values[opt]);
-if (missing.length > 0) {
-	console.error(`Error: Missing required options: ${missing.map((o) => `--${o}`).join(', ')}`);
+if (!values.did || !values['old-url'] || !values['new-url']) {
+	const missing = [];
+	if (!values.did) missing.push('--did');
+	if (!values['old-url']) missing.push('--old-url');
+	if (!values['new-url']) missing.push('--new-url');
+	console.error(`Error: Missing required options: ${missing.join(', ')}`);
 	console.error('Run with --help for usage information.');
 	process.exit(1);
 }
 
+const did = values.did;
+const oldUrl = values['old-url'];
+const newUrl = values['new-url'];
+
 // Validate DID format
 try {
-	validatePlcDid(values.did);
+	validatePlcDid(did);
 } catch (err) {
 	if (err instanceof DidValidationError) {
 		console.error(`Error: ${err.message}`);
@@ -69,7 +76,7 @@ try {
 }
 
 // Load signing key
-let privateKeyHex;
+let privateKeyHex: string;
 try {
 	({ privateKeyHex } = await loadRotationKey({
 		signingFile: values['signing-file'],
@@ -84,19 +91,22 @@ try {
 }
 const { keypair, publicKey: signerPublicKey } = await importRotationKeyPair(privateKeyHex);
 
-console.log(`Updating DID ${values.did}...`);
+console.log(`Updating DID ${did}...`);
 
 try {
 	await replaceServiceUrl({
-		did: values.did,
-		oldUrl: values['old-url'],
-		newUrl: values['new-url'],
+		did,
+		oldUrl,
+		newUrl,
 		signer: keypair,
 	});
 } catch (err) {
-	logPlcError('Error updating DID', err, { signerPublicKey });
-	process.exit(1);
+	if (err instanceof PlcClientError) {
+		logPlcError('Error updating DID', err, { signerPublicKey });
+		process.exit(1);
+	}
+	throw err;
 }
 
-console.log(`DID updated with service URL: ${values['new-url']}`);
-console.log(`View at: https://web.plc.directory/did/${values.did}`);
+console.log(`DID updated with service URL: ${newUrl}`);
+console.log(`View at: https://web.plc.directory/did/${did}`);

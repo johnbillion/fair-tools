@@ -8,7 +8,7 @@ const DID_RECORD_REGEX = /^did="?([^"]+)"?$/;
 export class InvalidDomainError extends Error {}
 
 export class DnsRecordNotFoundError extends Error {
-	constructor(recordHost) {
+	constructor(recordHost: string) {
 		super(`No DNS TXT record found at ${recordHost}`);
 	}
 }
@@ -16,7 +16,7 @@ export class DnsRecordNotFoundError extends Error {
 export class DnsRecordInvalidError extends Error {}
 
 export class DidMismatchError extends Error {
-	constructor(expectedDid, foundDid) {
+	constructor(expectedDid: string, foundDid: string) {
 		super(`DID mismatch: expected ${expectedDid}, found ${foundDid}`);
 	}
 }
@@ -28,7 +28,7 @@ export class NoAliasError extends Error {
 }
 
 export class MultipleAliasesError extends Error {
-	constructor(count) {
+	constructor(count: number) {
 		super(`Found ${count} fair:// aliases, but only one is allowed`);
 	}
 }
@@ -38,7 +38,7 @@ export class MultipleAliasesError extends Error {
  * @param {string} domain
  * @throws {InvalidDomainError} If domain is invalid
  */
-export function validateDomain(domain) {
+export function validateDomain(domain: string): void {
 	if (!domain) {
 		throw new InvalidDomainError('Domain is required');
 	}
@@ -65,15 +65,16 @@ export function validateDomain(domain) {
  * @throws {DnsRecordInvalidError} If the DNS record format is invalid
  * @throws {DidMismatchError} If the DID in the record doesn't match
  */
-export async function verifyDomainDid(domain, expectedDid) {
+export async function verifyDomainDid(domain: string, expectedDid: string): Promise<void> {
 	validateDomain(domain);
 	const recordHost = `_fairpm.${domain}`;
 
-	let records;
+	let records: string[][];
 	try {
 		records = await resolveTxt(recordHost);
 	} catch (err) {
-		if (err.code === 'ENODATA' || err.code === 'ENOTFOUND') {
+		const error = err as NodeJS.ErrnoException;
+		if (error.code === 'ENODATA' || error.code === 'ENOTFOUND') {
 			throw new DnsRecordNotFoundError(recordHost);
 		}
 		throw err;
@@ -107,7 +108,7 @@ export async function verifyDomainDid(domain, expectedDid) {
  * @returns {Promise<string | null>} - The fair:// URL or null if none exists
  * @throws {MultipleAliasesError} If more than one fair:// alias exists
  */
-export async function getFairAlias(did, plcUrl = PLC_DIRECTORY_URL) {
+export async function getFairAlias(did: string, plcUrl = PLC_DIRECTORY_URL): Promise<string> {
 	const client = new Client(plcUrl);
 	const doc = await client.getDocument(did);
 	const aliases = (doc.alsoKnownAs || []).filter((url) => url.startsWith('fair://'));

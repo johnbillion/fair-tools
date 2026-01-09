@@ -14,24 +14,16 @@ import { imageSize } from 'image-size';
 import { marked } from 'marked';
 import { verifyWithVerificationKey } from './keys.js';
 import { parseReadmeFile } from './readme-parser.js';
+import type { Ed25519Keypair } from './Ed25519Keypair.js';
 export { parseReadmeFile } from './readme-parser.js';
 
 /**
- * @typedef {import('./Ed25519Keypair.js').Ed25519Keypair} Ed25519Keypair
- * @typedef {import('./readme-parser.js').ReadmeSections} ReadmeSections
- */
-
-/**
  * JSON-LD context for metadata documents.
- *
- * @type {string}
  */
 export const METADATA_CONTEXT = 'https://fair.pm/ns/metadata/v1';
 
 /**
  * JSON-LD context for release documents.
- *
- * @type {string}
  */
 export const RELEASE_CONTEXT = 'https://fair.pm/ns/release/v1';
 
@@ -41,11 +33,8 @@ export const RELEASE_CONTEXT = 'https://fair.pm/ns/release/v1';
  * @param {Buffer|Uint8Array|string} data - File contents or path to file
  * @returns {Promise<string>} Checksum in format 'sha256:...'
  */
-export async function calculateChecksum(data) {
-	let buffer = data;
-	if (typeof data === 'string') {
-		buffer = await readFile(data);
-	}
+export async function calculateChecksum(data: Buffer | Uint8Array | string): Promise<string> {
+	const buffer: Buffer | Uint8Array = typeof data === 'string' ? await readFile(data) : data;
 	const hash = createHash('sha256').update(buffer).digest('hex');
 	return `sha256:${hash}`;
 }
@@ -60,7 +49,7 @@ export async function calculateChecksum(data) {
  * @param {Ed25519Keypair} keypair - The verification keypair to sign with
  * @returns {Promise<string>} Base64url-encoded signature
  */
-export async function signArtifact(data, keypair) {
+export async function signArtifact(data: Buffer | Uint8Array, keypair: Ed25519Keypair): Promise<string> {
 	const hash = createHash('sha384').update(data).digest();
 	const sig = await keypair.sign(hash);
 	return uint8arrays.toString(sig, 'base64url');
@@ -76,7 +65,11 @@ export async function signArtifact(data, keypair) {
  * @param {Ed25519Keypair} keypair - The verification keypair (public key) to verify with
  * @returns {Promise<boolean>} True if signature is valid
  */
-export async function verifyArtifact(data, signature, keypair) {
+export async function verifyArtifact(
+	data: Buffer | Uint8Array,
+	signature: string,
+	keypair: Ed25519Keypair,
+): Promise<boolean> {
 	const hash = createHash('sha384').update(data).digest();
 	const sig = uint8arrays.fromString(signature, 'base64url');
 	return verifyWithVerificationKey(hash, sig, keypair);
@@ -141,7 +134,7 @@ export function parseComposerJson(content: string): { license?: string; security
 	const data: { license?: string; securityContact?: string } = {};
 
 	try {
-		const composer = JSON.parse(content);
+		const composer = JSON.parse(content) as { license?: string; support?: { security?: string } };
 		if (composer.license) {
 			data.license = composer.license;
 		}
@@ -162,7 +155,7 @@ export function parsePackageJson(content: string): { license?: string } {
 	const data: { license?: string } = {};
 
 	try {
-		const pkg = JSON.parse(content);
+		const pkg = JSON.parse(content) as { license?: string };
 		if (pkg.license) {
 			data.license = pkg.license;
 		}
@@ -173,40 +166,67 @@ export function parsePackageJson(content: string): { license?: string } {
 	return data;
 }
 
+interface Author {
+	name: string;
+	url?: string;
+	email?: string;
+}
+
+interface ReadmeSections {
+	description?: string;
+	installation?: string;
+	changelog?: string;
+	faq?: string;
+	screenshots?: string;
+	security?: string;
+	otherNotes?: string;
+	upgradeNotice?: string;
+	[key: string]: string | undefined;
+}
+
+export interface Release {
+	version: string;
+	artifacts: Record<string, unknown[]>;
+	suggests: Record<string, unknown>;
+	requires?: Record<string, unknown>;
+	provides?: Record<string, unknown>;
+}
+
+interface MetadataDocumentOptions {
+	id: string;
+	type: string;
+	name?: string;
+	slug: string;
+	filename: string;
+	description?: string;
+	authors: Author[];
+	license: string;
+	security?: Array<{ email: string } | { url: string }>;
+	keywords?: string[];
+	sections?: ReadmeSections;
+	releases?: Release[];
+}
+
+export interface MetadataDocument {
+	'@context': string;
+	id: string;
+	type: string;
+	name?: string;
+	slug: string;
+	filename: string;
+	description?: string;
+	authors: Author[];
+	license: string;
+	security: Array<{ email: string } | { url: string }>;
+	keywords: string[];
+	sections: ReadmeSections;
+	releases: Release[];
+}
+
 /**
  * Creates a metadata document for a package.
- *
- * @param {{
- *   id: string, // did:plc:... or did:web:...
- *   type: string, // e.g., 'wp-plugin' or 'wp-theme'
- *   name: string,
- *   slug: string,
- *   filename: string, // e.g., 'query-monitor/query-monitor.php'
- *   description: string,
- *   authors: Array<{name: string, url?: string, email?: string}>,
- *   license: string, // e.g., 'GPL-2.0-or-later'
- *   security?: Array,
- *   keywords?: Array<string>, // max 5
- *   sections?: ReadmeSections,
- *   releases?: Array
- * }} options
- * @returns {{
- *   '@context': string,
- *   id: string,
- *   type: string,
- *   name: string,
- *   slug: string,
- *   filename: string,
- *   description: string,
- *   authors: Array<{ name: string, url?: string, email?: string }>,
- *   license: string,
- *   security: Array,
- *   keywords: Array<string>,
- *   sections: ReadmeSections,
- *   releases: Array
- * }} Metadata document
  */
-export function createMetadataDocument(options) {
+export function createMetadataDocument(options: MetadataDocumentOptions): MetadataDocument {
 	const {
 		id,
 		type,
@@ -222,7 +242,7 @@ export function createMetadataDocument(options) {
 		releases = [],
 	} = options;
 
-	const doc = {
+	const doc: MetadataDocument = {
 		'@context': METADATA_CONTEXT,
 		id,
 		type,
@@ -241,40 +261,21 @@ export function createMetadataDocument(options) {
 	return doc;
 }
 
-/**
- * Creates a release document for a specific version.
- *
- * @param {{
- *   version: string,
- *   artifacts: object, // keyed by type
- *   requires?: object, // e.g., {'env:wp': '>=6.0'}
- *   suggests?: object,
- *   provides?: object
- * }} options
- * @returns {{
- *   version: string,
- *   artifacts: object,
- *   requires?: object,
- *   suggests: object,
- *   provides?: object
- * }} Release document
- */
-export function createReleaseDocument(options: {
+interface ReleaseDocumentOptions {
 	version: string;
 	artifacts: Record<string, unknown[]>;
 	requires?: Record<string, unknown>;
 	suggests?: Record<string, unknown>;
 	provides?: Record<string, unknown>;
-}) {
+}
+
+/**
+ * Creates a release document for a specific version.
+ */
+export function createReleaseDocument(options: ReleaseDocumentOptions): Release {
 	const { version, artifacts, requires, suggests, provides } = options;
 
-	const doc: {
-		version: string;
-		artifacts: Record<string, unknown[]>;
-		suggests: Record<string, unknown>;
-		requires?: Record<string, unknown>;
-		provides?: Record<string, unknown>;
-	} = {
+	const doc: Release = {
 		version,
 		artifacts,
 		suggests: suggests || {},
@@ -287,26 +288,27 @@ export function createReleaseDocument(options: {
 	return doc;
 }
 
+interface ArtifactOptions {
+	url: string;
+	checksum: string;
+	signature?: string;
+	contentType?: string;
+}
+
+interface Artifact {
+	url: string;
+	checksum: string;
+	'content-type'?: string;
+	signature?: string;
+}
+
 /**
  * Creates an artifact entry for a release.
- *
- * @param {{
- *   url: string,
- *   checksum: string, // format 'algorithm:hash'
- *   signature?: string, // base64url-encoded
- *   contentType?: string // MIME type
- * }} options
- * @returns {{
- *   url: string,
- *   checksum: string,
- *   'content-type'?: string,
- *   signature?: string
- * }} Artifact object
  */
-export function createArtifact(options: { url: string; checksum: string; signature?: string; contentType?: string }) {
+export function createArtifact(options: ArtifactOptions): Artifact {
 	const { url, checksum, signature, contentType } = options;
 
-	const artifact: { url: string; checksum: string; 'content-type'?: string; signature?: string } = { url, checksum };
+	const artifact: Artifact = { url, checksum };
 	if (contentType) {
 		artifact['content-type'] = contentType;
 	}
@@ -316,26 +318,20 @@ export function createArtifact(options: { url: string; checksum: string; signatu
 	return artifact;
 }
 
+interface SignedArtifactOptions {
+	url: string;
+	data: Buffer | Uint8Array;
+	keypair: Ed25519Keypair;
+	contentType?: string;
+}
+
 /**
  * Creates a signed artifact entry.
  *
  * Signs the artifact data using Ed25519 over the SHA-384 hash, matching the
  * format expected by the verify_file_signature() function in WordPress.
- *
- * @param {{
- *   url: string,
- *   data: Buffer|Uint8Array,
- *   keypair: Ed25519Keypair, // verification keypair for signing
- *   contentType?: string // MIME type
- * }} options
- * @returns {Promise<{
- *   url: string,
- *   checksum: string,
- *   'content-type'?: string,
- *   signature?: string
- * }>} Artifact with url, checksum, signature, and content-type
  */
-export async function createSignedArtifact(options) {
+export async function createSignedArtifact(options: SignedArtifactOptions): Promise<Artifact> {
 	const { url, data, keypair, contentType } = options;
 
 	const checksum = await calculateChecksum(data);
@@ -348,9 +344,8 @@ export async function createSignedArtifact(options) {
  * Formats a security contact value into the schema format.
  *
  * @param {string} value - Email address or URL
- * @returns {{ email: string } | { url: string }}
  */
-function formatSecurityContact(value) {
+function formatSecurityContact(value: string): { email: string } | { url: string } {
 	// Check if it's a URL (has scheme) or plain email address
 	if (/^[a-z][a-z0-9+.-]*:/i.test(value)) {
 		return { url: value };
@@ -358,23 +353,26 @@ function formatSecurityContact(value) {
 	return { email: value };
 }
 
-/**
- * @typedef {{
- *   url: string,
- *   'content-type': string,
- *   height: number|null,
- *   width: number|null
- * }} AssetArtifact
- */
+interface AssetArtifact {
+	url: string;
+	'content-type': string;
+	height: number | null;
+	width: number | null;
+}
+
+interface AssetPattern {
+	pattern: RegExp;
+	type: 'banner' | 'icon';
+	width: number | null;
+	height: number | null;
+}
 
 /**
  * Asset file patterns for WordPress plugins.
  *
  * See https://developer.wordpress.org/plugins/wordpress-org/plugin-assets/
- *
- * @type {Array<{pattern: RegExp, type: 'banner'|'icon', width: number|null, height: number|null}>}
  */
-const ASSET_PATTERNS = [
+const ASSET_PATTERNS: AssetPattern[] = [
 	// Banners
 	{
 		pattern: /^banner-772x250\.(png|jpe?g|gif)$/i,
@@ -417,11 +415,8 @@ const SCREENSHOT_PATTERN = /^screenshot-(\d+)\.(png|jpe?g)$/i;
 
 /**
  * Maps file extensions to MIME types for assets.
- *
- * @param {string} filename
- * @returns {string} MIME type
  */
-function getAssetContentType(filename) {
+function getAssetContentType(filename: string): string {
 	const ext = filename.split('.').pop()?.toLowerCase();
 	switch (ext) {
 		case 'png':
@@ -438,26 +433,31 @@ function getAssetContentType(filename) {
 	}
 }
 
+interface FileDimensions {
+	width: number;
+	height: number;
+}
+
 /**
  * Matches filenames against asset patterns and constructs artifact entries.
  *
  * Pure function that processes a map of files and returns categorized
  * asset artifacts ready for inclusion in release documents.
- *
- * @param {Object<string, {width: number, height: number}|null>} files - Map of filename to dimensions (or null if unknown)
  * @param {string} baseUrl - Base URL for assets (must end with /)
- * @returns {{banners: AssetArtifact[], icons: AssetArtifact[], screenshots: AssetArtifact[]}}
  */
-export function matchAssetFiles(files, baseUrl) {
+export function matchAssetFiles(
+	files: Record<string, FileDimensions | null>,
+	baseUrl: string,
+): { banners: AssetArtifact[]; icons: AssetArtifact[]; screenshots: AssetArtifact[] } {
 	const filenames = Object.keys(files);
-	const banners = [];
-	const icons = [];
+	const banners: AssetArtifact[] = [];
+	const icons: AssetArtifact[] = [];
 
 	// Iterate patterns and find matching files for banners and icons
 	for (const assetPattern of ASSET_PATTERNS) {
 		const file = filenames.find((f) => assetPattern.pattern.test(f));
 		if (file) {
-			const artifact = {
+			const artifact: AssetArtifact = {
 				url: `${baseUrl}${file}`,
 				'content-type': getAssetContentType(file),
 				height: assetPattern.height,
@@ -473,7 +473,7 @@ export function matchAssetFiles(files, baseUrl) {
 	}
 
 	// Screenshots: find all matches and sort by number
-	const screenshotMatches = [];
+	const screenshotMatches: Array<{ file: string; number: number }> = [];
 	for (const file of filenames) {
 		const match = SCREENSHOT_PATTERN.exec(file);
 		if (match) {
@@ -481,7 +481,7 @@ export function matchAssetFiles(files, baseUrl) {
 		}
 	}
 	screenshotMatches.sort((a, b) => a.number - b.number);
-	const screenshots = screenshotMatches.map(({ file }) => {
+	const screenshots: AssetArtifact[] = screenshotMatches.map(({ file }) => {
 		const dim = files[file];
 		return {
 			url: `${baseUrl}${file}`,
@@ -494,23 +494,24 @@ export function matchAssetFiles(files, baseUrl) {
 	return { banners, icons, screenshots };
 }
 
+interface DiscoverAssetsOptions {
+	assetsDir: string;
+	assetsUrl: string;
+}
+
 /**
  * Discovers asset files in a directory and constructs artifact entries.
  *
  * Scans for WordPress plugin asset files (banners, icons, and screenshots) and returns
  * arrays of artifact objects ready for inclusion in release documents.
- *
- * @param {{
- *   assetsDir: string,
- *   assetsUrl: string
- * }} options
- * @returns {Promise<{banners: AssetArtifact[], icons: AssetArtifact[], screenshots: AssetArtifact[]}>}
  * @throws {Error} If directory doesn't exist or no assets found
  */
-export async function discoverAssets(options) {
+export async function discoverAssets(
+	options: DiscoverAssetsOptions,
+): Promise<{ banners: AssetArtifact[]; icons: AssetArtifact[]; screenshots: AssetArtifact[] }> {
 	const { assetsDir, assetsUrl } = options;
 
-	let filenames;
+	let filenames: string[];
 	try {
 		filenames = await readdir(assetsDir);
 	} catch {
@@ -521,7 +522,7 @@ export async function discoverAssets(options) {
 	const baseUrl = assetsUrl.endsWith('/') ? assetsUrl : `${assetsUrl}/`;
 
 	// Build files map with dimensions for screenshots
-	const files = {};
+	const files: Record<string, FileDimensions | null> = {};
 	for (const file of filenames) {
 		if (SCREENSHOT_PATTERN.test(file)) {
 			try {
@@ -550,38 +551,39 @@ export async function discoverAssets(options) {
 	return { banners, icons, screenshots };
 }
 
+interface BuildMetadataFromContentOptions {
+	keypair: Ed25519Keypair;
+	did: string;
+	name?: string;
+	slug: string;
+	filename: string;
+	description?: string;
+	author?: { name: string; url?: string };
+	license: string;
+	securityContact?: string;
+	keywords?: string[];
+	sections?: ReadmeSections;
+	existingReleases?: Release[];
+	version?: string;
+	requiresWp?: string;
+	requiresPhp?: string;
+	testedUpTo?: string;
+	zipData: Buffer | Uint8Array;
+	downloadUrl: string;
+	banners?: AssetArtifact[];
+	icons?: AssetArtifact[];
+	screenshots?: AssetArtifact[];
+}
+
 /**
  * Builds complete FAIR metadata for a release of a plugin for WordPress.
  *
  * This is the core metadata building function that accepts pre-resolved final values.
  * Use buildMetadata() for a file-based wrapper that handles parsing and priority resolution.
- *
- * @param {{
- *   keypair: Ed25519Keypair,
- *   did: string, // did:plc:...
- *   name: string,
- *   slug: string,
- *   filename: string, // e.g., 'query-monitor/query-monitor.php'
- *   description: string,
- *   author: {name: string, url?: string},
- *   license: string,
- *   securityContact?: string, // email or URL
- *   keywords?: Array<string>,
- *   sections?: ReadmeSections,
- *   existingReleases?: Array,
- *   version: string,
- *   requiresWp?: string,
- *   requiresPhp?: string,
- *   testedUpTo?: string, // WordPress version tested up to (from readme)
- *   zipData: Buffer|Uint8Array,
- *   downloadUrl: string,
- *   banners?: AssetArtifact[],
- *   icons?: AssetArtifact[],
- *   screenshots?: AssetArtifact[]
- * }} options
- * @returns {Promise<{metadata: object, overwrittenVersion: string|null}>} Complete metadata document with release and overwrite info
  */
-export async function buildMetadataFromContent(options) {
+export async function buildMetadataFromContent(
+	options: BuildMetadataFromContentOptions,
+): Promise<{ metadata: MetadataDocument; overwrittenVersion: string | null }> {
 	const {
 		// Keys
 		keypair,
@@ -621,7 +623,7 @@ export async function buildMetadataFromContent(options) {
 	}
 
 	// Build authors array
-	const authors = [author];
+	const authors: Author[] = author ? [author] : [];
 
 	// Create signed artifact
 	const artifact = await createSignedArtifact({
@@ -632,7 +634,7 @@ export async function buildMetadataFromContent(options) {
 	});
 
 	// Build requirements
-	const requires = {};
+	const requires: Record<string, string> = {};
 	if (requiresWp) {
 		requires['env:wp'] = `>=${requiresWp}`;
 	}
@@ -697,25 +699,26 @@ export async function buildMetadataFromContent(options) {
 	return { metadata, overwrittenVersion };
 }
 
+interface BuildMetadataOptions {
+	did: string;
+	keypair: Ed25519Keypair;
+	pluginFile: string;
+	zipFile: string;
+	downloadUrl: string;
+	existingReleases?: Release[];
+	assetsDir?: string;
+	assetsUrl?: string;
+}
+
 /**
  * Builds complete FAIR metadata for a release of a plugin for WordPress.
  *
  * File-based wrapper that handles all file reading, parsing, and priority resolution,
  * then delegates to buildMetadataFromContent() with final values.
- *
- * @param {{
- *   did: string, // did:plc:...
- *   keypair: Ed25519Keypair, // verification keypair for signing artifacts
- *   pluginFile: string, // path to main plugin PHP file
- *   zipFile: string,
- *   downloadUrl: string,
- *   existingReleases?: Array,
- *   assetsDir?: string, // path to assets directory
- *   assetsUrl?: string // base URL for assets
- * }} options
- * @returns {Promise<{metadata: object, overwrittenVersion: string|null}>} Complete metadata document with release and overwrite info
  */
-export async function buildMetadata(options) {
+export async function buildMetadata(
+	options: BuildMetadataOptions,
+): Promise<{ metadata: MetadataDocument; overwrittenVersion: string | null }> {
 	const { did, keypair, pluginFile, zipFile, downloadUrl, existingReleases = [], assetsDir, assetsUrl } = options;
 
 	// Resolve to absolute path to handle relative paths like "plugin.php"
@@ -770,8 +773,7 @@ export async function buildMetadata(options) {
 	const description = pluginData.description || readmeData.shortDescription;
 
 	// Build author object
-	/** @type {{ name: string, url?: string } | undefined} */
-	let author;
+	let author: { name: string; url?: string } | undefined;
 	if (pluginData.author) {
 		author = {
 			name: pluginData.author,
@@ -783,9 +785,9 @@ export async function buildMetadata(options) {
 	const zipData = await readFile(zipFile);
 
 	// Discover assets if directory provided
-	let banners = [];
-	let icons = [];
-	let screenshots = [];
+	let banners: AssetArtifact[] = [];
+	let icons: AssetArtifact[] = [];
+	let screenshots: AssetArtifact[] = [];
 	if (assetsDir && assetsUrl) {
 		({ banners, icons, screenshots } = await discoverAssets({
 			assetsDir,
@@ -795,7 +797,7 @@ export async function buildMetadata(options) {
 
 	// Reconstruct screenshots section HTML using discovered screenshot assets
 	// and descriptions from readme.txt
-	const sections = { ...readmeData.sections };
+	const sections: ReadmeSections = { ...readmeData.sections };
 	if (screenshots.length > 0) {
 		const screenshotDescriptions = readmeData.screenshots || [];
 		const items = screenshots

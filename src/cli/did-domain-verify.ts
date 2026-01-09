@@ -43,17 +43,21 @@ DNS Record Setup:
 }
 
 // Validate required options
-const required = ['domain', 'did'];
-const missing = required.filter((opt) => !values[opt]);
-if (missing.length > 0) {
-	console.error(`Error: Missing required options: ${missing.map((o) => `--${o}`).join(', ')}`);
+if (!values.domain || !values.did) {
+	const missing = [];
+	if (!values.domain) missing.push('--domain');
+	if (!values.did) missing.push('--did');
+	console.error(`Error: Missing required options: ${missing.join(', ')}`);
 	console.error('Run with --help for usage information.');
 	process.exit(1);
 }
 
+const domain = values.domain;
+const did = values.did;
+
 // Validate DID format
 try {
-	validatePlcDid(values.did);
+	validatePlcDid(did);
 } catch (err) {
 	if (err instanceof DidValidationError) {
 		console.error(`Error: ${err.message}`);
@@ -62,19 +66,19 @@ try {
 	throw err;
 }
 
-console.log(`Verifying domain ${values.domain}...`);
+console.log(`Verifying domain ${domain}...`);
 
 try {
-	await verifyDomainDid(values.domain, values.did);
-	console.log(`\n✓ Domain verified: ${values.domain}`);
-	console.log(`  DNS record: _fairpm.${values.domain}`);
-	console.log(`  DID: ${values.did}`);
+	await verifyDomainDid(domain, did);
+	console.log(`\n✓ Domain verified: ${domain}`);
+	console.log(`  DNS record: _fairpm.${domain}`);
+	console.log(`  DID: ${did}`);
 } catch (err) {
-	console.error(`\n✗ ${err.message}`);
+	console.error(`\n✗ ${(err as Error).message}`);
 	if (err instanceof DnsRecordNotFoundError || err instanceof DnsRecordInvalidError) {
 		console.error(`\n  To verify this domain, add a TXT record:`);
-		console.error(`    Host: _fairpm.${values.domain}`);
-		console.error(`    Value: did=${values.did}`);
+		console.error(`    Host: _fairpm.${domain}`);
+		console.error(`    Value: did=${did}`);
 	}
 	process.exit(1);
 }

@@ -3,7 +3,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { importVerificationKeyPair } from '../keys.js';
-import { buildMetadata } from '../metadata.js';
+import { buildMetadata, Release, MetadataDocument } from '../metadata.js';
 import { loadVerificationKey, SigningKeyError } from '../signing.js';
 import { verificationKeyHelp } from './lib/help.js';
 import { validatePlcDid, DidValidationError } from '../did-validation.js';
@@ -79,17 +79,25 @@ Examples:
 }
 
 // Validate required options
-const required = ['plugin-file', 'zip-file', 'url', 'did'];
-const missing = required.filter((opt) => !values[opt]);
-if (missing.length > 0) {
-	console.error(`Error: Missing required options: ${missing.map((o) => `--${o}`).join(', ')}`);
+if (!values['plugin-file'] || !values['zip-file'] || !values.url || !values.did) {
+	const missing = [];
+	if (!values['plugin-file']) missing.push('--plugin-file');
+	if (!values['zip-file']) missing.push('--zip-file');
+	if (!values.url) missing.push('--url');
+	if (!values.did) missing.push('--did');
+	console.error(`Error: Missing required options: ${missing.join(', ')}`);
 	console.error('Run with --help for usage information.');
 	process.exit(1);
 }
 
+const pluginFile = values['plugin-file'];
+const zipFile = values['zip-file'];
+const downloadUrl = values.url;
+const did = values.did;
+
 // Validate DID format
 try {
-	validatePlcDid(values.did);
+	validatePlcDid(did);
 } catch (err) {
 	if (err instanceof DidValidationError) {
 		console.error(`Error: ${err.message}`);
@@ -109,7 +117,7 @@ if (values['assets-url'] && !values['assets-dir']) {
 }
 
 // Load signing key
-let privateKeyHex;
+let privateKeyHex: string;
 try {
 	({ privateKeyHex } = await loadVerificationKey({
 		signingFile: values['signing-file'],
@@ -125,7 +133,7 @@ try {
 const { keypair } = await importVerificationKeyPair(privateKeyHex);
 
 // Load existing releases if provided
-let existingReleases = [];
+let existingReleases: Release[] = [];
 if (values['metadata-file']) {
 	try {
 		const metadataContent = await readFile(values['metadata-file'], 'utf-8');
@@ -136,27 +144,27 @@ if (values['metadata-file']) {
 			process.exit(1);
 		}
 	} catch (err) {
-		console.error(`Error reading metadata file: ${err.message}`);
+		console.error(`Error reading metadata file: ${(err as Error).message}`);
 		process.exit(1);
 	}
 }
 
 // Build the metadata
-let metadata;
-let overwrittenVersion;
+let metadata: MetadataDocument;
+let overwrittenVersion: string | null;
 try {
 	({ metadata, overwrittenVersion } = await buildMetadata({
-		did: values.did,
+		did,
 		keypair,
-		pluginFile: values['plugin-file'],
-		zipFile: values['zip-file'],
-		downloadUrl: values.url,
+		pluginFile,
+		zipFile,
+		downloadUrl,
 		existingReleases,
 		assetsDir: values['assets-dir'],
 		assetsUrl: values['assets-url'],
 	}));
 } catch (err) {
-	console.error(`Error building metadata: ${err.message}`);
+	console.error(`Error building metadata: ${(err as Error).message}`);
 	process.exit(1);
 }
 
@@ -170,7 +178,7 @@ if (values['output-file']) {
 	try {
 		await writeFile(values['output-file'], output + '\n');
 	} catch (err) {
-		console.error(`Error writing output file: ${err.message}`);
+		console.error(`Error writing output file: ${(err as Error).message}`);
 		process.exit(1);
 	}
 	console.log(`Metadata written to ${values['output-file']}`);
