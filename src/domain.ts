@@ -1,6 +1,6 @@
 import { resolveTxt } from 'node:dns/promises';
 import { Client } from '@did-plc/lib';
-import { PLC_DIRECTORY_URL } from './did.js';
+import { PLC_DIRECTORY_URL, createPlcClient } from './did.js';
 
 const DOMAIN_REGEX = /^[a-z0-9][a-z0-9-]{0,62}(\.[a-z0-9][a-z0-9-]{0,62})+$/i;
 const DID_RECORD_REGEX = /^did="?([^"]+)"?$/;
@@ -109,7 +109,7 @@ export async function verifyDomainDid(domain: string, expectedDid: string): Prom
  * @throws {MultipleAliasesError} If more than one fair:// alias exists
  */
 export async function getFairAlias(did: string, plcUrl = PLC_DIRECTORY_URL): Promise<string> {
-	const client = new Client(plcUrl);
+	const client = createPlcClient(plcUrl);
 	const doc = await client.getDocument(did);
 	const aliases = (doc.alsoKnownAs || []).filter((url) => url.startsWith('fair://'));
 

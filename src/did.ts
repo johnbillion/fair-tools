@@ -73,7 +73,7 @@ export async function generateDID({
 /**
  * Creates a PLC directory client.
  */
-function createPlcClient(url = PLC_DIRECTORY_URL): Client {
+export function createPlcClient(url = PLC_DIRECTORY_URL): Client {
 	return new Client(url);
 }
 
