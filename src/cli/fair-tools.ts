@@ -1,5 +1,13 @@
 #!/usr/bin/env node
 
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const packageJson = JSON.parse(readFileSync(join(__dirname, '../../../package.json'), 'utf-8'));
+const version: string = packageJson.version;
+
 type Command = {
 	description: string;
 	load: () => Promise<unknown>;
@@ -171,6 +179,11 @@ const args = process.argv.slice(2);
 
 if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
 	showHelp();
+	process.exit(0);
+}
+
+if (args[0] === '--version' || args[0] === '-v') {
+	console.log(version);
 	process.exit(0);
 }
 
