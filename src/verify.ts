@@ -4,6 +4,23 @@
  * Verifies metadata documents, release signatures, and checksums.
  */
 
+import { createHash, timingSafeEqual } from 'node:crypto';
+import { Client, DidDocument } from '@did-plc/lib';
+import { Ed25519Keypair } from './Ed25519Keypair.js';
+import { fetchOptions } from './utils.js';
+import { METADATA_CONTEXT, verifyArtifact } from './metadata.js';
+import { PLC_DIRECTORY_URL, FAIR_SERVICE_TYPE } from './did.js';
+import { validateDidLog, DidLogFetchError, DidLogValidationError } from './plc-log.js';
+import {
+	getFairAlias,
+	verifyDomainDid,
+	NoAliasError,
+	MultipleAliasesError,
+	DnsRecordNotFoundError,
+	DnsRecordInvalidError,
+	DidMismatchError,
+} from './domain.js';
+
 interface VerificationKey {
 	id: string;
 	publicKeyMultibase: string;
@@ -45,12 +62,6 @@ interface ReleaseVerificationResult {
 	version: string;
 	artifacts: ArtifactVerificationResult[];
 }
-
-import { createHash, timingSafeEqual } from 'node:crypto';
-import { Ed25519Keypair } from './Ed25519Keypair.js';
-import { fetchOptions } from './utils.js';
-import { METADATA_CONTEXT, verifyArtifact } from './metadata.js';
-import { PLC_DIRECTORY_URL } from './did.js';
 
 /**
  * Error thrown when metadata verification fails.
@@ -528,3 +539,261 @@ export async function verifyServiceEndpoint(
 		plcUrl,
 	});
 }
+
+interface ServiceResult {
+	url: string;
+	valid: boolean;
+	releases?: ReleaseVerificationResult[];
+	error?: string;
+}
+
+interface AliasResult {
+	url?: string;
+	domain?: string;
+	valid: boolean;
+	error?: string;
+	note?: string;
+}
+
+interface LogResult {
+	valid: boolean;
+	operationCount?: number;
+	error?: string;
+}
+
+export interface DidVerificationResult {
+	valid: boolean;
+	did: string;
+	log: LogResult;
+	services: ServiceResult[];
+	alias: AliasResult | null;
+	errors: string[];
+}
+
+export interface VerifyDidOptions {
+	did: string;
+	allReleases?: boolean;
+	plcUrl?: string;
+}
+
+/**
+ * Gets FAIR service endpoints from a DID document.
+ */
+export function getFairServices(didDocument: DidDocument): Array<{ type: string; serviceEndpoint: string }> {
+	return (didDocument.service || []).filter((s) => s.type === FAIR_SERVICE_TYPE);
+}
+
+/**
+ * Verifies all FAIR service endpoints for a DID.
+ */
+export async function verifyFairServices(
+	didDocument: DidDocument,
+	did: string,
+	allReleases = false,
+): Promise<ServiceResult[]> {
+	const fairServices = getFairServices(didDocument);
+	const results: ServiceResult[] = [];
+
+	for (const service of fairServices) {
+		const serviceUrl = service.serviceEndpoint;
+		try {
+			const releases = await verifyServiceEndpoint(serviceUrl, {
+				did,
+				allReleases,
+			});
+
+			results.push({
+				url: serviceUrl,
+				valid: true,
+				releases,
+			});
+		} catch (err) {
+			if (err instanceof MetadataFetchError) {
+				results.push({
+					url: serviceUrl,
+					valid: false,
+					error: err.message,
+				});
+			} else if (err instanceof MetadataVerificationError) {
+				results.push({
+					url: serviceUrl,
+					valid: false,
+					releases: err.result,
+					error: err.message,
+				});
+			} else {
+				throw err;
+			}
+		}
+	}
+
+	return results;
+}
+
+/**
+ * Extracts domain from a fair:// alias URL.
+ */
+export function extractDomainFromAlias(alias: string): string {
+	return alias.replace(/^fair:\/\//, '').replace(/\/$/, '');
+}
+
+/**
+ * Result of fetching the fair:// alias for a DID.
+ */
+export type FetchAliasResult =
+	| { type: 'alias'; alias: string }
+	| { type: 'no-alias' }
+	| { type: 'multiple-aliases'; error: string };
+
+/**
+ * Result of verifying a domain's DNS record.
+ */
+export type VerifyDomainResult = { valid: true } | { valid: false; error: string };
+
+/**
+ * Builds an AliasResult from fetch and verification results.
+ * This is a pure function.
+ */
+export function buildAliasResult(fetchResult: FetchAliasResult, verifyResult: VerifyDomainResult | null): AliasResult {
+	if (fetchResult.type === 'no-alias') {
+		return { valid: true, note: 'No fair:// alias configured' };
+	}
+
+	if (fetchResult.type === 'multiple-aliases') {
+		return { valid: false, error: fetchResult.error };
+	}
+
+	const domain = extractDomainFromAlias(fetchResult.alias);
+
+	if (!verifyResult) {
+		return { url: fetchResult.alias, domain, valid: false, error: 'Verification not performed' };
+	}
+
+	if (verifyResult.valid) {
+		return { url: fetchResult.alias, domain, valid: true };
+	}
+
+	return { url: fetchResult.alias, domain, valid: false, error: verifyResult.error };
+}
+
+/**
+ * Verifies domain aliases for a DID.
+ */
+export async function verifyDomainAlias(did: string): Promise<AliasResult> {
+	let fetchResult: FetchAliasResult;
+	try {
+		const alias = await getFairAlias(did);
+		fetchResult = { type: 'alias', alias };
+	} catch (err) {
+		if (err instanceof NoAliasError) {
+			fetchResult = { type: 'no-alias' };
+		} else if (err instanceof MultipleAliasesError) {
+			fetchResult = { type: 'multiple-aliases', error: err.message };
+		} else {
+			throw err;
+		}
+	}
+
+	if (fetchResult.type !== 'alias') {
+		return buildAliasResult(fetchResult, null);
+	}
+
+	const domain = extractDomainFromAlias(fetchResult.alias);
+
+	let verifyResult: VerifyDomainResult;
+	try {
+		await verifyDomainDid(domain, did);
+		verifyResult = { valid: true };
+	} catch (err) {
+		const errorMsg =
+			err instanceof DnsRecordNotFoundError || err instanceof DnsRecordInvalidError || err instanceof DidMismatchError
+				? err.message
+				: `DNS verification failed: ${(err as Error).message}`;
+		verifyResult = { valid: false, error: errorMsg };
+	}
+
+	return buildAliasResult(fetchResult, verifyResult);
+}
+
+/**
+ * Performs comprehensive verification of a DID.
+ *
+ * This verifies:
+ * 1. DID log validation - Verifies the complete operation history from genesis
+ * 2. DID document validation - Ensures computed state matches current document
+ * 3. Service endpoint verification - Validates FAIR metadata at each service URL
+ * 4. Domain alias verification - Checks fair:// aliases resolve correctly
+ */
+export async function verifyDid(options: VerifyDidOptions): Promise<DidVerificationResult> {
+	const { did, allReleases = false, plcUrl = PLC_DIRECTORY_URL } = options;
+
+	const result: DidVerificationResult = {
+		valid: true,
+		did,
+		log: { valid: false },
+		services: [],
+		alias: null,
+		errors: [],
+	};
+
+	// 1. Validate DID log
+	try {
+		const logResult = await validateDidLog(did);
+		result.log = {
+			valid: true,
+			operationCount: logResult.operations.length,
+		};
+	} catch (err) {
+		if (err instanceof DidLogFetchError || err instanceof DidLogValidationError) {
+			result.log = {
+				valid: false,
+				error: err.message,
+			};
+			result.valid = false;
+			result.errors.push(`DID log: ${err.message}`);
+		} else {
+			throw err;
+		}
+	}
+
+	// 2. Fetch DID document
+	let didDocument: DidDocument;
+	try {
+		const client = new Client(plcUrl);
+		didDocument = await client.getDocument(did);
+	} catch (err) {
+		result.valid = false;
+		result.errors.push(`Could not fetch DID document: ${(err as Error).message}`);
+		return result;
+	}
+
+	// 3. Verify service endpoints
+	const serviceResults = await verifyFairServices(didDocument, did, allReleases);
+	result.services = serviceResults;
+
+	for (const service of serviceResults) {
+		if (!service.valid) {
+			result.valid = false;
+			result.errors.push(`${service.url}: ${service.error}`);
+		}
+	}
+
+	// 4. Verify domain aliases
+	result.alias = await verifyDomainAlias(did);
+	if (!result.alias.valid && result.alias.error) {
+		result.valid = false;
+		result.errors.push(`Domain alias: ${result.alias.error}`);
+	}
+
+	return result;
+}
+
+// Re-export error types for consumers
+export { DidLogFetchError, DidLogValidationError } from './plc-log.js';
+export {
+	NoAliasError,
+	MultipleAliasesError,
+	DnsRecordNotFoundError,
+	DnsRecordInvalidError,
+	DidMismatchError,
+} from './domain.js';

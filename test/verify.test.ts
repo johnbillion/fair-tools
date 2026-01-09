@@ -5,10 +5,15 @@ import {
 	verifyArtifactChecksum,
 	verifyArtifactSignature,
 	validateMetadataStructure,
+	getFairServices,
+	extractDomainFromAlias,
+	buildAliasResult,
 	ChecksumVerificationError,
 	SignatureVerificationError,
 	MetadataVerificationError,
 } from '../src/verify.js';
+import type { FetchAliasResult, VerifyDomainResult } from '../src/verify.js';
+import type { DidDocument } from '@did-plc/lib';
 import { generateVerificationKeyPair } from '../src/keys.js';
 import { Ed25519Keypair } from '../src/Ed25519Keypair.js';
 import { signArtifact, METADATA_CONTEXT } from '../src/metadata.js';
@@ -188,6 +193,70 @@ describe('validateMetadataStructure', () => {
 			() => validateMetadataStructure(metadata, 'did:plc:test123456789012345678'),
 			(err) => err instanceof MetadataVerificationError && err.message.includes('Missing id'),
 		);
+	});
+});
+
+describe('getFairServices', () => {
+	it('returns FAIR services from DID document', () => {
+		const didDocument = {
+			id: 'did:plc:test123456789012345678',
+			service: [
+				{ id: '#fairpm_repo', type: 'FairPackageManagementRepo', serviceEndpoint: 'https://example.com/fair.json' },
+				{ id: '#atproto', type: 'AtprotoPersonalDataServer', serviceEndpoint: 'https://bsky.social' },
+			],
+		} as DidDocument;
+
+		const services = getFairServices(didDocument);
+
+		assert.strictEqual(services.length, 1);
+		assert.strictEqual(services[0].type, 'FairPackageManagementRepo');
+		assert.strictEqual(services[0].serviceEndpoint, 'https://example.com/fair.json');
+	});
+
+	it('returns multiple FAIR services when present', () => {
+		const didDocument = {
+			id: 'did:plc:test123456789012345678',
+			service: [
+				{ id: '#fairpm_repo', type: 'FairPackageManagementRepo', serviceEndpoint: 'https://example.com/fair.json' },
+				{ id: '#fairpm_repo2', type: 'FairPackageManagementRepo', serviceEndpoint: 'https://other.com/fair.json' },
+			],
+		} as DidDocument;
+
+		const services = getFairServices(didDocument);
+
+		assert.strictEqual(services.length, 2);
+	});
+
+	it('returns empty array when no FAIR services present', () => {
+		const didDocument = {
+			id: 'did:plc:test123456789012345678',
+			service: [{ id: '#atproto', type: 'AtprotoPersonalDataServer', serviceEndpoint: 'https://bsky.social' }],
+		} as DidDocument;
+
+		const services = getFairServices(didDocument);
+
+		assert.strictEqual(services.length, 0);
+	});
+
+	it('returns empty array when service array is empty', () => {
+		const didDocument = {
+			id: 'did:plc:test123456789012345678',
+			service: [],
+		} as DidDocument;
+
+		const services = getFairServices(didDocument);
+
+		assert.strictEqual(services.length, 0);
+	});
+
+	it('returns empty array when service is undefined', () => {
+		const didDocument = {
+			id: 'did:plc:test123456789012345678',
+		} as DidDocument;
+
+		const services = getFairServices(didDocument);
+
+		assert.strictEqual(services.length, 0);
 	});
 });
 
@@ -392,5 +461,84 @@ describe('verifyArtifactSignature', () => {
 			assert.ok(err.message.includes('Ed25519'));
 			return true;
 		});
+	});
+});
+
+describe('extractDomainFromAlias', () => {
+	it('extracts domain from fair:// URL', () => {
+		assert.strictEqual(extractDomainFromAlias('fair://example.com'), 'example.com');
+	});
+
+	it('removes trailing slash', () => {
+		assert.strictEqual(extractDomainFromAlias('fair://example.com/'), 'example.com');
+	});
+
+	it('handles subdomain', () => {
+		assert.strictEqual(extractDomainFromAlias('fair://sub.example.com'), 'sub.example.com');
+	});
+
+	it('handles plain domain without protocol', () => {
+		assert.strictEqual(extractDomainFromAlias('example.com'), 'example.com');
+	});
+});
+
+describe('buildAliasResult', () => {
+	it('returns valid result with note for no-alias', () => {
+		const fetchResult: FetchAliasResult = { type: 'no-alias' };
+
+		const result = buildAliasResult(fetchResult, null);
+
+		assert.strictEqual(result.valid, true);
+		assert.strictEqual(result.note, 'No fair:// alias configured');
+	});
+
+	it('returns invalid result for multiple-aliases', () => {
+		const fetchResult: FetchAliasResult = { type: 'multiple-aliases', error: 'Multiple aliases found' };
+
+		const result = buildAliasResult(fetchResult, null);
+
+		assert.strictEqual(result.valid, false);
+		assert.strictEqual(result.error, 'Multiple aliases found');
+	});
+
+	it('returns valid result when alias exists and verification passes', () => {
+		const fetchResult: FetchAliasResult = { type: 'alias', alias: 'fair://example.com' };
+		const verifyResult: VerifyDomainResult = { valid: true };
+
+		const result = buildAliasResult(fetchResult, verifyResult);
+
+		assert.strictEqual(result.valid, true);
+		assert.strictEqual(result.url, 'fair://example.com');
+		assert.strictEqual(result.domain, 'example.com');
+	});
+
+	it('returns invalid result when alias exists but verification fails', () => {
+		const fetchResult: FetchAliasResult = { type: 'alias', alias: 'fair://example.com' };
+		const verifyResult: VerifyDomainResult = { valid: false, error: 'DNS record not found' };
+
+		const result = buildAliasResult(fetchResult, verifyResult);
+
+		assert.strictEqual(result.valid, false);
+		assert.strictEqual(result.url, 'fair://example.com');
+		assert.strictEqual(result.domain, 'example.com');
+		assert.strictEqual(result.error, 'DNS record not found');
+	});
+
+	it('returns invalid result when alias exists but verification is null', () => {
+		const fetchResult: FetchAliasResult = { type: 'alias', alias: 'fair://example.com' };
+
+		const result = buildAliasResult(fetchResult, null);
+
+		assert.strictEqual(result.valid, false);
+		assert.strictEqual(result.error, 'Verification not performed');
+	});
+
+	it('extracts domain correctly from alias with trailing slash', () => {
+		const fetchResult: FetchAliasResult = { type: 'alias', alias: 'fair://example.com/' };
+		const verifyResult: VerifyDomainResult = { valid: true };
+
+		const result = buildAliasResult(fetchResult, verifyResult);
+
+		assert.strictEqual(result.domain, 'example.com');
 	});
 });
