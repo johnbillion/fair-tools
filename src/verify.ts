@@ -48,6 +48,7 @@ interface ReleaseVerificationResult {
 
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { Ed25519Keypair } from './Ed25519Keypair.js';
+import { fetchOptions } from './fetch.js';
 import { METADATA_CONTEXT, verifyArtifact } from './metadata.js';
 import { PLC_DIRECTORY_URL } from './did.js';
 
@@ -111,7 +112,7 @@ async function fetchDidDocument(did: string, plcUrl = PLC_DIRECTORY_URL): Promis
 
 	let response: Response;
 	try {
-		response = await fetch(url);
+		response = await fetch(url, fetchOptions);
 	} catch (err) {
 		throw new MetadataFetchError(`Failed to fetch DID document: ${(err as Error).message}`);
 	}
@@ -227,7 +228,7 @@ export function verifyArtifactChecksum(data: Buffer | Uint8Array, checksum: stri
 export async function fetchArtifact(url: string): Promise<Buffer> {
 	let response: Response;
 	try {
-		response = await fetch(url);
+		response = await fetch(url, fetchOptions);
 	} catch (err) {
 		throw new ArtifactFetchError(`Failed to fetch artifact: ${(err as Error).message}`);
 	}
@@ -356,7 +357,7 @@ export async function fetchFairMetadata(url: string): Promise<Metadata> {
 
 	let response: Response;
 	try {
-		response = await fetch(url);
+		response = await fetch(url, fetchOptions);
 	} catch (err) {
 		throw new MetadataFetchError(`Failed to fetch metadata: ${(err as Error).message}`);
 	}

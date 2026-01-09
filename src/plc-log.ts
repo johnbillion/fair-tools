@@ -1,5 +1,6 @@
 import { assureValidSig, didForCreateOp, getLastOpWithCid } from '@did-plc/lib';
 import { PLC_DIRECTORY_URL } from './did.js';
+import { fetchOptions } from './fetch.js';
 
 interface ValidatedOperation {
 	/** Operation index in the log */
@@ -56,7 +57,7 @@ export async function fetchDidLog(did: string, plcUrl = PLC_DIRECTORY_URL): Prom
 
 	let response: Response;
 	try {
-		response = await fetch(url);
+		response = await fetch(url, fetchOptions);
 	} catch (err) {
 		throw new DidLogFetchError(`Failed to fetch DID log: ${(err as Error).message}`);
 	}
