@@ -46,7 +46,7 @@ const SECP256K1_DID_KEY_LENGTH = 57;
  */
 export function validatePlcDid(did: string): void {
 	if (!did.startsWith('did:plc:')) {
-		throw new DidValidationError(`Invalid DID format. DID must start with 'did:plc:' prefix.`);
+		throw new DidValidationError(`Invalid DID format. DID must have the prefix 'did:plc:'.`);
 	}
 	if (did.length !== DID_PLC_LENGTH) {
 		throw new DidValidationError(`Invalid DID format. DID must be ${DID_PLC_LENGTH} characters in length.`);
