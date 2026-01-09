@@ -222,13 +222,25 @@ export function verifyArtifactChecksum(data: Buffer | Uint8Array, checksum: stri
 /**
  * Fetches artifact data from a URL.
  *
+ * GitHub API release asset URLs require an Accept header to download
+ * the actual binary content instead of JSON metadata.
+ *
  * @param {string} url - The artifact URL
  * @throws {ArtifactFetchError} If the artifact cannot be fetched
  */
 export async function fetchArtifact(url: string): Promise<Buffer> {
+	const options: RequestInit = {
+		...fetchOptions,
+		headers: {
+			...fetchOptions.headers,
+			// Required for GitHub API to return binary content instead of JSON
+			Accept: 'application/octet-stream',
+		},
+	};
+
 	let response: Response;
 	try {
-		response = await fetch(url, fetchOptions);
+		response = await fetch(url, options);
 	} catch (err) {
 		throw new ArtifactFetchError(`Failed to fetch artifact: ${(err as Error).message}`);
 	}
