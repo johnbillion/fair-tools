@@ -48,7 +48,7 @@ interface ReleaseVerificationResult {
 
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { Ed25519Keypair } from './Ed25519Keypair.js';
-import { fetchOptions } from './fetch.js';
+import { fetchOptions } from './utils.js';
 import { METADATA_CONTEXT, verifyArtifact } from './metadata.js';
 import { PLC_DIRECTORY_URL } from './did.js';
 
