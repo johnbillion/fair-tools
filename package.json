@@ -26,7 +26,7 @@
 	"scripts": {
 		"build": "tsc",
 		"dev": "tsc --watch",
-		"test": "node --import tsx --test --test-reporter spec --experimental-test-coverage test/*.test.ts test/cli/*.test.ts",
+		"test": "tsc --noEmit && node --import tsx --test --test-reporter spec --experimental-test-coverage test/*.test.ts test/cli/*.test.ts",
 		"lint": "eslint .",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
