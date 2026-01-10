@@ -47,6 +47,10 @@ const commands: { [key: string]: CommandTree } = {
 				description: 'Revoke a verification key',
 				load: () => import('./did-verification-key-revoke.js'),
 			},
+			check: {
+				description: 'Check if a verification key is valid',
+				load: () => import('./did-verification-key-check.js'),
+			},
 		},
 		'rotation-key': {
 			add: {
