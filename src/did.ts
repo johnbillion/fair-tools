@@ -1,10 +1,6 @@
-import { addSignature, Client, didForCreateOp, UnsignedOperation, Operation } from '@did-plc/lib';
+import { addSignature, didForCreateOp, UnsignedOperation, Operation } from '@did-plc/lib';
 import { Secp256k1Keypair } from '@atproto/crypto';
-
-/**
- * Default PLC directory URL.
- */
-export const PLC_DIRECTORY_URL = 'https://plc.directory';
+import { PLC_DIRECTORY_URL, submitDID as plcSubmitDID } from './plc.js';
 
 /**
  * FAIR package management repo service type.
@@ -70,21 +66,6 @@ export async function generateDID({
 	return { op, did };
 }
 
-/**
- * Creates a PLC directory client.
- */
-export function createPlcClient(url = PLC_DIRECTORY_URL): Client {
-	return new Client(url);
-}
-
-interface SubmitDIDOptions {
-	/** The genesis operation */
-	op: Operation;
-	/** The DID identifier (did:plc:...) */
-	did: string;
-	plcUrl?: string;
-}
-
 interface CreateDIDOptions {
 	/** The verification key (did:key:z6Mk...) */
 	verificationKey: string;
@@ -92,67 +73,6 @@ interface CreateDIDOptions {
 	rotationKey: string;
 	keypair: Secp256k1Keypair;
 	plcUrl?: string;
-}
-
-interface DidUpdateOptions {
-	/** The DID identifier (did:plc:...) */
-	did: string;
-	/** Must be a rotation key */
-	signer: Secp256k1Keypair;
-	plcUrl?: string;
-}
-
-interface UpdateDIDOptions extends DidUpdateOptions {
-	serviceUrl: string;
-}
-
-interface AddVerificationKeyOptions extends DidUpdateOptions {
-	/** The verification key (did:key:z6Mk...) */
-	verificationKey: string;
-}
-
-interface AddRotationKeyOptions extends DidUpdateOptions {
-	/** The rotation key (did:key:zQ3sh...) */
-	rotationKey: string;
-}
-
-interface RevokeVerificationKeyOptions extends DidUpdateOptions {
-	publicKey: string;
-}
-
-interface RevokeRotationKeyOptions extends DidUpdateOptions {
-	/** The rotation key (did:key:zQ3sh...) */
-	rotationKey: string;
-}
-
-interface AddAlsoKnownAsOptions extends DidUpdateOptions {
-	url: string;
-}
-
-interface ReplaceAlsoKnownAsOptions extends DidUpdateOptions {
-	oldUrl: string;
-	newUrl: string;
-}
-
-interface ReplaceServiceUrlOptions extends DidUpdateOptions {
-	oldUrl: string;
-	newUrl: string;
-}
-
-interface RemoveServiceUrlOptions extends DidUpdateOptions {
-	url: string;
-}
-
-interface RemoveAlsoKnownAsOptions extends DidUpdateOptions {
-	url: string;
-}
-
-/**
- * Submits a genesis operation to the PLC directory.
- */
-async function submitDID({ op, did, plcUrl = PLC_DIRECTORY_URL }: SubmitDIDOptions): Promise<void> {
-	const client = createPlcClient(plcUrl);
-	await client.sendOperation(did, op);
 }
 
 /**
@@ -172,7 +92,7 @@ export async function createDID({
 		rotationKey,
 		keypair,
 	});
-	await submitDID({ op, did, plcUrl });
+	await plcSubmitDID({ op, did, plcUrl });
 	return did;
 }
 
@@ -190,22 +110,6 @@ export function updateServiceUrlInOp(lastOp: UnsignedOperation, serviceUrl: stri
 			},
 		},
 	};
-}
-
-/**
- * Updates the FAIR service URL for an existing DID.
- *
- * This adds or updates the FAIR package management service endpoint
- * in the DID document.
- */
-export async function updateDID({
-	did,
-	serviceUrl,
-	signer,
-	plcUrl = PLC_DIRECTORY_URL,
-}: UpdateDIDOptions): Promise<void> {
-	const client = createPlcClient(plcUrl);
-	await client.updateData(did, signer, (lastOp) => updateServiceUrlInOp(lastOp, serviceUrl));
 }
 
 /**
@@ -242,21 +146,6 @@ export function addVerificationKeyToOp(lastOp: UnsignedOperation, verificationKe
 }
 
 /**
- * Adds a new verification key to an existing DID.
- *
- * The new key is added with a unique ID (fair, fair2, fair3, etc.).
- */
-export async function addVerificationKey({
-	did,
-	verificationKey,
-	signer,
-	plcUrl = PLC_DIRECTORY_URL,
-}: AddVerificationKeyOptions): Promise<void> {
-	const client = createPlcClient(plcUrl);
-	await client.updateData(did, signer, (lastOp) => addVerificationKeyToOp(lastOp, verificationKey));
-}
-
-/**
  * Creates an updated operation with a new rotation key added.
  *
  * @param {UnsignedOperation} lastOp - The previous operation
@@ -272,29 +161,6 @@ export function addRotationKeyToOp(lastOp: UnsignedOperation, rotationKey: strin
 		...lastOp,
 		rotationKeys: [...lastOp.rotationKeys, rotationKey],
 	};
-}
-
-/**
- * Adds a new rotation key to an existing DID.
- *
- * The new key is appended to the existing rotation keys.
- *
- * @param {{
- *   did: string, // did:plc:...
- *   rotationKey: string, // did:key:zQ3sh...
- *   signer: Secp256k1Keypair, // must be an existing rotation key
- *   plcUrl?: string // defaults to https://plc.directory
- * }} opts
- * @returns {Promise<void>}
- */
-export async function addRotationKey({
-	did,
-	rotationKey,
-	signer,
-	plcUrl = PLC_DIRECTORY_URL,
-}: AddRotationKeyOptions): Promise<void> {
-	const client = createPlcClient(plcUrl);
-	await client.updateData(did, signer, (lastOp) => addRotationKeyToOp(lastOp, rotationKey));
 }
 
 /**
@@ -315,21 +181,6 @@ export function revokeVerificationKeyFromOp(lastOp: UnsignedOperation, publicKey
 		...lastOp,
 		verificationMethods: remainingMethods,
 	};
-}
-
-/**
- * Revokes a verification key from an existing DID.
- *
- * Removes the specified verification method from the DID document.
- */
-export async function revokeVerificationKey({
-	did,
-	publicKey,
-	signer,
-	plcUrl = PLC_DIRECTORY_URL,
-}: RevokeVerificationKeyOptions): Promise<void> {
-	const client = createPlcClient(plcUrl);
-	await client.updateData(did, signer, (lastOp) => revokeVerificationKeyFromOp(lastOp, publicKey));
 }
 
 /**
@@ -355,34 +206,6 @@ export function revokeRotationKeyFromOp(lastOp: UnsignedOperation, rotationKey: 
 }
 
 /**
- * Revokes a rotation key from an existing DID.
- *
- * Removes the specified rotation key from the DID document.
- * Cannot remove the last rotation key - at least one must remain.
- *
- * @param {{
- *   did: string, // did:plc:...
- *   rotationKey: string, // did:key:zQ3sh... to revoke
- *   signer: Secp256k1Keypair, // must be an existing rotation key
- *   plcUrl?: string // defaults to https://plc.directory
- * }} opts
- * @returns {Promise<void>}
- */
-export async function revokeRotationKey({
-	did,
-	rotationKey,
-	signer,
-	plcUrl = PLC_DIRECTORY_URL,
-}: RevokeRotationKeyOptions): Promise<void> {
-	const signerPublicKey = signer.did();
-	if (rotationKey === signerPublicKey) {
-		throw new Error('Cannot revoke the rotation key used to sign this operation');
-	}
-	const client = createPlcClient(plcUrl);
-	await client.updateData(did, signer, (lastOp) => revokeRotationKeyFromOp(lastOp, rotationKey));
-}
-
-/**
  * Creates an updated operation with a new alsoKnownAs URL added.
  *
  * @param {UnsignedOperation} lastOp - The previous operation
@@ -399,21 +222,6 @@ export function addAlsoKnownAsToOp(lastOp: UnsignedOperation, url: string): Unsi
 		...lastOp,
 		alsoKnownAs: [...existing, url],
 	};
-}
-
-/**
- * Adds a new URL to the alsoKnownAs field of an existing DID.
- *
- * The URL is appended to the existing alsoKnownAs array.
- */
-export async function addAlsoKnownAs({
-	did,
-	url,
-	signer,
-	plcUrl = PLC_DIRECTORY_URL,
-}: AddAlsoKnownAsOptions): Promise<void> {
-	const client = createPlcClient(plcUrl);
-	await client.updateData(did, signer, (lastOp) => addAlsoKnownAsToOp(lastOp, url));
 }
 
 /**
@@ -443,23 +251,6 @@ export function replaceAlsoKnownAsInOp(lastOp: UnsignedOperation, oldUrl: string
 		...lastOp,
 		alsoKnownAs: updated,
 	};
-}
-
-/**
- * Replaces a URL in the alsoKnownAs field of an existing DID.
- *
- * This verifies the old URL exists before updating, to prevent
- * accidental overwrites.
- */
-export async function replaceAlsoKnownAs({
-	did,
-	oldUrl,
-	newUrl,
-	signer,
-	plcUrl = PLC_DIRECTORY_URL,
-}: ReplaceAlsoKnownAsOptions): Promise<void> {
-	const client = createPlcClient(plcUrl);
-	await client.updateData(did, signer, (lastOp) => replaceAlsoKnownAsInOp(lastOp, oldUrl, newUrl));
 }
 
 /**
@@ -495,24 +286,6 @@ export function replaceServiceUrlInOp(lastOp: UnsignedOperation, oldUrl: string,
 }
 
 /**
- * Replaces the FAIR service URL for an existing DID.
- *
- * This verifies the old URL matches before updating, to prevent
- * accidental overwrites. Use updateDID() if you want to set the
- * URL without verifying the current value.
- */
-export async function replaceServiceUrl({
-	did,
-	oldUrl,
-	newUrl,
-	signer,
-	plcUrl = PLC_DIRECTORY_URL,
-}: ReplaceServiceUrlOptions): Promise<void> {
-	const client = createPlcClient(plcUrl);
-	await client.updateData(did, signer, (lastOp) => replaceServiceUrlInOp(lastOp, oldUrl, newUrl));
-}
-
-/**
  * Creates an updated operation with the FAIR service removed.
  *
  * This specifically verifies the URL matches before removing,
@@ -539,22 +312,6 @@ export function removeServiceUrlFromOp(lastOp: UnsignedOperation, url: string): 
 }
 
 /**
- * Removes the FAIR service from an existing DID.
- *
- * This verifies the URL matches before removing, to prevent
- * accidental removals.
- */
-export async function removeServiceUrl({
-	did,
-	url,
-	signer,
-	plcUrl = PLC_DIRECTORY_URL,
-}: RemoveServiceUrlOptions): Promise<void> {
-	const client = createPlcClient(plcUrl);
-	await client.updateData(did, signer, (lastOp) => removeServiceUrlFromOp(lastOp, url));
-}
-
-/**
  * Creates an updated operation with an alsoKnownAs URL removed.
  *
  * This specifically verifies the URL exists before removing,
@@ -576,17 +333,15 @@ export function removeAlsoKnownAsFromOp(lastOp: UnsignedOperation, url: string):
 	};
 }
 
-/**
- * Removes a URL from the alsoKnownAs field of an existing DID.
- *
- * This verifies the URL exists before removing, to prevent errors.
- */
-export async function removeAlsoKnownAs({
-	did,
-	url,
-	signer,
-	plcUrl = PLC_DIRECTORY_URL,
-}: RemoveAlsoKnownAsOptions): Promise<void> {
-	const client = createPlcClient(plcUrl);
-	await client.updateData(did, signer, (lastOp) => removeAlsoKnownAsFromOp(lastOp, url));
-}
+// Re-export PLC directory functions and constants for backward compatibility
+export { PLC_DIRECTORY_URL, createPlcClient } from './plc.js';
+export { updateDID } from './plc.js';
+export { addVerificationKey } from './plc.js';
+export { addRotationKey } from './plc.js';
+export { revokeVerificationKey } from './plc.js';
+export { revokeRotationKey } from './plc.js';
+export { addAlsoKnownAs } from './plc.js';
+export { replaceAlsoKnownAs } from './plc.js';
+export { replaceServiceUrl } from './plc.js';
+export { removeServiceUrl } from './plc.js';
+export { removeAlsoKnownAs } from './plc.js';
