@@ -128,6 +128,10 @@ try {
 	if (err instanceof SigningKeyError) {
 		console.error(`Error: ${err.message}`);
 		process.exit(2);
+	} else if (err instanceof Error) {
+		// Handle generic errors from key parsing (e.g., Ed25519Keypair.fromPublicKeyMultibase)
+		console.error(`Error: ${err.message}`);
+		process.exit(2);
 	}
 	throw err;
 }
