@@ -9,8 +9,7 @@ import { DidDocument } from '@did-plc/lib';
 import { Ed25519Keypair } from './Ed25519Keypair.js';
 import { fetchOptions } from './utils.js';
 import { METADATA_CONTEXT, verifyArtifact } from './metadata.js';
-import { FAIR_SERVICE_TYPE } from './did.js';
-import { PLC_DIRECTORY_URL, createPlcClient } from './plc.js';
+import { FAIR_SERVICE_TYPE, PLC_DIRECTORY_URL, createPlcClient } from './plc.js';
 import { validateDidLog, DidLogFetchError, DidLogValidationError } from './plc-log.js';
 import {
 	getFairAlias,
