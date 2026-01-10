@@ -2,12 +2,9 @@
 
 import { parseArgs } from 'node:util';
 import { readFile } from 'node:fs/promises';
-import { importVerificationKeyPair } from '../keys.js';
-import { SigningKeyError, isMultibaseVerificationKey, isPKCS8PrivateKeyPEM, isHexPrivateKey, parseAsVerificationKey } from '../signing.js';
+import { getVerificationPublicKeyMultibase, VerificationKeyInputError } from '../keys.js';
 import { validatePlcDid, DidValidationError } from '../did-validation.js';
-import { extractVerificationKeys } from '../verify.js';
-import { PLC_DIRECTORY_URL, createPlcClient } from '../plc.js';
-import { Ed25519Keypair } from '../Ed25519Keypair.js';
+import { checkVerificationKey, MetadataFetchError } from '../verify.js';
 
 const { values } = parseArgs({
 	options: {
@@ -82,94 +79,63 @@ try {
 	throw err;
 }
 
-// Load the key
+// Load the key input
 let keyInput: string;
 try {
 	if (values['key-file']) {
-		keyInput = (await readFile(values['key-file'], 'utf-8')).trim();
+		keyInput = await readFile(values['key-file'], 'utf-8');
 	} else {
-		keyInput = values.key!.trim();
+		keyInput = values.key!;
 	}
 } catch (err) {
 	console.error(`Error reading key file: ${(err as Error).message}`);
 	process.exit(2);
 }
 
-// Determine if the key is a public key or private key and extract the public key multibase
+// Extract the public key multibase
 let publicKeyMultibase: string;
-
 try {
-	// Check if it's a did:key format (public key)
-	if (keyInput.startsWith('did:key:')) {
-		const multibase = keyInput.slice('did:key:'.length);
-		// Validate it by creating a keypair
-		await Ed25519Keypair.fromPublicKeyMultibase(multibase);
-		publicKeyMultibase = multibase;
-	}
-	// Check if it's a raw multibase public key (starts with z6Mk for Ed25519)
-	else if (keyInput.startsWith('z6Mk')) {
-		// Validate it by creating a keypair
-		await Ed25519Keypair.fromPublicKeyMultibase(keyInput);
-		publicKeyMultibase = keyInput;
-	}
-	// Check if it's a private key format
-	else if (isPKCS8PrivateKeyPEM(keyInput) || isMultibaseVerificationKey(keyInput) || isHexPrivateKey(keyInput)) {
-		// Import the private key and derive the public key
-		const privateKeyHex = parseAsVerificationKey(keyInput);
-		const { keypair } = await importVerificationKeyPair(privateKeyHex);
-		publicKeyMultibase = keypair.publicKeyStr();
-	} else {
-		throw new SigningKeyError(
-			'Unrecognized key format. Expected a public key (did:key:z6Mk... or z6Mk...) or private key (PEM, multibase, or hex)',
-		);
-	}
+	publicKeyMultibase = await getVerificationPublicKeyMultibase(keyInput);
 } catch (err) {
-	if (err instanceof SigningKeyError) {
-		console.error(`Error: ${err.message}`);
-		process.exit(2);
-	} else if (err instanceof Error) {
-		// Handle generic errors from key parsing (e.g., Ed25519Keypair.fromPublicKeyMultibase)
+	if (err instanceof VerificationKeyInputError) {
 		console.error(`Error: ${err.message}`);
 		process.exit(2);
 	}
 	throw err;
 }
 
-// Fetch the DID document
-console.log(`Fetching DID document for ${did}...`);
-const client = createPlcClient(PLC_DIRECTORY_URL);
-let didDocument;
+// Check if the key is valid for the DID
+console.log(`Checking verification key for ${did}...`);
+
+let result;
 try {
-	didDocument = await client.getDocument(did);
+	result = await checkVerificationKey(did, publicKeyMultibase);
 } catch (err) {
-	console.error(`Error: Failed to fetch DID document: ${(err as Error).message}`);
-	process.exit(2);
+	if (err instanceof MetadataFetchError) {
+		console.error(`Error: Failed to fetch DID document: ${err.message}`);
+		process.exit(2);
+	}
+	throw err;
 }
 
-// Extract verification keys from the DID document
-const verificationKeys = extractVerificationKeys(didDocument);
-
-if (verificationKeys.length === 0) {
+if (result.allKeys.length === 0) {
 	console.log(`\n❌ No verification keys found in DID document`);
 	console.log(`The DID ${did} has no verification keys.`);
 	process.exit(1);
 }
 
-// Check if the public key multibase is in the verification methods
-const matchingKey = verificationKeys.find((vk) => vk.publicKeyMultibase === publicKeyMultibase);
-
-if (matchingKey) {
+if (result.valid) {
 	console.log(`\n✓ Verification key is valid`);
-	console.log(`Key ID: ${matchingKey.id}`);
-	console.log(`Public key: ${publicKeyMultibase}`);
+	console.log(`Key ID: ${result.matchingKeyId}`);
+	console.log(`Public key: ${result.publicKeyMultibase}`);
 	console.log(`This key can be used to sign releases for ${did}`);
 	process.exit(0);
 } else {
 	console.log(`\n❌ Verification key is not valid`);
-	console.log(`Public key: ${publicKeyMultibase}`);
+	console.log(`Public key: ${result.publicKeyMultibase}`);
 	console.log(`This key is not present in the verification methods of ${did}`);
 	console.log(`\nValid keys for this DID:`);
-	for (const vk of verificationKeys) {
+	for (const vk of result.allKeys) {
 		console.log(`  ${vk.id}: ${vk.publicKeyMultibase}`);
 	}
 	process.exit(1);

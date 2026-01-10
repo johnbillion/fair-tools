@@ -1,6 +1,6 @@
 import { Keypair, Secp256k1Keypair, verifySignature } from '@atproto/crypto';
 import { ed25519 } from '@noble/curves/ed25519';
-import { Ed25519Keypair } from './Ed25519Keypair.js';
+import { Ed25519Keypair, ED25519_PUBLIC_MULTIBASE_PREFIX, DID_KEY_PREFIX } from './Ed25519Keypair.js';
 
 export interface KeyPairBundle<T extends Keypair = Keypair> {
 	publicKey: string;
@@ -111,4 +111,61 @@ export async function verifyWithRotationKey(
 	publicKey: string,
 ): Promise<boolean> {
 	return verifySignature(publicKey, message, signature);
+}
+
+/**
+ * Error thrown when a verification key input is invalid.
+ */
+export class VerificationKeyInputError extends Error {}
+
+/**
+ * Extracts the public key multibase from a verification key input.
+ *
+ * Accepts:
+ * - Public key in did:key format (did:key:z6Mk...)
+ * - Public key multibase (z6Mk...)
+ * - Private key in PEM, multibase, or hex format (derives the public key)
+ *
+ * @param keyInput - The key input string
+ * @returns The public key multibase (z6Mk...)
+ * @throws {VerificationKeyInputError} If the key format is unrecognized or invalid
+ */
+export async function getVerificationPublicKeyMultibase(keyInput: string): Promise<string> {
+	const { isMultibaseVerificationKey, isPKCS8PrivateKeyPEM, isHexPrivateKey, parseAsVerificationKey } =
+		await import('./signing.js');
+
+	const trimmed = keyInput.trim();
+
+	if (trimmed.startsWith(DID_KEY_PREFIX)) {
+		const multibase = trimmed.slice(DID_KEY_PREFIX.length);
+		try {
+			await Ed25519Keypair.fromPublicKeyMultibase(multibase);
+		} catch (err) {
+			throw new VerificationKeyInputError(`Invalid did:key format: ${(err as Error).message}`);
+		}
+		return multibase;
+	}
+
+	if (trimmed.startsWith(ED25519_PUBLIC_MULTIBASE_PREFIX)) {
+		try {
+			await Ed25519Keypair.fromPublicKeyMultibase(trimmed);
+		} catch (err) {
+			throw new VerificationKeyInputError(`Invalid public key multibase: ${(err as Error).message}`);
+		}
+		return trimmed;
+	}
+
+	if (isPKCS8PrivateKeyPEM(trimmed) || isMultibaseVerificationKey(trimmed) || isHexPrivateKey(trimmed)) {
+		try {
+			const privateKeyHex = parseAsVerificationKey(trimmed);
+			const { keypair } = await importVerificationKeyPair(privateKeyHex);
+			return keypair.publicKeyStr();
+		} catch (err) {
+			throw new VerificationKeyInputError(`Invalid private key: ${(err as Error).message}`);
+		}
+	}
+
+	throw new VerificationKeyInputError(
+		'Unrecognized key format. Expected a public key (did:key:z6Mk...) or private key (PEM, multibase, or hex)',
+	);
 }
