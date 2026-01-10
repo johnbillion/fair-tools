@@ -8,17 +8,17 @@
 export * from './src/keys.js';
 
 // DID management utilities
+export { createDID } from './src/did.js';
 export {
 	PLC_DIRECTORY_URL,
 	FAIR_SERVICE_TYPE,
 	FAIR_SERVICE_ID,
-	createDID,
 	updateDID,
 	addVerificationKey,
 	addRotationKey,
 	revokeVerificationKey,
 	revokeRotationKey,
-} from './src/did.js';
+} from './src/plc.js';
 
 // Metadata utilities
 export {

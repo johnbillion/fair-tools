@@ -1,5 +1,5 @@
 import { assureValidSig, didForCreateOp, getLastOpWithCid } from '@did-plc/lib';
-import { PLC_DIRECTORY_URL } from './did.js';
+import { PLC_DIRECTORY_URL } from './plc.js';
 import { fetchOptions } from './utils.js';
 
 interface ValidatedOperation {

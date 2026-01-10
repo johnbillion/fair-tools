@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
+import { generateDID } from '../src/did.js';
 import {
-	generateDID,
 	generateVerificationKeyId,
 	addVerificationKeyToOp,
 	addRotationKeyToOp,
@@ -15,7 +15,7 @@ import {
 	removeAlsoKnownAsFromOp,
 	FAIR_SERVICE_ID,
 	FAIR_SERVICE_TYPE,
-} from '../src/did.js';
+} from '../src/plc.js';
 import { generateVerificationKeyPair, generateRotationKeyPair } from '../src/keys.js';
 
 describe('generateDID', () => {

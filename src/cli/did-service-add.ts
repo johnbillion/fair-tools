@@ -3,7 +3,7 @@
 import { parseArgs } from 'node:util';
 import { PlcClientError } from '@did-plc/lib';
 import { importRotationKeyPair } from '../keys.js';
-import { updateDID } from '../did.js';
+import { updateDID } from '../plc.js';
 import { loadRotationKey, SigningKeyError } from '../signing.js';
 import { logPlcError } from './lib/plc-error.js';
 import { rotationKeyHelp } from './lib/help.js';

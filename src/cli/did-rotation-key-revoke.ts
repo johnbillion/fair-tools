@@ -4,7 +4,7 @@ import { writeFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { PlcClientError } from '@did-plc/lib';
 import { importRotationKeyPair } from '../keys.js';
-import { revokeRotationKey } from '../did.js';
+import { revokeRotationKey } from '../plc.js';
 import { loadRotationKeyForRevocation, SigningKeyError, KeyData } from '../signing.js';
 import { logPlcError } from './lib/plc-error.js';
 import { rotationKeyHelp } from './lib/help.js';

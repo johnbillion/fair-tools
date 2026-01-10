@@ -1,5 +1,4 @@
 import { resolveTxt } from 'node:dns/promises';
-import { PLC_DIRECTORY_URL, createPlcClient } from './did.js';
 
 const DOMAIN_REGEX = /^[a-z0-9][a-z0-9-]{0,62}(\.[a-z0-9][a-z0-9-]{0,62})+$/i;
 const DID_RECORD_REGEX = /^did="?([^"]+)"?$/;
@@ -17,18 +16,6 @@ export class DnsRecordInvalidError extends Error {}
 export class DidMismatchError extends Error {
 	constructor(expectedDid: string, foundDid: string) {
 		super(`DID mismatch: expected ${expectedDid}, found ${foundDid}`);
-	}
-}
-
-export class NoAliasError extends Error {
-	constructor() {
-		super('No fair:// alias found in alsoKnownAs field');
-	}
-}
-
-export class MultipleAliasesError extends Error {
-	constructor(count: number) {
-		super(`Found ${count} fair:// aliases, but only one is allowed`);
 	}
 }
 
@@ -100,25 +87,5 @@ export async function verifyDomainDid(domain: string, expectedDid: string): Prom
 	}
 }
 
-/**
- * Fetch DID document and extract the fair:// alias
- * @param {string} did
- * @param {string} [plcUrl] - The PLC directory URL (defaults to https://plc.directory)
- * @returns {Promise<string | null>} - The fair:// URL or null if none exists
- * @throws {MultipleAliasesError} If more than one fair:// alias exists
- */
-export async function getFairAlias(did: string, plcUrl = PLC_DIRECTORY_URL): Promise<string> {
-	const client = createPlcClient(plcUrl);
-	const doc = await client.getDocument(did);
-	const aliases = (doc.alsoKnownAs || []).filter((url) => url.startsWith('fair://'));
-
-	if (aliases.length === 0) {
-		throw new NoAliasError();
-	}
-
-	if (aliases.length > 1) {
-		throw new MultipleAliasesError(aliases.length);
-	}
-
-	return aliases[0];
-}
+// Re-export from plc.js for backward compatibility
+export { getFairAlias, NoAliasError, MultipleAliasesError } from './plc.js';
