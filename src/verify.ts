@@ -842,8 +842,7 @@ export async function checkVerificationKey(
 	publicKeyMultibase: string,
 	plcUrl = PLC_DIRECTORY_URL,
 ): Promise<CheckVerificationKeyResult> {
-	const document = await fetchDidDocument(did, plcUrl);
-	const verificationKeys = extractVerificationKeys(document);
+	const verificationKeys = await getVerificationKeys(did, plcUrl);
 
 	const matchingKey = verificationKeys.find((vk) => vk.publicKeyMultibase === publicKeyMultibase);
 
