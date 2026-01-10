@@ -2,9 +2,8 @@
 
 import { parseArgs } from 'node:util';
 import { readFile } from 'node:fs/promises';
-import crypto from 'node:crypto';
 import { importVerificationKeyPair } from '../keys.js';
-import { SigningKeyError, isMultibaseVerificationKey, isPKCS8PrivateKeyPEM, isHexPrivateKey } from '../signing.js';
+import { SigningKeyError, isMultibaseVerificationKey, isPKCS8PrivateKeyPEM, isHexPrivateKey, parseAsVerificationKey } from '../signing.js';
 import { validatePlcDid, DidValidationError } from '../did-validation.js';
 import { extractVerificationKeys } from '../verify.js';
 import { PLC_DIRECTORY_URL, createPlcClient } from '../plc.js';
@@ -116,7 +115,7 @@ try {
 	// Check if it's a private key format
 	else if (isPKCS8PrivateKeyPEM(keyInput) || isMultibaseVerificationKey(keyInput) || isHexPrivateKey(keyInput)) {
 		// Import the private key and derive the public key
-		const { privateKeyHex } = await loadVerificationKeyFromString(keyInput);
+		const privateKeyHex = parseAsVerificationKey(keyInput);
 		const { keypair } = await importVerificationKeyPair(privateKeyHex);
 		publicKeyMultibase = keypair.publicKeyStr();
 	} else {
@@ -174,78 +173,4 @@ if (matchingKey) {
 		console.log(`  ${vk.id}: ${vk.publicKeyMultibase}`);
 	}
 	process.exit(1);
-}
-
-/**
- * Load a verification key from a string (PEM, multibase, or hex).
- */
-async function loadVerificationKeyFromString(key: string): Promise<{ privateKeyHex: string }> {
-	const trimmed = key.trim();
-
-	if (isPKCS8PrivateKeyPEM(trimmed)) {
-		let keyObject: crypto.KeyObject;
-		try {
-			keyObject = crypto.createPrivateKey({
-				key: trimmed,
-				format: 'pem',
-			});
-		} catch {
-			throw new SigningKeyError('Invalid verification key. The PEM file could not be parsed.');
-		}
-
-		// Export as JWK to get the raw 'd' parameter (private key)
-		const jwk = keyObject.export({
-			format: 'jwk',
-		});
-		if (!jwk.d) {
-			throw new SigningKeyError('Invalid verification key. The PEM file is missing private key data.');
-		}
-
-		// JWK 'd' is base64url-encoded
-		const rawKey = Buffer.from(jwk.d, 'base64url');
-		if (rawKey.length !== 32) {
-			throw new SigningKeyError('Invalid verification key. The key has the wrong length.');
-		}
-
-		return { privateKeyHex: rawKey.toString('hex') };
-	}
-
-	if (isMultibaseVerificationKey(trimmed)) {
-		// Decode multibase verification key
-		const { base58btc } = await import('multiformats/bases/base58');
-		const { ED25519_PRIV_PREFIX } = await import('../signing.js');
-
-		let decoded: Uint8Array;
-		try {
-			decoded = base58btc.decode(trimmed);
-		} catch {
-			throw new SigningKeyError('Invalid key format. The key could not be decoded.');
-		}
-
-		if (decoded.length < 2) {
-			throw new SigningKeyError('Invalid key format. The key is too short.');
-		}
-
-		const prefixHex = Buffer.from(decoded.slice(0, 2)).toString('hex');
-		const ED25519_PRIV_PREFIX_HEX = Buffer.from(ED25519_PRIV_PREFIX).toString('hex');
-
-		if (prefixHex !== ED25519_PRIV_PREFIX_HEX) {
-			throw new SigningKeyError(`Unrecognized key type (prefix: ${prefixHex}). Expected a verification key.`);
-		}
-
-		const rawKey = decoded.slice(2);
-
-		// Sodium format: 64 bytes (32-byte seed + 32-byte public key)
-		if (rawKey.length === 64) {
-			return { privateKeyHex: Buffer.from(rawKey.slice(0, 32)).toString('hex') };
-		}
-
-		throw new SigningKeyError('Invalid key format. Expected a 64-byte Sodium-format Ed25519 key.');
-	}
-
-	if (isHexPrivateKey(trimmed)) {
-		return { privateKeyHex: trimmed.toLowerCase() };
-	}
-
-	throw new SigningKeyError('Unrecognized key format. Expected a PEM, multibase, or hex encoded verification key.');
 }
