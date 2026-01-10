@@ -5,7 +5,7 @@
  */
 
 import { createHash, timingSafeEqual } from 'node:crypto';
-import { Client, DidDocument } from '@did-plc/lib';
+import { DidDocument } from '@did-plc/lib';
 import { Ed25519Keypair } from './Ed25519Keypair.js';
 import { fetchOptions } from './utils.js';
 import { METADATA_CONTEXT, verifyArtifact } from './metadata.js';

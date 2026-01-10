@@ -1,5 +1,4 @@
 import { resolveTxt } from 'node:dns/promises';
-import { Client } from '@did-plc/lib';
 import { PLC_DIRECTORY_URL, createPlcClient } from './did.js';
 
 const DOMAIN_REGEX = /^[a-z0-9][a-z0-9-]{0,62}(\.[a-z0-9][a-z0-9-]{0,62})+$/i;
