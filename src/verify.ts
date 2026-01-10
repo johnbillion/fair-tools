@@ -5,11 +5,11 @@
  */
 
 import { createHash, timingSafeEqual } from 'node:crypto';
-import { Client, DidDocument } from '@did-plc/lib';
+import { DidDocument } from '@did-plc/lib';
 import { Ed25519Keypair } from './Ed25519Keypair.js';
 import { fetchOptions } from './utils.js';
 import { METADATA_CONTEXT, verifyArtifact } from './metadata.js';
-import { PLC_DIRECTORY_URL, FAIR_SERVICE_TYPE } from './did.js';
+import { PLC_DIRECTORY_URL, FAIR_SERVICE_TYPE, createPlcClient } from './did.js';
 import { validateDidLog, DidLogFetchError, DidLogValidationError } from './plc-log.js';
 import {
 	getFairAlias,
@@ -777,7 +777,7 @@ export async function verifyDid(options: VerifyDidOptions): Promise<DidVerificat
 	// 2. Fetch DID document
 	let didDocument: DidDocument;
 	try {
-		const client = new Client(plcUrl);
+		const client = createPlcClient(plcUrl);
 		didDocument = await client.getDocument(did);
 	} catch (err) {
 		result.valid = false;
