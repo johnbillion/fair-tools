@@ -119,6 +119,33 @@ export async function verifyWithRotationKey(
 export class VerificationKeyInputError extends Error {}
 
 /**
+ * Parses a public key input and returns the multibase format.
+ *
+ * Only accepts public keys:
+ * - did:key format (did:key:z6Mk...)
+ * - Multibase format (z6Mk...)
+ *
+ * @param keyInput - The public key input string
+ * @returns The public key multibase (z6Mk...)
+ * @throws {VerificationKeyInputError} If the key format is unrecognized, invalid, or a private key
+ */
+export async function parsePublicKeyOnly(keyInput: string): Promise<string> {
+	const { isMultibaseVerificationKey, isPKCS8PrivateKeyPEM, isHexPrivateKey } = await import('./signing.js');
+
+	const trimmed = keyInput.trim();
+
+	// Check if it looks like a private key and reject with a specific error
+	if (isPKCS8PrivateKeyPEM(trimmed) || isMultibaseVerificationKey(trimmed) || isHexPrivateKey(trimmed)) {
+		throw new VerificationKeyInputError(
+			'Private key provided but only public keys are accepted. Use --key-file to provide a private key from a file.',
+		);
+	}
+
+	// Delegate to getVerificationPublicKeyMultibase for public key parsing
+	return getVerificationPublicKeyMultibase(trimmed);
+}
+
+/**
  * Extracts the public key multibase from a verification key input.
  *
  * Accepts:

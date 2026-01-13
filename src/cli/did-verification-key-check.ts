@@ -2,7 +2,7 @@
 
 import { parseArgs } from 'node:util';
 import { readFile } from 'node:fs/promises';
-import { getVerificationPublicKeyMultibase, VerificationKeyInputError } from '../keys.js';
+import { getVerificationPublicKeyMultibase, parsePublicKeyOnly, VerificationKeyInputError } from '../keys.js';
 import { validatePlcDid, DidValidationError } from '../did-validation.js';
 import { checkVerificationKey, MetadataFetchError } from '../verify.js';
 
@@ -34,8 +34,10 @@ Required:
   --did <did>          The DID to check (did:plc:...)
 
 Key input (one required):
-  --key <key>          Verification key (public: did:key:z6Mk... or z6Mk..., or private: PEM/multibase/hex)
-  --key-file <file>    Read verification key from file
+  --key <key>          Public key in did:key format (did:key:z6Mk...) or multibase format (z6Mk...).
+  --key-file <file>    Read verification key from file. Accepts a public key or a private keypair.
+                       Public key should be in did:key format (did:key:z6Mk...) or multibase format (z6Mk...).
+                       Private key can be in PEM, multibase, or hex format.
 
 Optional:
   --help               Show this help message
@@ -79,26 +81,24 @@ try {
 	throw err;
 }
 
-// Load the key input
-let keyInput: string;
-try {
-	if (values['key-file']) {
-		keyInput = await readFile(values['key-file'], 'utf-8');
-	} else {
-		keyInput = values.key!;
-	}
-} catch (err) {
-	console.error(`Error reading key file: ${(err as Error).message}`);
-	process.exit(2);
-}
-
 // Extract the public key multibase
 let publicKeyMultibase: string;
 try {
-	publicKeyMultibase = await getVerificationPublicKeyMultibase(keyInput);
+	if (values['key-file']) {
+		// --key-file accepts both public and private keys
+		const keyInput = await readFile(values['key-file'], 'utf-8');
+		publicKeyMultibase = await getVerificationPublicKeyMultibase(keyInput);
+	} else {
+		// --key only accepts public keys
+		publicKeyMultibase = await parsePublicKeyOnly(values.key!);
+	}
 } catch (err) {
 	if (err instanceof VerificationKeyInputError) {
 		console.error(`Error: ${err.message}`);
+		process.exit(2);
+	}
+	if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+		console.error(`Error reading key file: ${(err as Error).message}`);
 		process.exit(2);
 	}
 	throw err;
