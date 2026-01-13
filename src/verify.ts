@@ -815,6 +815,44 @@ export async function verifyDid(options: VerifyDidOptions): Promise<DidVerificat
 	return result;
 }
 
+/**
+ * Result of checking if a verification key is valid for a DID.
+ */
+export interface CheckVerificationKeyResult {
+	valid: boolean;
+	publicKeyMultibase: string;
+	matchingKeyId: string | null;
+	allKeys: Array<{ id: string; publicKeyMultibase: string }>;
+}
+
+/**
+ * Checks if a verification key is valid for a DID.
+ *
+ * A verification key is valid if it's present in the DID document's verification methods.
+ *
+ * @param did - The DID to check (did:plc:...)
+ * @param publicKeyMultibase - The public key multibase to check (z6Mk...)
+ * @param plcUrl - Optional PLC directory URL
+ * @returns Result indicating if the key is valid and details about the match
+ * @throws {MetadataFetchError} If the DID document cannot be fetched
+ */
+export async function checkVerificationKey(
+	did: string,
+	publicKeyMultibase: string,
+	plcUrl = PLC_DIRECTORY_URL,
+): Promise<CheckVerificationKeyResult> {
+	const verificationKeys = await getVerificationKeys(did, plcUrl);
+
+	const matchingKey = verificationKeys.find((vk) => vk.publicKeyMultibase === publicKeyMultibase);
+
+	return {
+		valid: !!matchingKey,
+		publicKeyMultibase,
+		matchingKeyId: matchingKey?.id ?? null,
+		allKeys: verificationKeys,
+	};
+}
+
 // Re-export error types for consumers
 export { DidLogFetchError, DidLogValidationError } from './plc-log.js';
 export {

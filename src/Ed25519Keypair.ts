@@ -8,6 +8,17 @@ import * as uint8arrays from 'uint8arrays';
 export const ED25519_PUBLIC_PREFIX = new Uint8Array([0xed, 0x01]);
 
 /**
+ * Multibase base58btc prefix for Ed25519 public keys (z6Mk).
+ * This is the base58btc encoding of ED25519_PUBLIC_PREFIX.
+ */
+export const ED25519_PUBLIC_MULTIBASE_PREFIX = 'z6Mk';
+
+/**
+ * Prefix for did:key URIs.
+ */
+export const DID_KEY_PREFIX = 'did:key:';
+
+/**
  * Multicodec prefix for Ed25519 private keys.
  */
 export const ED25519_PRIVATE_PREFIX = new Uint8Array([0x80, 0x26]);

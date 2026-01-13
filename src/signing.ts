@@ -296,7 +296,7 @@ function parseAsRotationKey(content: string): string {
  * @returns {string} - The hex key
  * @throws {SigningKeyError} If the format is invalid or unrecognized
  */
-function parseAsVerificationKey(content: string): string {
+export function parseAsVerificationKey(content: string): string {
 	const trimmed = content.trim();
 
 	// Try PEM format first (PKCS#8 for Ed25519)
