@@ -30,6 +30,7 @@ interface Artifact {
 	url: string;
 	signature?: string;
 	checksum?: string;
+	'content-type'?: string;
 }
 
 interface Release {
@@ -242,15 +243,16 @@ export function verifyArtifactChecksum(data: Buffer | Uint8Array, checksum: stri
  * the actual binary content instead of JSON metadata.
  *
  * @param {string} url - The artifact URL
+ * @param {string} [contentType] - Optional content type
  * @throws {ArtifactFetchError} If the artifact cannot be fetched
  */
-export async function fetchArtifact(url: string): Promise<Buffer> {
+export async function fetchArtifact(url: string, contentType?: string): Promise<Buffer> {
 	const options: RequestInit = {
 		...fetchOptions,
 		headers: {
 			...fetchOptions.headers,
 			// Required for GitHub API to return binary content instead of JSON
-			Accept: 'application/octet-stream',
+			Accept: contentType || 'application/octet-stream',
 		},
 	};
 
@@ -326,7 +328,7 @@ export async function verifyRelease(
 		// Fetch the artifact
 		let data: Buffer;
 		try {
-			data = await fetchArtifact(artifact.url);
+			data = await fetchArtifact(artifact.url, artifact['content-type']);
 		} catch (err) {
 			errors.push(`Failed to fetch ${artifact.url}: ${(err as Error).message}`);
 			artifacts.push({
