@@ -18,13 +18,13 @@ const DID_PLC_LENGTH = 32;
  * Prefix for Ed25519 public keys in did:key format (verification keys).
  * Format: did:key:z6Mk...
  */
-const ED25519_DID_KEY_PREFIX = 'did:key:z6Mk';
+export const ED25519_DID_KEY_PREFIX = 'did:key:z6Mk';
 
 /**
  * Prefix for Secp256k1 public keys in did:key format (rotation keys).
  * Format: did:key:zQ3sh...
  */
-const SECP256K1_DID_KEY_PREFIX = 'did:key:zQ3sh';
+export const SECP256K1_DID_KEY_PREFIX = 'did:key:zQ3sh';
 
 /**
  * Expected length of a did:key Ed25519 public key.
@@ -36,7 +36,25 @@ const ED25519_DID_KEY_LENGTH = 56;
  * Expected length of a did:key Secp256k1 compressed public key.
  * Format: did:key: (8 chars) + multibase 'z' (1 char) + base58btc encoded (multicodec prefix + 33-byte compressed key) = 57 characters total.
  */
-const SECP256K1_DID_KEY_LENGTH = 57;
+export const SECP256K1_DID_KEY_LENGTH = 57;
+
+/**
+ * Multibase prefix for Ed25519 public keys (verification keys).
+ * Format: z6Mk...
+ */
+export const ED25519_PUBLIC_MULTIBASE_PREFIX = 'z6Mk';
+
+/**
+ * Multibase prefix for Secp256k1 public keys (rotation keys).
+ * Format: zQ3sh...
+ */
+export const SECP256K1_PUBLIC_MULTIBASE_PREFIX = 'zQ3sh';
+
+/**
+ * Length of a Secp256k1 public key multibase (without did:key: prefix).
+ * 'z' (1 char) + base58btc encoded (multicodec prefix + 33-byte compressed key) = 49 characters total.
+ */
+export const SECP256K1_PUBLIC_MULTIBASE_LENGTH = 49;
 
 /**
  * Validates that a DID has the required did:plc: prefix and correct length.

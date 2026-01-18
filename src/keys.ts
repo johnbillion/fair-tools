@@ -1,6 +1,18 @@
 import { Keypair, Secp256k1Keypair, verifySignature } from '@atproto/crypto';
 import { ed25519 } from '@noble/curves/ed25519';
-import { Ed25519Keypair, ED25519_PUBLIC_MULTIBASE_PREFIX, DID_KEY_PREFIX } from './Ed25519Keypair.js';
+import {
+	Ed25519Keypair,
+	ED25519_PUBLIC_MULTIBASE_PREFIX as ED25519_MULTIBASE_PREFIX,
+	DID_KEY_PREFIX,
+} from './Ed25519Keypair.js';
+import {
+	SECP256K1_DID_KEY_PREFIX,
+	SECP256K1_DID_KEY_LENGTH,
+	SECP256K1_PUBLIC_MULTIBASE_PREFIX,
+	SECP256K1_PUBLIC_MULTIBASE_LENGTH,
+	ED25519_DID_KEY_PREFIX,
+	ED25519_PUBLIC_MULTIBASE_PREFIX,
+} from './did-validation.js';
 
 export interface KeyPairBundle<T extends Keypair = Keypair> {
 	publicKey: string;
@@ -178,7 +190,7 @@ export async function getVerificationPublicKeyMultibase(keyInput: string): Promi
 		return multibase;
 	}
 
-	if (trimmed.startsWith(ED25519_PUBLIC_MULTIBASE_PREFIX)) {
+	if (trimmed.startsWith(ED25519_MULTIBASE_PREFIX)) {
 		try {
 			await Ed25519Keypair.fromPublicKeyMultibase(trimmed);
 		} catch (err) {
@@ -203,16 +215,6 @@ export async function getVerificationPublicKeyMultibase(keyInput: string): Promi
 }
 
 /**
- * Secp256k1 public key prefix in did:key format (rotation keys).
- */
-const SECP256K1_DID_KEY_PREFIX = 'did:key:zQ3sh';
-
-/**
- * Secp256k1 public key multibase prefix (rotation keys).
- */
-const SECP256K1_PUBLIC_MULTIBASE_PREFIX = 'zQ3sh';
-
-/**
  * Extracts the public key did:key from a rotation key input.
  *
  * Accepts:
@@ -233,16 +235,18 @@ export async function getRotationPublicKeyDidKey(keyInput: string): Promise<stri
 	// Check if it's already in did:key format
 	if (trimmed.startsWith(DID_KEY_PREFIX)) {
 		// Validate it's a rotation key, not a verification key
-		if (trimmed.startsWith(DID_KEY_PREFIX + ED25519_PUBLIC_MULTIBASE_PREFIX)) {
+		if (trimmed.startsWith(ED25519_DID_KEY_PREFIX)) {
 			throw new RotationKeyInputError(
 				'Wrong key type. This looks like a verification key, but a rotation key is required.',
 			);
 		}
 		if (!trimmed.startsWith(SECP256K1_DID_KEY_PREFIX)) {
-			throw new RotationKeyInputError(`Invalid rotation key format. Key must start with '${SECP256K1_DID_KEY_PREFIX}'.`);
+			throw new RotationKeyInputError(
+				`Invalid rotation key format. Key must start with '${SECP256K1_DID_KEY_PREFIX}'.`,
+			);
 		}
-		// Validate length (basic validation)
-		if (trimmed.length !== 57) {
+		// Validate length
+		if (trimmed.length !== SECP256K1_DID_KEY_LENGTH) {
 			throw new RotationKeyInputError('Invalid rotation key length.');
 		}
 		return trimmed;
@@ -251,7 +255,7 @@ export async function getRotationPublicKeyDidKey(keyInput: string): Promise<stri
 	// Check if it's a multibase public key
 	if (trimmed.startsWith(SECP256K1_PUBLIC_MULTIBASE_PREFIX)) {
 		// Validate length
-		if (trimmed.length !== 49) {
+		if (trimmed.length !== SECP256K1_PUBLIC_MULTIBASE_LENGTH) {
 			throw new RotationKeyInputError('Invalid rotation key multibase length.');
 		}
 		return DID_KEY_PREFIX + trimmed;
