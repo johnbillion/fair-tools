@@ -10,7 +10,7 @@ import { Ed25519Keypair } from './Ed25519Keypair.js';
 import { fetchOptions } from './utils.js';
 import { METADATA_CONTEXT, verifyArtifact } from './metadata.js';
 import { FAIR_SERVICE_TYPE, PLC_DIRECTORY_URL, createPlcClient } from './plc.js';
-import { validateDidLog, DidLogFetchError, DidLogValidationError } from './plc-log.js';
+import { validateDidLog, DidLogFetchError, DidLogValidationError, fetchDidLog } from './plc-log.js';
 import {
 	getFairAlias,
 	verifyDomainDid,
@@ -852,6 +852,52 @@ export async function checkVerificationKey(
 		publicKeyMultibase,
 		matchingKeyId: matchingKey?.id ?? null,
 		allKeys: verificationKeys,
+	};
+}
+
+/**
+ * Result of checking if a rotation key is valid for a DID.
+ */
+export interface CheckRotationKeyResult {
+	valid: boolean;
+	publicKeyDidKey: string;
+	allKeys: string[];
+}
+
+/**
+ * Checks if a rotation key is valid for a DID.
+ *
+ * A rotation key is valid if it's present in the latest operation in the DID log,
+ * not in the DID document.
+ *
+ * @param did - The DID to check (did:plc:...)
+ * @param publicKeyDidKey - The public key in did:key format to check (did:key:zQ3sh...)
+ * @param plcUrl - Optional PLC directory URL
+ * @returns Result indicating if the key is valid and all rotation keys in the latest operation
+ * @throws {DidLogFetchError} If the DID log cannot be fetched
+ */
+export async function checkRotationKey(
+	did: string,
+	publicKeyDidKey: string,
+	plcUrl = PLC_DIRECTORY_URL,
+): Promise<CheckRotationKeyResult> {
+	// Fetch the DID operation log
+	const ops = await fetchDidLog(did, plcUrl);
+
+	if (ops.length === 0) {
+		throw new DidLogFetchError('DID log is empty');
+	}
+
+	// Get rotation keys from the latest operation
+	const latestOp = ops[ops.length - 1];
+	const rotationKeys = latestOp.rotationKeys || [];
+
+	const isValid = rotationKeys.includes(publicKeyDidKey);
+
+	return {
+		valid: isValid,
+		publicKeyDidKey,
+		allKeys: rotationKeys,
 	};
 }
 

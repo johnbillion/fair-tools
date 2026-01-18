@@ -119,6 +119,11 @@ export async function verifyWithRotationKey(
 export class VerificationKeyInputError extends Error {}
 
 /**
+ * Error thrown when a rotation key input is invalid.
+ */
+export class RotationKeyInputError extends Error {}
+
+/**
  * Parses a public key input and returns the multibase format.
  *
  * Only accepts public keys:
@@ -194,5 +199,83 @@ export async function getVerificationPublicKeyMultibase(keyInput: string): Promi
 
 	throw new VerificationKeyInputError(
 		'Unrecognized key format. Expected a public key (did:key:z6Mk...) or private key (PEM, multibase, or hex)',
+	);
+}
+
+/**
+ * Secp256k1 public key prefix in did:key format (rotation keys).
+ */
+const SECP256K1_DID_KEY_PREFIX = 'did:key:zQ3sh';
+
+/**
+ * Secp256k1 public key multibase prefix (rotation keys).
+ */
+const SECP256K1_PUBLIC_MULTIBASE_PREFIX = 'zQ3sh';
+
+/**
+ * Extracts the public key did:key from a rotation key input.
+ *
+ * Accepts:
+ * - Public key in did:key format (did:key:zQ3sh...)
+ * - Public key multibase (zQ3sh...)
+ * - Private key in PEM, multibase, or hex format (derives the public key)
+ *
+ * @param keyInput - The key input string
+ * @returns The public key in did:key format (did:key:zQ3sh...)
+ * @throws {RotationKeyInputError} If the key format is unrecognized or invalid
+ */
+export async function getRotationPublicKeyDidKey(keyInput: string): Promise<string> {
+	const { isMultibaseRotationKey, isECPrivateKeyPEM, isHexPrivateKey, parseAsRotationKey } =
+		await import('./signing.js');
+
+	const trimmed = keyInput.trim();
+
+	// Check if it's already in did:key format
+	if (trimmed.startsWith(DID_KEY_PREFIX)) {
+		// Validate it's a rotation key, not a verification key
+		if (trimmed.startsWith(DID_KEY_PREFIX + ED25519_PUBLIC_MULTIBASE_PREFIX)) {
+			throw new RotationKeyInputError(
+				'Wrong key type. This looks like a verification key, but a rotation key is required.',
+			);
+		}
+		if (!trimmed.startsWith(SECP256K1_DID_KEY_PREFIX)) {
+			throw new RotationKeyInputError(`Invalid rotation key format. Key must start with '${SECP256K1_DID_KEY_PREFIX}'.`);
+		}
+		// Validate length (basic validation)
+		if (trimmed.length !== 57) {
+			throw new RotationKeyInputError('Invalid rotation key length.');
+		}
+		return trimmed;
+	}
+
+	// Check if it's a multibase public key
+	if (trimmed.startsWith(SECP256K1_PUBLIC_MULTIBASE_PREFIX)) {
+		// Validate length
+		if (trimmed.length !== 49) {
+			throw new RotationKeyInputError('Invalid rotation key multibase length.');
+		}
+		return DID_KEY_PREFIX + trimmed;
+	}
+
+	// Check if it's a verification key multibase (wrong type)
+	if (trimmed.startsWith(ED25519_PUBLIC_MULTIBASE_PREFIX)) {
+		throw new RotationKeyInputError(
+			'Wrong key type. This looks like a verification key, but a rotation key is required.',
+		);
+	}
+
+	// Try to parse as private key and derive public key
+	if (isECPrivateKeyPEM(trimmed) || isMultibaseRotationKey(trimmed) || isHexPrivateKey(trimmed)) {
+		try {
+			const privateKeyHex = parseAsRotationKey(trimmed);
+			const { keypair } = await importRotationKeyPair(privateKeyHex);
+			return keypair.did();
+		} catch (err) {
+			throw new RotationKeyInputError(`Invalid private key: ${(err as Error).message}`);
+		}
+	}
+
+	throw new RotationKeyInputError(
+		'Unrecognized key format. Expected a public key (did:key:zQ3sh...) or private key (PEM, multibase, or hex)',
 	);
 }

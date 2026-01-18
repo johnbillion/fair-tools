@@ -61,6 +61,10 @@ const commands: { [key: string]: CommandTree } = {
 				description: 'Revoke a rotation key',
 				load: () => import('./did-rotation-key-revoke.js'),
 			},
+			check: {
+				description: 'Check if a rotation key is valid',
+				load: () => import('./did-rotation-key-check.js'),
+			},
 		},
 		keys: {
 			migrate: {

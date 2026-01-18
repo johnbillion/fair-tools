@@ -259,7 +259,7 @@ export function isMultibaseVerificationKey(content: string): boolean {
  * @returns {string} - The hex key
  * @throws {SigningKeyError} If the format is invalid or unrecognized
  */
-function parseAsRotationKey(content: string): string {
+export function parseAsRotationKey(content: string): string {
 	const trimmed = content.trim();
 
 	// Try PEM format first (EC PRIVATE KEY for secp256k1)
