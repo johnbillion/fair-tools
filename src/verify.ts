@@ -855,6 +855,59 @@ export async function checkVerificationKey(
 	};
 }
 
+/**
+ * Result of checking if a rotation key is valid for a DID.
+ */
+export interface CheckRotationKeyResult {
+	valid: boolean;
+	publicKeyMultibase: string;
+	allKeys: string[];
+}
+
+/**
+ * Checks if a rotation key is valid for a DID.
+ *
+ * A rotation key is valid if it's present in the latest operation of the DID log.
+ * Unlike verification keys (which are in the DID document), rotation keys are
+ * tracked in the operation log itself.
+ *
+ * @param did - The DID to check (did:plc:...)
+ * @param publicKeyMultibase - The public key multibase to check (zQ3sh...)
+ * @param plcUrl - Optional PLC directory URL
+ * @returns Result indicating if the key is valid and the list of current rotation keys
+ * @throws {DidLogFetchError} If the DID log cannot be fetched
+ */
+export async function checkRotationKey(
+	did: string,
+	publicKeyMultibase: string,
+	plcUrl = PLC_DIRECTORY_URL,
+): Promise<CheckRotationKeyResult> {
+	const { fetchDidLog } = await import('./plc-log.js');
+
+	const didKey = `did:key:${publicKeyMultibase}`;
+	const ops = await fetchDidLog(did, plcUrl);
+
+	if (ops.length === 0) {
+		return {
+			valid: false,
+			publicKeyMultibase,
+			allKeys: [],
+		};
+	}
+
+	// Get rotation keys from the latest operation
+	const latestOp = ops[ops.length - 1];
+	const rotationKeys = latestOp.rotationKeys || [];
+
+	const isValid = rotationKeys.includes(didKey);
+
+	return {
+		valid: isValid,
+		publicKeyMultibase,
+		allKeys: rotationKeys,
+	};
+}
+
 // Re-export error types for consumers
 export { DidLogFetchError, DidLogValidationError } from './plc-log.js';
 export {

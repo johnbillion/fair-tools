@@ -1,4 +1,4 @@
-import { Keypair, Secp256k1Keypair, verifySignature } from '@atproto/crypto';
+import { Keypair, Secp256k1Keypair, verifySignature, multibaseToBytes } from '@atproto/crypto';
 import { ed25519 } from '@noble/curves/ed25519';
 import { Ed25519Keypair, ED25519_PUBLIC_MULTIBASE_PREFIX, DID_KEY_PREFIX } from './Ed25519Keypair.js';
 
@@ -119,6 +119,11 @@ export async function verifyWithRotationKey(
 export class VerificationKeyInputError extends Error {}
 
 /**
+ * Error thrown when a rotation key input is invalid.
+ */
+export class RotationKeyInputError extends Error {}
+
+/**
  * Parses a public key input and returns the multibase format.
  *
  * Only accepts public keys:
@@ -194,5 +199,135 @@ export async function getVerificationPublicKeyMultibase(keyInput: string): Promi
 
 	throw new VerificationKeyInputError(
 		'Unrecognized key format. Expected a public key (did:key:z6Mk...) or private key (PEM, multibase, or hex)',
+	);
+}
+
+/**
+ * Multicodec prefix for secp256k1 compressed public keys (rotation keys).
+ */
+const SECP256K1_PUBLIC_PREFIX = new Uint8Array([0xe7, 0x01]);
+
+/**
+ * Multibase prefix for Secp256k1 public keys (rotation keys).
+ */
+const SECP256K1_PUBLIC_MULTIBASE_PREFIX = 'zQ3sh';
+
+/**
+ * Validates a Secp256k1 public key multibase.
+ *
+ * @param multibase - The multibase string to validate (zQ3sh...)
+ * @throws {RotationKeyInputError} If the multibase is invalid
+ */
+function validateSecp256k1PublicKeyMultibase(multibase: string): void {
+	let decoded: Uint8Array;
+	try {
+		decoded = multibaseToBytes(multibase);
+	} catch (err) {
+		throw new RotationKeyInputError(`Invalid multibase encoding: ${(err as Error).message}`);
+	}
+
+	// Check minimum length (2-byte prefix + at least some key data)
+	if (decoded.length < SECP256K1_PUBLIC_PREFIX.length) {
+		throw new RotationKeyInputError(
+			`Invalid key length: expected at least ${SECP256K1_PUBLIC_PREFIX.length} bytes, got ${decoded.length} bytes`,
+		);
+	}
+
+	// Check for secp256k1 multicodec prefix (0xe701)
+	if (decoded[0] !== SECP256K1_PUBLIC_PREFIX[0] || decoded[1] !== SECP256K1_PUBLIC_PREFIX[1]) {
+		throw new RotationKeyInputError(
+			`Unsupported key type: expected secp256k1 multicodec prefix (0xe701), ` +
+				`got 0x${decoded[0].toString(16).padStart(2, '0')}${decoded[1].toString(16).padStart(2, '0')}`,
+		);
+	}
+
+	// Validate total length (2-byte prefix + 33-byte compressed public key = 35 bytes)
+	const expectedLength = SECP256K1_PUBLIC_PREFIX.length + 33;
+	if (decoded.length !== expectedLength) {
+		throw new RotationKeyInputError(
+			`Invalid key length: expected ${expectedLength} bytes (2-byte prefix + 33-byte key), ` +
+				`got ${decoded.length} bytes`,
+		);
+	}
+}
+
+/**
+ * Parses a rotation public key input and returns the multibase format.
+ *
+ * Only accepts public keys:
+ * - did:key format (did:key:zQ3sh...)
+ * - Multibase format (zQ3sh...)
+ *
+ * @param keyInput - The public key input string
+ * @returns The public key multibase (zQ3sh...)
+ * @throws {RotationKeyInputError} If the key format is unrecognized, invalid, or a private key
+ */
+export async function parseRotationPublicKeyOnly(keyInput: string): Promise<string> {
+	const { isMultibaseRotationKey, isECPrivateKeyPEM, isHexPrivateKey } = await import('./signing.js');
+
+	const trimmed = keyInput.trim();
+
+	// Check if it looks like a private key and reject with a specific error
+	if (isECPrivateKeyPEM(trimmed) || isMultibaseRotationKey(trimmed) || isHexPrivateKey(trimmed)) {
+		throw new RotationKeyInputError(
+			'Private key provided but only public keys are accepted. Use --key-file to provide a private key from a file.',
+		);
+	}
+
+	// Delegate to getRotationPublicKeyMultibase for public key parsing
+	return getRotationPublicKeyMultibase(trimmed);
+}
+
+/**
+ * Extracts the public key multibase from a rotation key input.
+ *
+ * Accepts:
+ * - Public key in did:key format (did:key:zQ3sh...)
+ * - Public key multibase (zQ3sh...)
+ * - Private key in PEM, multibase, or hex format (derives the public key)
+ *
+ * @param keyInput - The key input string
+ * @returns The public key multibase (zQ3sh...)
+ * @throws {RotationKeyInputError} If the key format is unrecognized or invalid
+ */
+export async function getRotationPublicKeyMultibase(keyInput: string): Promise<string> {
+	const { isMultibaseRotationKey, isECPrivateKeyPEM, isHexPrivateKey, parseAsRotationKey } =
+		await import('./signing.js');
+
+	const trimmed = keyInput.trim();
+
+	// Handle did:key format
+	if (trimmed.startsWith(DID_KEY_PREFIX)) {
+		const multibase = trimmed.slice(DID_KEY_PREFIX.length);
+		if (!multibase.startsWith('zQ3sh')) {
+			throw new RotationKeyInputError(
+				`Invalid rotation key format. Expected a Secp256k1 key starting with 'zQ3sh', got '${multibase.slice(0, 5)}...'`,
+			);
+		}
+		// Validate by decoding and checking structure
+		validateSecp256k1PublicKeyMultibase(multibase);
+		return multibase;
+	}
+
+	// Handle multibase format (zQ3sh...)
+	if (trimmed.startsWith(SECP256K1_PUBLIC_MULTIBASE_PREFIX)) {
+		// Validate by decoding and checking structure
+		validateSecp256k1PublicKeyMultibase(trimmed);
+		return trimmed;
+	}
+
+	// Handle private key formats (derive the public key)
+	if (isECPrivateKeyPEM(trimmed) || isMultibaseRotationKey(trimmed) || isHexPrivateKey(trimmed)) {
+		try {
+			const privateKeyHex = parseAsRotationKey(trimmed);
+			const { keypair } = await importRotationKeyPair(privateKeyHex);
+			return keypair.did().slice(DID_KEY_PREFIX.length);
+		} catch (err) {
+			throw new RotationKeyInputError(`Invalid private key: ${(err as Error).message}`);
+		}
+	}
+
+	throw new RotationKeyInputError(
+		'Unrecognized key format. Expected a public key (did:key:zQ3sh...) or private key (PEM, multibase, or hex)',
 	);
 }
