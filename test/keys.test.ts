@@ -9,9 +9,11 @@ import {
 	verifyWithRotationKey,
 	getVerificationPublicKeyMultibase,
 	parsePublicKeyOnly,
+	getRotationPublicKeyDidKey,
 	VerificationKeyInputError,
+	RotationKeyInputError,
 } from '../src/keys.js';
-import { encodeVerificationKey } from '../src/keyfile.js';
+import { encodeVerificationKey, encodeRotationKey } from '../src/keyfile.js';
 import { base58btc } from 'multiformats/bases/base58';
 
 describe('generate verification key pair', () => {
@@ -405,6 +407,101 @@ describe('parsePublicKeyOnly', () => {
 		await assert.rejects(parsePublicKeyOnly(rotationKeys.publicKey), (err) => {
 			assert(err instanceof VerificationKeyInputError);
 			assert.match(err.message, /Invalid did:key format/);
+			return true;
+		});
+	});
+});
+
+describe('getRotationPublicKeyDidKey', () => {
+	it('returns did:key format as-is when valid', async () => {
+		const keys = await generateRotationKeyPair();
+
+		const result = await getRotationPublicKeyDidKey(keys.publicKey);
+
+		assert.strictEqual(result, keys.publicKey);
+	});
+
+	it('converts multibase to did:key format', async () => {
+		const keys = await generateRotationKeyPair();
+		const multibase = keys.publicKey.replace('did:key:', '');
+
+		const result = await getRotationPublicKeyDidKey(multibase);
+
+		assert.strictEqual(result, keys.publicKey);
+	});
+
+	it('derives public key from hex private key', async () => {
+		const keys = await generateRotationKeyPair();
+		const hexPrivateKey = Buffer.from(keys.privateKey).toString('hex');
+
+		const result = await getRotationPublicKeyDidKey(hexPrivateKey);
+
+		assert.strictEqual(result, keys.publicKey);
+	});
+
+	it('derives public key from PEM private key', async () => {
+		const keys = await generateRotationKeyPair();
+		const pemPrivateKey = encodeRotationKey(keys.privateKey);
+
+		const result = await getRotationPublicKeyDidKey(pemPrivateKey);
+
+		assert.strictEqual(result, keys.publicKey);
+	});
+
+	it('derives public key from multibase private key', async () => {
+		const keys = await generateRotationKeyPair();
+
+		// secp256k1 multibase format
+		const SECP256K1_PRIV_PREFIX = new Uint8Array([0x81, 0x26]);
+		const multibaseKey = Buffer.concat([Buffer.from(SECP256K1_PRIV_PREFIX), Buffer.from(keys.privateKey)]);
+		const multibasePrivateKey = base58btc.encode(multibaseKey);
+
+		const result = await getRotationPublicKeyDidKey(multibasePrivateKey);
+
+		assert.strictEqual(result, keys.publicKey);
+	});
+
+	it('trims whitespace from input', async () => {
+		const keys = await generateRotationKeyPair();
+
+		const result = await getRotationPublicKeyDidKey('  ' + keys.publicKey + '\n');
+
+		assert.strictEqual(result, keys.publicKey);
+	});
+
+	it('throws for invalid did:key format', async () => {
+		await assert.rejects(getRotationPublicKeyDidKey('did:key:invalid'), (err) => {
+			assert(err instanceof RotationKeyInputError);
+			assert.match(err.message, /Invalid rotation key/);
+			return true;
+		});
+	});
+
+	it('throws for verification key (wrong key type)', async () => {
+		const verificationKeys = await generateVerificationKeyPair();
+
+		await assert.rejects(getRotationPublicKeyDidKey(verificationKeys.publicKey), (err) => {
+			assert(err instanceof RotationKeyInputError);
+			assert.match(err.message, /Wrong key type.*verification key/);
+			return true;
+		});
+	});
+
+	it('throws for verification key multibase (wrong key type)', async () => {
+		const verificationKeys = await generateVerificationKeyPair();
+		const multibase = verificationKeys.keypair.publicKeyStr();
+
+		await assert.rejects(getRotationPublicKeyDidKey(multibase), (err) => {
+			assert(err instanceof RotationKeyInputError);
+			assert.match(err.message, /Wrong key type.*verification key/);
+			return true;
+		});
+	});
+
+	it('throws for unrecognized key format', async () => {
+		await assert.rejects(getRotationPublicKeyDidKey('not-a-valid-key-format'), (err) => {
+			assert(err instanceof RotationKeyInputError);
+			assert.match(err.message, /Unrecognized key format/);
 			return true;
 		});
 	});
