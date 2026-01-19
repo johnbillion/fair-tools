@@ -601,7 +601,7 @@ describe('checkRotationKey', () => {
 		const mockResult: CheckRotationKeyResult = {
 			valid: true,
 			publicKeyMultibase: 'zQ3shTest',
-			allKeys: ['did:key:zQ3shTest'],
+			allKeys: ['zQ3shTest'],
 		};
 
 		assert.strictEqual(typeof mockResult.valid, 'boolean');

@@ -301,7 +301,7 @@ export async function getRotationPublicKeyMultibase(keyInput: string): Promise<s
 		const multibase = trimmed.slice(DID_KEY_PREFIX.length);
 		if (!multibase.startsWith(SECP256K1_PUBLIC_MULTIBASE_PREFIX)) {
 			throw new RotationKeyInputError(
-				`Invalid rotation key format. Expected a Secp256k1 key starting with '${SECP256K1_PUBLIC_MULTIBASE_PREFIX}', got '${multibase.slice(0, 5)}...'`,
+				`Invalid rotation key format. Expected a Secp256k1 key starting with '${SECP256K1_PUBLIC_MULTIBASE_PREFIX}', got '${multibase.slice(0, SECP256K1_PUBLIC_MULTIBASE_PREFIX.length)}...'`,
 			);
 		}
 		// Validate by decoding and checking structure

@@ -4,7 +4,7 @@ import { parseArgs } from 'node:util';
 import { readFile } from 'node:fs/promises';
 import { getRotationPublicKeyMultibase, parseRotationPublicKeyOnly, RotationKeyInputError } from '../keys.js';
 import { validatePlcDid, DidValidationError } from '../did-validation.js';
-import { checkRotationKey, DidLogFetchError } from '../verify.js';
+import { checkRotationKey, DidLogFetchError, DidLogValidationError } from '../verify.js';
 
 const { values } = parseArgs({
 	options: {
@@ -115,6 +115,10 @@ try {
 		console.error(`Error: Failed to fetch DID log: ${err.message}`);
 		process.exit(2);
 	}
+	if (err instanceof DidLogValidationError) {
+		console.error(`Error: DID log validation failed: ${err.message}`);
+		process.exit(2);
+	}
 	throw err;
 }
 
@@ -135,7 +139,7 @@ if (result.valid) {
 	console.log(`This key is not present in the latest operation of the DID log for ${did}`);
 	console.log(`\nValid rotation keys for this DID:`);
 	for (const key of result.allKeys) {
-		console.log(`  ${key}`);
+		console.log(`  did:key:${key}`);
 	}
 	process.exit(1);
 }

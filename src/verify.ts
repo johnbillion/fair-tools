@@ -874,7 +874,7 @@ export interface CheckRotationKeyResult {
  * @param did - The DID to check (did:plc:...)
  * @param publicKeyMultibase - The public key multibase to check (zQ3sh...)
  * @param plcUrl - Optional PLC directory URL
- * @returns Result indicating if the key is valid and the list of current rotation keys
+ * @returns Result indicating if the key is valid and the list of current rotation keys (as multibase strings)
  * @throws {DidLogFetchError} If the DID log cannot be fetched
  */
 export async function checkRotationKey(
@@ -901,10 +901,16 @@ export async function checkRotationKey(
 
 	const isValid = rotationKeys.includes(didKey);
 
+	// Strip did:key: prefix from rotation keys for consistency with publicKeyMultibase
+	const DID_KEY_PREFIX = 'did:key:';
+	const allKeysMultibase = rotationKeys.map((key) =>
+		key.startsWith(DID_KEY_PREFIX) ? key.slice(DID_KEY_PREFIX.length) : key,
+	);
+
 	return {
 		valid: isValid,
 		publicKeyMultibase,
-		allKeys: rotationKeys,
+		allKeys: allKeysMultibase,
 	};
 }
 
