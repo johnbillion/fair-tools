@@ -1,6 +1,6 @@
 # FAIR Tools
 
-A library of Node.js tools for [FAIR](https://fair.pm/) that can be used by authors and consumers of plugins and themes for WordPress.
+A library of Node.js tools for [FAIR](https://fair.pm/) that can be used by authors and consumers of plugins for WordPress.
 
 This library focuses on providing FAIR tools for the WordPress ecosystem, but its tools are also applicable to FAIR and DID PLC in general.
 
@@ -402,7 +402,7 @@ No. Its license facilitates it being transferred to The FAIR Web Foundation at a
 ## Alternatives
 
 - [FAIR Beacon](https://github.com/fairpm/fair-beacon) - Plugin for WordPress for a self-hostable FAIR repo
-- [FAIR DID Manager](https://github.com/fairpm/did-manager/tree/initial-implementation) - A PHP library for DID management and WordPress plugin/theme metadata generation
+- [FAIR DID Manager](https://github.com/fairpm/did-manager) - A PHP library for DID management and WordPress plugin/theme metadata generation
 - [FAIR Forge](https://github.com/fairpm/fair-forge) - Build system and artifact management for WordPress plugins/themes
 
 ## License
