@@ -9,10 +9,15 @@ export class DidValidationError extends Error {}
 export class PublicKeyValidationError extends Error {}
 
 /**
+ * Prefix for did:plc URIs.
+ */
+export const DID_PLC_PREFIX = 'did:plc:';
+
+/**
  * Expected length of a valid did:plc: identifier.
  * Format: did:plc: (8 chars) + 24 character base32 hash = 32 characters total.
  */
-const DID_PLC_LENGTH = 32;
+export const DID_PLC_LENGTH = 32;
 
 /**
  * Prefix for did:key URIs.
@@ -20,16 +25,28 @@ const DID_PLC_LENGTH = 32;
 export const DID_KEY_PREFIX = 'did:key:';
 
 /**
+ * Multibase prefix for Ed25519 public keys (verification keys).
+ * Format: z6Mk...
+ */
+export const ED25519_PUBLIC_MULTIBASE_PREFIX = 'z6Mk';
+
+/**
+ * Multibase prefix for Secp256k1 public keys (rotation keys).
+ * Format: zQ3sh...
+ */
+export const SECP256K1_PUBLIC_MULTIBASE_PREFIX = 'zQ3sh';
+
+/**
  * Prefix for Ed25519 public keys in did:key format (verification keys).
  * Format: did:key:z6Mk...
  */
-export const ED25519_DID_KEY_PREFIX = 'did:key:z6Mk';
+export const ED25519_DID_KEY_PREFIX = DID_KEY_PREFIX + ED25519_PUBLIC_MULTIBASE_PREFIX;
 
 /**
  * Prefix for Secp256k1 public keys in did:key format (rotation keys).
  * Format: did:key:zQ3sh...
  */
-export const SECP256K1_DID_KEY_PREFIX = 'did:key:zQ3sh';
+export const SECP256K1_DID_KEY_PREFIX = DID_KEY_PREFIX + SECP256K1_PUBLIC_MULTIBASE_PREFIX;
 
 /**
  * Expected length of a did:key Ed25519 public key.
@@ -44,15 +61,14 @@ export const ED25519_DID_KEY_LENGTH = 56;
 export const SECP256K1_DID_KEY_LENGTH = 57;
 
 /**
- * Multibase prefix for Secp256k1 public keys (rotation keys).
- * Format: zQ3sh...
- */
-export const SECP256K1_PUBLIC_MULTIBASE_PREFIX = 'zQ3sh';
-
-/**
  * Multicodec prefix for secp256k1 compressed public keys (rotation keys).
  */
 export const SECP256K1_PUBLIC_MULTICODEC_PREFIX = new Uint8Array([0xe7, 0x01]);
+
+/**
+ * Length of a secp256k1 compressed public key in bytes.
+ */
+export const SECP256K1_COMPRESSED_PUBLIC_KEY_SIZE = 33;
 
 /**
  * Multicodec prefix for secp256k1 private keys (rotation keys).
@@ -71,8 +87,8 @@ export const ED25519_PRIVATE_MULTICODEC_PREFIX = new Uint8Array([0x80, 0x26]);
  * @throws {DidValidationError} If the DID doesn't start with 'did:plc:' or has incorrect length
  */
 export function validatePlcDid(did: string): void {
-	if (!did.startsWith('did:plc:')) {
-		throw new DidValidationError(`Invalid DID format. DID must have the prefix 'did:plc:'.`);
+	if (!did.startsWith(DID_PLC_PREFIX)) {
+		throw new DidValidationError(`Invalid DID format. DID must have the prefix '${DID_PLC_PREFIX}'.`);
 	}
 	if (did.length !== DID_PLC_LENGTH) {
 		throw new DidValidationError(`Invalid DID format. DID must be ${DID_PLC_LENGTH} characters in length.`);
@@ -86,8 +102,10 @@ export function validatePlcDid(did: string): void {
  * @throws {PublicKeyValidationError} If the key format is invalid
  */
 export function validateVerificationKey(key: string): void {
-	if (!key.startsWith('did:key:')) {
-		throw new PublicKeyValidationError(`Invalid verification key format. Key must start with 'did:key:' prefix.`);
+	if (!key.startsWith(DID_KEY_PREFIX)) {
+		throw new PublicKeyValidationError(
+			`Invalid verification key format. Key must start with '${DID_KEY_PREFIX}' prefix.`,
+		);
 	}
 
 	if (key.startsWith(SECP256K1_DID_KEY_PREFIX)) {
@@ -116,8 +134,8 @@ export function validateVerificationKey(key: string): void {
  * @throws {PublicKeyValidationError} If the key format is invalid
  */
 export function validateRotationKey(key: string): void {
-	if (!key.startsWith('did:key:')) {
-		throw new PublicKeyValidationError(`Invalid rotation key format. Key must start with 'did:key:' prefix.`);
+	if (!key.startsWith(DID_KEY_PREFIX)) {
+		throw new PublicKeyValidationError(`Invalid rotation key format. Key must start with '${DID_KEY_PREFIX}' prefix.`);
 	}
 
 	if (key.startsWith(ED25519_DID_KEY_PREFIX)) {

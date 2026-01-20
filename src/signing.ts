@@ -7,6 +7,26 @@ const SECP256K1_PRIV_PREFIX_HEX = Buffer.from(SECP256K1_PRIVATE_MULTICODEC_PREFI
 const ED25519_PRIV_PREFIX_HEX = Buffer.from(ED25519_PRIVATE_MULTICODEC_PREFIX).toString('hex');
 
 /**
+ * Length of the multibase prefix in bytes.
+ */
+const MULTIBASE_PREFIX_LENGTH = 2;
+
+/**
+ * Length of a raw Ed25519/Secp256k1 private key in bytes.
+ */
+const PRIVATE_KEY_SIZE = 32;
+
+/**
+ * Length of an Ed25519 key in Sodium format (seed + public key).
+ */
+const ED25519_SODIUM_FORMAT_LENGTH = 64;
+
+/**
+ * Length of a hex-encoded 32-byte private key.
+ */
+const HEX_ENCODED_PRIVATE_KEY_LENGTH = 64;
+
+/**
  * PEM header for EC private keys (SEC1 format, used for secp256k1 rotation keys).
  */
 const EC_PRIVATE_KEY_HEADER = '-----BEGIN EC PRIVATE KEY-----';
@@ -43,11 +63,11 @@ export function decodeMultibaseRotationKey(key: string): Uint8Array {
 		throw new SigningKeyError('Invalid key format. The key could not be decoded.');
 	}
 
-	if (decoded.length < 2) {
+	if (decoded.length < MULTIBASE_PREFIX_LENGTH) {
 		throw new SigningKeyError('Invalid key format. The key is too short.');
 	}
 
-	const prefixHex = Buffer.from(decoded.slice(0, 2)).toString('hex');
+	const prefixHex = Buffer.from(decoded.slice(0, MULTIBASE_PREFIX_LENGTH)).toString('hex');
 
 	if (prefixHex === ED25519_PRIV_PREFIX_HEX) {
 		throw new SigningKeyError(
@@ -59,9 +79,9 @@ export function decodeMultibaseRotationKey(key: string): Uint8Array {
 		throw new SigningKeyError(`Unrecognized key type (prefix: ${prefixHex}). Expected a rotation key.`);
 	}
 
-	const rawKey = decoded.slice(2);
+	const rawKey = decoded.slice(MULTIBASE_PREFIX_LENGTH);
 
-	if (rawKey.length !== 32) {
+	if (rawKey.length !== PRIVATE_KEY_SIZE) {
 		throw new SigningKeyError('Invalid key format. The key has the wrong length.');
 	}
 
@@ -86,11 +106,11 @@ export function decodeMultibaseVerificationKey(key: string): Uint8Array {
 		throw new SigningKeyError('Invalid key format. The key could not be decoded.');
 	}
 
-	if (decoded.length < 2) {
+	if (decoded.length < MULTIBASE_PREFIX_LENGTH) {
 		throw new SigningKeyError('Invalid key format. The key is too short.');
 	}
 
-	const prefixHex = Buffer.from(decoded.slice(0, 2)).toString('hex');
+	const prefixHex = Buffer.from(decoded.slice(0, MULTIBASE_PREFIX_LENGTH)).toString('hex');
 
 	if (prefixHex === SECP256K1_PRIV_PREFIX_HEX) {
 		throw new SigningKeyError(
@@ -102,11 +122,11 @@ export function decodeMultibaseVerificationKey(key: string): Uint8Array {
 		throw new SigningKeyError(`Unrecognized key type (prefix: ${prefixHex}). Expected a verification key.`);
 	}
 
-	const rawKey = decoded.slice(2);
+	const rawKey = decoded.slice(MULTIBASE_PREFIX_LENGTH);
 
 	// Sodium format: 64 bytes (32-byte seed + 32-byte public key)
-	if (rawKey.length === 64) {
-		return rawKey.slice(0, 32);
+	if (rawKey.length === ED25519_SODIUM_FORMAT_LENGTH) {
+		return rawKey.slice(0, PRIVATE_KEY_SIZE);
 	}
 
 	throw new SigningKeyError('Invalid key format. Expected a 64-byte Sodium-format Ed25519 key.');
@@ -140,7 +160,7 @@ function decodeECPrivateKeyPEM(key: string): Uint8Array {
 
 	// JWK 'd' is base64url-encoded
 	const rawKey = Buffer.from(jwk.d, 'base64url');
-	if (rawKey.length !== 32) {
+	if (rawKey.length !== PRIVATE_KEY_SIZE) {
 		throw new SigningKeyError('Invalid rotation key. The key has the wrong length.');
 	}
 
@@ -175,7 +195,7 @@ function decodePKCS8PrivateKeyPEM(key: string): Uint8Array {
 
 	// JWK 'd' is base64url-encoded
 	const rawKey = Buffer.from(jwk.d, 'base64url');
-	if (rawKey.length !== 32) {
+	if (rawKey.length !== PRIVATE_KEY_SIZE) {
 		throw new SigningKeyError('Invalid verification key. The key has the wrong length.');
 	}
 
@@ -200,7 +220,7 @@ export function isPKCS8PrivateKeyPEM(content: string): boolean {
  * Check if content looks like a 32-byte hex-encoded private key.
  */
 export function isHexPrivateKey(content: string): boolean {
-	return /^[a-f0-9]{64}$/i.test(content);
+	return new RegExp(`^[a-f0-9]{${HEX_ENCODED_PRIVATE_KEY_LENGTH}}$`, 'i').test(content);
 }
 
 /**
@@ -212,10 +232,10 @@ export function isMultibaseRotationKey(content: string): boolean {
 	}
 	try {
 		const decoded = base58btc.decode(content);
-		if (decoded.length < 2) {
+		if (decoded.length < MULTIBASE_PREFIX_LENGTH) {
 			return false;
 		}
-		const prefixHex = Buffer.from(decoded.slice(0, 2)).toString('hex');
+		const prefixHex = Buffer.from(decoded.slice(0, MULTIBASE_PREFIX_LENGTH)).toString('hex');
 		return prefixHex === SECP256K1_PRIV_PREFIX_HEX;
 	} catch {
 		return false;
@@ -231,10 +251,10 @@ export function isMultibaseVerificationKey(content: string): boolean {
 	}
 	try {
 		const decoded = base58btc.decode(content);
-		if (decoded.length < 2) {
+		if (decoded.length < MULTIBASE_PREFIX_LENGTH) {
 			return false;
 		}
-		const prefixHex = Buffer.from(decoded.slice(0, 2)).toString('hex');
+		const prefixHex = Buffer.from(decoded.slice(0, MULTIBASE_PREFIX_LENGTH)).toString('hex');
 		return prefixHex === ED25519_PRIV_PREFIX_HEX;
 	} catch {
 		return false;

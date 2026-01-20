@@ -3,7 +3,7 @@
 import { parseArgs } from 'node:util';
 import { readFile } from 'node:fs/promises';
 import { getRotationPublicKeyMultibase, parseRotationPublicKeyOnly, RotationKeyInputError } from '../keys.js';
-import { validatePlcDid, DidValidationError } from '../did-validation.js';
+import { validatePlcDid, DidValidationError, DID_KEY_PREFIX } from '../did-validation.js';
 import { checkRotationKey, DidLogFetchError, DidLogValidationError } from '../verify.js';
 
 const { values } = parseArgs({
@@ -131,16 +131,16 @@ if (result.allKeys.length === 0) {
 
 if (result.valid) {
 	console.log(`\n✓ Rotation key is valid`);
-	console.log(`Public key: did:key:${result.publicKeyMultibase}`);
+	console.log(`Public key: ${DID_KEY_PREFIX}${result.publicKeyMultibase}`);
 	console.log(`This key can be used to sign PLC operations for ${did}`);
 	process.exit(0);
 } else {
 	console.log(`\n❌ Rotation key is not valid`);
-	console.log(`Public key: did:key:${result.publicKeyMultibase}`);
+	console.log(`Public key: ${DID_KEY_PREFIX}${result.publicKeyMultibase}`);
 	console.log(`This key is not present in the latest operation of the DID log for ${did}`);
 	console.log(`\nValid rotation keys for this DID:`);
 	for (const key of result.allKeys) {
-		console.log(`  did:key:${key}`);
+		console.log(`  ${DID_KEY_PREFIX}${key}`);
 	}
 	process.exit(1);
 }

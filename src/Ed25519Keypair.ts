@@ -1,4 +1,5 @@
 import { bytesToMultibase, multibaseToBytes, Keypair } from '@atproto/crypto';
+import { DID_KEY_PREFIX } from './did-validation.js';
 import { ed25519 } from '@noble/curves/ed25519';
 import * as uint8arrays from 'uint8arrays';
 
@@ -8,10 +9,9 @@ import * as uint8arrays from 'uint8arrays';
 export const ED25519_PUBLIC_PREFIX = new Uint8Array([0xed, 0x01]);
 
 /**
- * Multibase base58btc prefix for Ed25519 public keys (z6Mk).
- * This is the base58btc encoding of ED25519_PUBLIC_PREFIX.
+ * Length of an Ed25519 public key in bytes.
  */
-export const ED25519_PUBLIC_MULTIBASE_PREFIX = 'z6Mk';
+const ED25519_PUBLIC_KEY_SIZE = 32;
 
 /**
  * Ed25519 verification keypair.
@@ -56,7 +56,7 @@ export class Ed25519Keypair implements Keypair {
 	 */
 	static async fromPublicKeyMultibase(publicKeyMultibase: string): Promise<Ed25519Keypair> {
 		const decoded = multibaseToBytes(publicKeyMultibase);
-		const expectedLength = ED25519_PUBLIC_PREFIX.length + 32;
+		const expectedLength = ED25519_PUBLIC_PREFIX.length + ED25519_PUBLIC_KEY_SIZE;
 
 		// Validate minimum length before accessing array indices
 		if (decoded.length < ED25519_PUBLIC_PREFIX.length) {
@@ -106,7 +106,7 @@ export class Ed25519Keypair implements Keypair {
 	 * Get the public key as a did:key string.
 	 */
 	did(): string {
-		return `did:key:${this.publicKeyStr()}`;
+		return `${DID_KEY_PREFIX}${this.publicKeyStr()}`;
 	}
 
 	/**

@@ -368,6 +368,25 @@ interface AssetPattern {
 }
 
 /**
+ * WordPress plugin banner dimensions.
+ */
+const BANNER_SMALL_WIDTH = 772;
+const BANNER_SMALL_HEIGHT = 250;
+const BANNER_LARGE_WIDTH = 1544;
+const BANNER_LARGE_HEIGHT = 500;
+
+/**
+ * WordPress plugin icon dimensions.
+ */
+const ICON_SMALL_SIZE = 128;
+const ICON_LARGE_SIZE = 256;
+
+/**
+ * Maximum number of keywords allowed in metadata.
+ */
+const MAX_KEYWORDS = 5;
+
+/**
  * Asset file patterns for WordPress plugins.
  *
  * See https://developer.wordpress.org/plugins/wordpress-org/plugin-assets/
@@ -375,16 +394,16 @@ interface AssetPattern {
 const ASSET_PATTERNS: AssetPattern[] = [
 	// Banners
 	{
-		pattern: /^banner-772x250\.(png|jpe?g|gif)$/i,
+		pattern: new RegExp(`^banner-${BANNER_SMALL_WIDTH}x${BANNER_SMALL_HEIGHT}\\.(png|jpe?g|gif)$`, 'i'),
 		type: 'banner',
-		width: 772,
-		height: 250,
+		width: BANNER_SMALL_WIDTH,
+		height: BANNER_SMALL_HEIGHT,
 	},
 	{
-		pattern: /^banner-1544x500\.(png|jpe?g|gif)$/i,
+		pattern: new RegExp(`^banner-${BANNER_LARGE_WIDTH}x${BANNER_LARGE_HEIGHT}\\.(png|jpe?g|gif)$`, 'i'),
 		type: 'banner',
-		width: 1544,
-		height: 500,
+		width: BANNER_LARGE_WIDTH,
+		height: BANNER_LARGE_HEIGHT,
 	},
 	// Icons
 	{
@@ -394,16 +413,16 @@ const ASSET_PATTERNS: AssetPattern[] = [
 		height: null,
 	},
 	{
-		pattern: /^icon-128x128\.(png|jpe?g|gif)$/i,
+		pattern: new RegExp(`^icon-${ICON_SMALL_SIZE}x${ICON_SMALL_SIZE}\\.(png|jpe?g|gif)$`, 'i'),
 		type: 'icon',
-		width: 128,
-		height: 128,
+		width: ICON_SMALL_SIZE,
+		height: ICON_SMALL_SIZE,
 	},
 	{
-		pattern: /^icon-256x256\.(png|jpe?g|gif)$/i,
+		pattern: new RegExp(`^icon-${ICON_LARGE_SIZE}x${ICON_LARGE_SIZE}\\.(png|jpe?g|gif)$`, 'i'),
 		type: 'icon',
-		width: 256,
-		height: 256,
+		width: ICON_LARGE_SIZE,
+		height: ICON_LARGE_SIZE,
 	},
 ];
 
@@ -691,7 +710,7 @@ export async function buildMetadataFromContent(
 		authors,
 		license,
 		security,
-		keywords: (keywords || []).slice(0, 5),
+		keywords: (keywords || []).slice(0, MAX_KEYWORDS),
 		sections,
 		releases: [release, ...filteredReleases],
 	});

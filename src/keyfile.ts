@@ -44,6 +44,16 @@ interface FormatKeyFileContentOptions {
 export class SaveKeyError extends Error {}
 
 /**
+ * Size of the uncompressed public key prefix byte (0x04).
+ */
+const UNCOMPRESSED_KEY_PREFIX_SIZE = 1;
+
+/**
+ * Size of a secp256k1 coordinate (X or Y) in bytes.
+ */
+const SECP256K1_COORDINATE_SIZE = 32;
+
+/**
  * Encodes a rotation key (secp256k1) as a PEM string in SEC1 format.
  *
  * @param {Uint8Array} privateKey - The 32-byte private key
@@ -51,8 +61,12 @@ export class SaveKeyError extends Error {}
  */
 export function encodeRotationKey(privateKey: Uint8Array): string {
 	const uncompressedPublicKey = secp256k1.getPublicKey(privateKey, false);
-	const publicKeyX = uncompressedPublicKey.slice(1, 33);
-	const publicKeyY = uncompressedPublicKey.slice(33, 65);
+	// Uncompressed format: 0x04 prefix + 32-byte X + 32-byte Y
+	const xStart = UNCOMPRESSED_KEY_PREFIX_SIZE;
+	const xEnd = xStart + SECP256K1_COORDINATE_SIZE;
+	const yEnd = xEnd + SECP256K1_COORDINATE_SIZE;
+	const publicKeyX = uncompressedPublicKey.slice(xStart, xEnd);
+	const publicKeyY = uncompressedPublicKey.slice(xEnd, yEnd);
 
 	const keyObject = crypto.createPrivateKey({
 		key: {

@@ -883,7 +883,7 @@ export async function checkRotationKey(
 ): Promise<CheckRotationKeyResult> {
 	const { fetchDidLog } = await import('./plc-log.js');
 
-	const didKey = `did:key:${publicKeyMultibase}`;
+	const didKey = `${DID_KEY_PREFIX}${publicKeyMultibase}`;
 	const ops = await fetchDidLog(did, plcUrl);
 
 	if (ops.length === 0) {

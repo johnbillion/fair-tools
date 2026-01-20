@@ -1,5 +1,10 @@
 import { resolveTxt } from 'node:dns/promises';
 
+/**
+ * Maximum length of a domain name per DNS specification.
+ */
+const MAX_DOMAIN_LENGTH = 255;
+
 const DOMAIN_REGEX = /^[a-z0-9][a-z0-9-]{0,62}(\.[a-z0-9][a-z0-9-]{0,62})+$/i;
 const DID_RECORD_REGEX = /^did="?([^"]+)"?$/;
 
@@ -29,8 +34,8 @@ export function validateDomain(domain: string): void {
 		throw new InvalidDomainError('Domain is required');
 	}
 
-	if (domain.length > 255) {
-		throw new InvalidDomainError('Domain must not exceed 255 characters');
+	if (domain.length > MAX_DOMAIN_LENGTH) {
+		throw new InvalidDomainError(`Domain must not exceed ${MAX_DOMAIN_LENGTH} characters`);
 	}
 
 	if (!DOMAIN_REGEX.test(domain)) {

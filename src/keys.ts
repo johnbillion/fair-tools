@@ -1,10 +1,14 @@
 import { Keypair, Secp256k1Keypair, verifySignature, multibaseToBytes } from '@atproto/crypto';
 import { ed25519 } from '@noble/curves/ed25519';
-import { Ed25519Keypair, ED25519_PUBLIC_MULTIBASE_PREFIX } from './Ed25519Keypair.js';
+import { Ed25519Keypair } from './Ed25519Keypair.js';
 import {
 	DID_KEY_PREFIX,
+	ED25519_PUBLIC_MULTIBASE_PREFIX,
+	ED25519_DID_KEY_PREFIX,
 	SECP256K1_PUBLIC_MULTIBASE_PREFIX,
+	SECP256K1_DID_KEY_PREFIX,
 	SECP256K1_PUBLIC_MULTICODEC_PREFIX,
+	SECP256K1_COMPRESSED_PUBLIC_KEY_SIZE,
 } from './did-validation.js';
 
 export interface KeyPairBundle<T extends Keypair = Keypair> {
@@ -203,7 +207,7 @@ export async function getVerificationPublicKeyMultibase(keyInput: string): Promi
 	}
 
 	throw new VerificationKeyInputError(
-		'Unrecognized key format. Expected a public key (did:key:z6Mk...) or private key (PEM, multibase, or hex)',
+		`Unrecognized key format. Expected a public key (${ED25519_DID_KEY_PREFIX}...) or private key (PEM, multibase, or hex)`,
 	);
 }
 
@@ -237,7 +241,7 @@ function validateSecp256k1PublicKeyMultibase(multibase: string): void {
 	}
 
 	// Validate total length (2-byte prefix + 33-byte compressed public key = 35 bytes)
-	const expectedLength = SECP256K1_PUBLIC_MULTICODEC_PREFIX.length + 33;
+	const expectedLength = SECP256K1_PUBLIC_MULTICODEC_PREFIX.length + SECP256K1_COMPRESSED_PUBLIC_KEY_SIZE;
 	if (decoded.length !== expectedLength) {
 		throw new RotationKeyInputError(
 			`Invalid key length: expected ${expectedLength} bytes (2-byte prefix + 33-byte key), ` +
@@ -323,6 +327,6 @@ export async function getRotationPublicKeyMultibase(keyInput: string): Promise<s
 	}
 
 	throw new RotationKeyInputError(
-		'Unrecognized key format. Expected a public key (did:key:zQ3sh...) or private key (PEM, multibase, or hex)',
+		`Unrecognized key format. Expected a public key (${SECP256K1_DID_KEY_PREFIX}...) or private key (PEM, multibase, or hex)`,
 	);
 }
