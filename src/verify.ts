@@ -869,8 +869,6 @@ export interface CheckRotationKeyResult {
  * Checks if a rotation key is valid for a DID.
  *
  * A rotation key is valid if it's present in the latest operation of the DID log.
- * Unlike verification keys (which are in the DID document), rotation keys are
- * tracked in the operation log itself.
  *
  * @param did - The DID to check (did:plc:...)
  * @param publicKeyMultibase - The public key multibase to check (zQ3sh...)
