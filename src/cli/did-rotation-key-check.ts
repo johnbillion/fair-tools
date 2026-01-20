@@ -37,6 +37,8 @@ Key input (one required):
                        Public key should be in did:key format (did:key:zQ3sh...) or multibase format (zQ3sh...).
                        Private key can be in PEM, multibase, or hex format.
 
+  If neither --key nor --key-file is provided, uses FAIR_ROTATION_KEY environment variable.
+
 Optional:
   --help               Show this help message
 
@@ -50,12 +52,6 @@ Exit codes:
 // Validate required options
 if (!values.did) {
 	console.error('Error: Missing required option: --did');
-	console.error('Run with --help for usage information.');
-	process.exit(2);
-}
-
-if (!values.key && !values['key-file']) {
-	console.error('Error: Must provide either --key or --key-file');
 	console.error('Run with --help for usage information.');
 	process.exit(2);
 }
@@ -86,9 +82,16 @@ try {
 		// --key-file accepts both public and private keys
 		const keyInput = await readFile(values['key-file'], 'utf-8');
 		publicKeyMultibase = await getRotationPublicKeyMultibase(keyInput);
-	} else {
+	} else if (values.key) {
 		// --key only accepts public keys
-		publicKeyMultibase = await parseRotationPublicKeyOnly(values.key!);
+		publicKeyMultibase = await parseRotationPublicKeyOnly(values.key);
+	} else if (process.env.FAIR_ROTATION_KEY) {
+		// FAIR_ROTATION_KEY env var - handles like --key-file
+		publicKeyMultibase = await getRotationPublicKeyMultibase(process.env.FAIR_ROTATION_KEY);
+	} else {
+		console.error('Error: Must provide --key, --key-file, or set FAIR_ROTATION_KEY environment variable');
+		console.error('Run with --help for usage information.');
+		process.exit(2);
 	}
 } catch (err) {
 	if (err instanceof RotationKeyInputError) {
