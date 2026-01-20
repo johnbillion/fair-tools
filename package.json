@@ -1,6 +1,6 @@
 {
 	"name": "fair-tools",
-	"version": "0.8.0",
+	"version": "0.8.1",
 	"description": "Tools for the FAIR protocol",
 	"type": "module",
 	"engines": {
