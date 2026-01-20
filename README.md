@@ -58,6 +58,7 @@ fair-tools did service replace          Replace a service URL in a DID
 fair-tools did service remove           Remove a service URL from a DID
 fair-tools did service verify           Verify a FAIR service endpoint URL
 fair-tools did verification-key add     Add a verification key
+fair-tools did verification-key check   Check if a verification key is valid for a DID
 fair-tools did verification-key revoke  Revoke a verification key
 fair-tools did rotation-key add         Add a rotation key
 fair-tools did rotation-key revoke      Revoke a rotation key
@@ -247,6 +248,31 @@ fair-tools did verification-key add \
 ```
 
 Use `--output-file` to save the new key to a different file instead of the signing file.
+
+### Check verification key
+
+Checks if a verification key is present in the DID document's verification methods.
+
+```bash
+fair-tools did verification-key check \
+  --did did:plc:xxx \
+  --key did:key:z6Mk...
+```
+
+You can also provide the key via file or environment variable:
+
+```bash
+# From a file (accepts public key or private keypair)
+fair-tools did verification-key check \
+  --did did:plc:xxx \
+  --key-file ./key.pem
+
+# From environment variable
+FAIR_VERIFICATION_KEY=z6Mk... fair-tools did verification-key check \
+  --did did:plc:xxx
+```
+
+If neither `--key` nor `--key-file` is provided, uses `FAIR_VERIFICATION_KEY` environment variable.
 
 ### Add rotation key
 
