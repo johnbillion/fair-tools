@@ -14,16 +14,6 @@ export const ED25519_PUBLIC_PREFIX = new Uint8Array([0xed, 0x01]);
 export const ED25519_PUBLIC_MULTIBASE_PREFIX = 'z6Mk';
 
 /**
- * Prefix for did:key URIs.
- */
-export const DID_KEY_PREFIX = 'did:key:';
-
-/**
- * Multicodec prefix for Ed25519 private keys.
- */
-export const ED25519_PRIVATE_PREFIX = new Uint8Array([0x80, 0x26]);
-
-/**
  * Ed25519 verification keypair.
  */
 export class Ed25519Keypair implements Keypair {

@@ -15,28 +15,54 @@ export class PublicKeyValidationError extends Error {}
 const DID_PLC_LENGTH = 32;
 
 /**
+ * Prefix for did:key URIs.
+ */
+export const DID_KEY_PREFIX = 'did:key:';
+
+/**
  * Prefix for Ed25519 public keys in did:key format (verification keys).
  * Format: did:key:z6Mk...
  */
-const ED25519_DID_KEY_PREFIX = 'did:key:z6Mk';
+export const ED25519_DID_KEY_PREFIX = 'did:key:z6Mk';
 
 /**
  * Prefix for Secp256k1 public keys in did:key format (rotation keys).
  * Format: did:key:zQ3sh...
  */
-const SECP256K1_DID_KEY_PREFIX = 'did:key:zQ3sh';
+export const SECP256K1_DID_KEY_PREFIX = 'did:key:zQ3sh';
 
 /**
  * Expected length of a did:key Ed25519 public key.
  * Format: did:key: (8 chars) + multibase 'z' (1 char) + base58btc encoded (multicodec prefix + 32-byte key) = 56 characters total.
  */
-const ED25519_DID_KEY_LENGTH = 56;
+export const ED25519_DID_KEY_LENGTH = 56;
 
 /**
  * Expected length of a did:key Secp256k1 compressed public key.
  * Format: did:key: (8 chars) + multibase 'z' (1 char) + base58btc encoded (multicodec prefix + 33-byte compressed key) = 57 characters total.
  */
-const SECP256K1_DID_KEY_LENGTH = 57;
+export const SECP256K1_DID_KEY_LENGTH = 57;
+
+/**
+ * Multibase prefix for Secp256k1 public keys (rotation keys).
+ * Format: zQ3sh...
+ */
+export const SECP256K1_PUBLIC_MULTIBASE_PREFIX = 'zQ3sh';
+
+/**
+ * Multicodec prefix for secp256k1 compressed public keys (rotation keys).
+ */
+export const SECP256K1_PUBLIC_MULTICODEC_PREFIX = new Uint8Array([0xe7, 0x01]);
+
+/**
+ * Multicodec prefix for secp256k1 private keys (rotation keys).
+ */
+export const SECP256K1_PRIVATE_MULTICODEC_PREFIX = new Uint8Array([0x81, 0x26]);
+
+/**
+ * Multicodec prefix for Ed25519 private keys (verification keys).
+ */
+export const ED25519_PRIVATE_MULTICODEC_PREFIX = new Uint8Array([0x80, 0x26]);
 
 /**
  * Validates that a DID has the required did:plc: prefix and correct length.

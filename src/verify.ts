@@ -7,6 +7,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { DidDocument } from '@did-plc/lib';
 import { Ed25519Keypair } from './Ed25519Keypair.js';
+import { DID_KEY_PREFIX } from './did-validation.js';
 import { fetchOptions } from './utils.js';
 import { METADATA_CONTEXT, verifyArtifact } from './metadata.js';
 import { FAIR_SERVICE_TYPE, PLC_DIRECTORY_URL, createPlcClient } from './plc.js';
@@ -902,7 +903,6 @@ export async function checkRotationKey(
 	const isValid = rotationKeys.includes(didKey);
 
 	// Strip did:key: prefix from rotation keys for consistency with publicKeyMultibase
-	const DID_KEY_PREFIX = 'did:key:';
 	const allKeysMultibase = rotationKeys.map((key) =>
 		key.startsWith(DID_KEY_PREFIX) ? key.slice(DID_KEY_PREFIX.length) : key,
 	);

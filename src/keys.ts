@@ -1,6 +1,11 @@
 import { Keypair, Secp256k1Keypair, verifySignature, multibaseToBytes } from '@atproto/crypto';
 import { ed25519 } from '@noble/curves/ed25519';
-import { Ed25519Keypair, ED25519_PUBLIC_MULTIBASE_PREFIX, DID_KEY_PREFIX } from './Ed25519Keypair.js';
+import { Ed25519Keypair, ED25519_PUBLIC_MULTIBASE_PREFIX } from './Ed25519Keypair.js';
+import {
+	DID_KEY_PREFIX,
+	SECP256K1_PUBLIC_MULTIBASE_PREFIX,
+	SECP256K1_PUBLIC_MULTICODEC_PREFIX,
+} from './did-validation.js';
 
 export interface KeyPairBundle<T extends Keypair = Keypair> {
 	publicKey: string;
@@ -203,16 +208,6 @@ export async function getVerificationPublicKeyMultibase(keyInput: string): Promi
 }
 
 /**
- * Multicodec prefix for secp256k1 compressed public keys (rotation keys).
- */
-const SECP256K1_PUBLIC_PREFIX = new Uint8Array([0xe7, 0x01]);
-
-/**
- * Multibase prefix for Secp256k1 public keys (rotation keys).
- */
-const SECP256K1_PUBLIC_MULTIBASE_PREFIX = 'zQ3sh';
-
-/**
  * Validates a Secp256k1 public key multibase.
  *
  * @param multibase - The multibase string to validate (zQ3sh...)
@@ -227,14 +222,14 @@ function validateSecp256k1PublicKeyMultibase(multibase: string): void {
 	}
 
 	// Check minimum length (2-byte prefix + at least some key data)
-	if (decoded.length < SECP256K1_PUBLIC_PREFIX.length) {
+	if (decoded.length < SECP256K1_PUBLIC_MULTICODEC_PREFIX.length) {
 		throw new RotationKeyInputError(
-			`Invalid key length: expected at least ${SECP256K1_PUBLIC_PREFIX.length} bytes, got ${decoded.length} bytes`,
+			`Invalid key length: expected at least ${SECP256K1_PUBLIC_MULTICODEC_PREFIX.length} bytes, got ${decoded.length} bytes`,
 		);
 	}
 
 	// Check for secp256k1 multicodec prefix (0xe701)
-	if (decoded[0] !== SECP256K1_PUBLIC_PREFIX[0] || decoded[1] !== SECP256K1_PUBLIC_PREFIX[1]) {
+	if (decoded[0] !== SECP256K1_PUBLIC_MULTICODEC_PREFIX[0] || decoded[1] !== SECP256K1_PUBLIC_MULTICODEC_PREFIX[1]) {
 		throw new RotationKeyInputError(
 			`Unsupported key type: expected secp256k1 multicodec prefix (0xe701), ` +
 				`got 0x${decoded[0].toString(16).padStart(2, '0')}${decoded[1].toString(16).padStart(2, '0')}`,
@@ -242,7 +237,7 @@ function validateSecp256k1PublicKeyMultibase(multibase: string): void {
 	}
 
 	// Validate total length (2-byte prefix + 33-byte compressed public key = 35 bytes)
-	const expectedLength = SECP256K1_PUBLIC_PREFIX.length + 33;
+	const expectedLength = SECP256K1_PUBLIC_MULTICODEC_PREFIX.length + 33;
 	if (decoded.length !== expectedLength) {
 		throw new RotationKeyInputError(
 			`Invalid key length: expected ${expectedLength} bytes (2-byte prefix + 33-byte key), ` +
