@@ -28,8 +28,6 @@ if (values.help) {
 
 Check if a rotation key is valid for signing PLC operations.
 
-Valid rotation keys are present in the latest operation in the DID log, not in the DID document.
-
 Required:
   --did <did>          The DID to check (did:plc:...)
 
@@ -43,7 +41,7 @@ Optional:
   --help               Show this help message
 
 Exit codes:
-  0  Key is valid (present in latest DID log operation)
+  0  Key is valid
   1  Key is not valid (not found or DID has no rotation keys)
   2  Error occurred (invalid input, network error, etc.)`);
 	process.exit(0);
