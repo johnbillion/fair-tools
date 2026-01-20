@@ -7,6 +7,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { DidDocument } from '@did-plc/lib';
 import { Ed25519Keypair } from './Ed25519Keypair.js';
+import { DID_KEY_PREFIX } from './did-validation.js';
 import { fetchOptions } from './utils.js';
 import { METADATA_CONTEXT, verifyArtifact } from './metadata.js';
 import { FAIR_SERVICE_TYPE, PLC_DIRECTORY_URL, createPlcClient } from './plc.js';
@@ -852,6 +853,62 @@ export async function checkVerificationKey(
 		publicKeyMultibase,
 		matchingKeyId: matchingKey?.id ?? null,
 		allKeys: verificationKeys,
+	};
+}
+
+/**
+ * Result of checking if a rotation key is valid for a DID.
+ */
+export interface CheckRotationKeyResult {
+	valid: boolean;
+	publicKeyMultibase: string;
+	allKeys: string[];
+}
+
+/**
+ * Checks if a rotation key is valid for a DID.
+ *
+ * A rotation key is valid if it's present in the latest operation of the DID log.
+ *
+ * @param did - The DID to check (did:plc:...)
+ * @param publicKeyMultibase - The public key multibase to check (zQ3sh...)
+ * @param plcUrl - Optional PLC directory URL
+ * @returns Result indicating if the key is valid and the list of current rotation keys (as multibase strings)
+ * @throws {DidLogFetchError} If the DID log cannot be fetched
+ */
+export async function checkRotationKey(
+	did: string,
+	publicKeyMultibase: string,
+	plcUrl = PLC_DIRECTORY_URL,
+): Promise<CheckRotationKeyResult> {
+	const { fetchDidLog } = await import('./plc-log.js');
+
+	const didKey = `did:key:${publicKeyMultibase}`;
+	const ops = await fetchDidLog(did, plcUrl);
+
+	if (ops.length === 0) {
+		return {
+			valid: false,
+			publicKeyMultibase,
+			allKeys: [],
+		};
+	}
+
+	// Get rotation keys from the latest operation
+	const latestOp = ops[ops.length - 1];
+	const rotationKeys = latestOp.rotationKeys || [];
+
+	const isValid = rotationKeys.includes(didKey);
+
+	// Strip did:key: prefix from rotation keys for consistency with publicKeyMultibase
+	const allKeysMultibase = rotationKeys.map((key) =>
+		key.startsWith(DID_KEY_PREFIX) ? key.slice(DID_KEY_PREFIX.length) : key,
+	);
+
+	return {
+		valid: isValid,
+		publicKeyMultibase,
+		allKeys: allKeysMultibase,
 	};
 }
 

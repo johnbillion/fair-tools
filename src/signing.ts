@@ -1,21 +1,10 @@
 import crypto from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { base58btc } from 'multiformats/bases/base58';
+import { SECP256K1_PRIVATE_MULTICODEC_PREFIX, ED25519_PRIVATE_MULTICODEC_PREFIX } from './did-validation.js';
 
-/**
- * Multicodec prefix for secp256k1 private keys (rotation keys).
- * Used when reading multibase-encoded keys for interoperability with FAIR Beacon.
- */
-export const SECP256K1_PRIV_PREFIX = new Uint8Array([0x81, 0x26]);
-
-/**
- * Multicodec prefix for ed25519 private keys (verification keys).
- * Used when reading multibase-encoded keys for interoperability with FAIR Beacon.
- */
-export const ED25519_PRIV_PREFIX = new Uint8Array([0x80, 0x26]);
-
-const SECP256K1_PRIV_PREFIX_HEX = Buffer.from(SECP256K1_PRIV_PREFIX).toString('hex');
-const ED25519_PRIV_PREFIX_HEX = Buffer.from(ED25519_PRIV_PREFIX).toString('hex');
+const SECP256K1_PRIV_PREFIX_HEX = Buffer.from(SECP256K1_PRIVATE_MULTICODEC_PREFIX).toString('hex');
+const ED25519_PRIV_PREFIX_HEX = Buffer.from(ED25519_PRIVATE_MULTICODEC_PREFIX).toString('hex');
 
 /**
  * PEM header for EC private keys (SEC1 format, used for secp256k1 rotation keys).
@@ -259,7 +248,7 @@ export function isMultibaseVerificationKey(content: string): boolean {
  * @returns {string} - The hex key
  * @throws {SigningKeyError} If the format is invalid or unrecognized
  */
-function parseAsRotationKey(content: string): string {
+export function parseAsRotationKey(content: string): string {
 	const trimmed = content.trim();
 
 	// Try PEM format first (EC PRIVATE KEY for secp256k1)

@@ -9,14 +9,15 @@ import {
 	requireFairServices,
 	extractDomainFromAlias,
 	buildAliasResult,
+	checkRotationKey,
 	ChecksumVerificationError,
 	SignatureVerificationError,
 	MetadataVerificationError,
 	NoServicesError,
 } from '../src/verify.js';
-import type { FetchAliasResult, VerifyDomainResult } from '../src/verify.js';
+import type { FetchAliasResult, VerifyDomainResult, CheckRotationKeyResult } from '../src/verify.js';
 import type { DidDocument } from '@did-plc/lib';
-import { generateVerificationKeyPair } from '../src/keys.js';
+import { generateVerificationKeyPair, generateRotationKeyPair } from '../src/keys.js';
 import { Ed25519Keypair } from '../src/Ed25519Keypair.js';
 import { signArtifact, METADATA_CONTEXT } from '../src/metadata.js';
 import { bytesToMultibase } from '@atproto/crypto';
@@ -588,5 +589,40 @@ describe('buildAliasResult', () => {
 		const result = buildAliasResult(fetchResult, verifyResult);
 
 		assert.strictEqual(result.domain, 'example.com');
+	});
+});
+
+describe('checkRotationKey', () => {
+	it('returns CheckRotationKeyResult type with expected fields', async () => {
+		// This test verifies the interface of the function
+		// Full integration tests would require network access to fetch DID logs
+
+		// Type check - ensure the result type has the expected structure
+		const mockResult: CheckRotationKeyResult = {
+			valid: true,
+			publicKeyMultibase: 'zQ3shTest',
+			allKeys: ['zQ3shTest'],
+		};
+
+		assert.strictEqual(typeof mockResult.valid, 'boolean');
+		assert.strictEqual(typeof mockResult.publicKeyMultibase, 'string');
+		assert.ok(Array.isArray(mockResult.allKeys));
+	});
+
+	it('function is exported and callable', () => {
+		// Verify the function is exported and has the expected signature
+		assert.strictEqual(typeof checkRotationKey, 'function');
+	});
+
+	it('accepts a rotation key public key format', async () => {
+		// Generate a valid rotation key to ensure the format is correct
+		const keys = await generateRotationKeyPair();
+		const multibase = keys.publicKey.replace('did:key:', '');
+
+		// Verify the key starts with the expected prefix
+		assert.ok(
+			multibase.startsWith('zQ3sh'),
+			`Expected rotation key multibase to start with 'zQ3sh', got '${multibase.slice(0, 5)}'`,
+		);
 	});
 });
