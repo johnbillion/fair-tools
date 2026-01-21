@@ -21,8 +21,10 @@ export const FAIR_SERVICE_ID = 'fairpm_repo';
 
 /**
  * Default PLC directory URL.
+ *
+ * Can be overridden via the PLC_DIRECTORY_URL environment variable (for testing).
  */
-export const PLC_DIRECTORY_URL = 'https://plc.directory';
+export const PLC_DIRECTORY_URL = process.env.PLC_DIRECTORY_URL ?? 'https://plc.directory';
 
 /**
  * Creates a PLC directory client.
