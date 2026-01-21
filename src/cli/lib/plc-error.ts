@@ -1,5 +1,10 @@
 import { PlcClientError } from '@did-plc/lib';
 
+const useColor = process.stderr.isTTY && !process.env.NO_COLOR;
+const red = useColor ? '\x1b[31m' : '';
+const yellow = useColor ? '\x1b[33m' : '';
+const reset = useColor ? '\x1b[0m' : '';
+
 interface PlcErrorOptions {
 	includeData?: boolean;
 }
@@ -14,17 +19,16 @@ interface PlcErrorContext {
  * The @did-plc/lib library throws PlcClientError which has:
  * - status: HTTP status code
  * - data: Response body from PLC server (often contains error details)
- * - message: Generic axios error message
+ * - message: Generic axios error message (e.g. "Request failed with status code 400")
  */
 export function formatPlcError(err: PlcClientError, { includeData = true }: PlcErrorOptions = {}): string {
-	// Check if this is a PlcClientError with additional data
 	const data = err.data as string | { message?: string; error?: string } | undefined;
 	if (err.status && data && includeData) {
 		const details = typeof data === 'string' ? data : data.message || data.error || JSON.stringify(data);
-		return `${err.message} (${err.status}): ${details}`;
+		return `(${err.status}) ${details}`;
 	}
 	if (err.status) {
-		return `${err.message} (${err.status})`;
+		return `(${err.status})`;
 	}
 	return err.message;
 }
@@ -34,9 +38,9 @@ export function formatPlcError(err: PlcClientError, { includeData = true }: PlcE
  */
 export function logPlcError(prefix: string, err: PlcClientError, context: PlcErrorContext = {}): void {
 	const hints = diagnosePlcError(err, context);
-	console.error(`\x1b[31m${prefix}: ${formatPlcError(err, { includeData: hints.length === 0 })}\x1b[0m`);
+	console.error(`${red}${prefix}: ${formatPlcError(err, { includeData: hints.length === 0 })}${reset}`);
 	for (const hint of hints) {
-		console.error(`\x1b[33m  - ${hint}\x1b[0m`);
+		console.error(`${yellow}  - ${hint}${reset}`);
 	}
 }
 
