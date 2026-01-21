@@ -12,44 +12,41 @@ describe('formatPlcError', () => {
 		const err = new Error('Request failed with status code 400');
 		err.status = 400;
 		err.data = 'Invalid signature on op';
-		assert.strictEqual(formatPlcError(err), 'Request failed with status code 400 (400): Invalid signature on op');
+		assert.strictEqual(formatPlcError(err), '(400) Invalid signature on op');
 	});
 
 	it('formats PlcClientError with object data containing message', () => {
 		const err = new Error('Request failed with status code 400');
 		err.status = 400;
 		err.data = { message: 'Key not found' };
-		assert.strictEqual(formatPlcError(err), 'Request failed with status code 400 (400): Key not found');
+		assert.strictEqual(formatPlcError(err), '(400) Key not found');
 	});
 
 	it('formats PlcClientError with object data containing error', () => {
 		const err = new Error('Request failed with status code 500');
 		err.status = 500;
 		err.data = { error: 'Internal server error' };
-		assert.strictEqual(formatPlcError(err), 'Request failed with status code 500 (500): Internal server error');
+		assert.strictEqual(formatPlcError(err), '(500) Internal server error');
 	});
 
 	it('JSON stringifies object data without message or error', () => {
 		const err = new Error('Request failed with status code 400');
 		err.status = 400;
 		err.data = { code: 'INVALID_OP', details: 'bad' };
-		assert.strictEqual(
-			formatPlcError(err),
-			'Request failed with status code 400 (400): {"code":"INVALID_OP","details":"bad"}',
-		);
+		assert.strictEqual(formatPlcError(err), '(400) {"code":"INVALID_OP","details":"bad"}');
 	});
 
 	it('excludes data when includeData is false', () => {
 		const err = new Error('Request failed with status code 400');
 		err.status = 400;
 		err.data = 'Some detailed error message';
-		assert.strictEqual(formatPlcError(err, { includeData: false }), 'Request failed with status code 400 (400)');
+		assert.strictEqual(formatPlcError(err, { includeData: false }), '(400)');
 	});
 
 	it('returns status without data when error has status but no data', () => {
 		const err = new Error('Request failed with status code 404');
 		err.status = 404;
-		assert.strictEqual(formatPlcError(err), 'Request failed with status code 404 (404)');
+		assert.strictEqual(formatPlcError(err), '(404)');
 	});
 });
 

@@ -21,8 +21,10 @@ export const FAIR_SERVICE_ID = 'fairpm_repo';
 
 /**
  * Default PLC directory URL.
+ *
+ * Can be overridden via the PLC_DIRECTORY_URL environment variable (for testing).
  */
-export const PLC_DIRECTORY_URL = 'https://plc.directory';
+export const PLC_DIRECTORY_URL = process.env.PLC_DIRECTORY_URL ?? 'https://plc.directory';
 
 /**
  * Creates a PLC directory client.
@@ -101,12 +103,12 @@ export async function submitDID({ op, did, plcUrl = PLC_DIRECTORY_URL }: SubmitD
 }
 
 /**
- * Updates the FAIR service URL for an existing DID.
+ * Sets the FAIR service URL for an existing DID.
  *
  * This adds or updates the FAIR package management service endpoint
  * in the DID document.
  */
-export async function updateDID({
+export async function setFairServiceUrl({
 	did,
 	serviceUrl,
 	signer,
