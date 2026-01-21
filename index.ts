@@ -13,7 +13,7 @@ export {
 	PLC_DIRECTORY_URL,
 	FAIR_SERVICE_TYPE,
 	FAIR_SERVICE_ID,
-	updateDID,
+	setFairServiceUrl,
 	addVerificationKey,
 	addRotationKey,
 	revokeVerificationKey,

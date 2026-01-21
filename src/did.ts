@@ -32,7 +32,7 @@ function createGenesisOperation({ verificationKey, rotationKeys }: GenesisOperat
  *
  * This creates the initial operation for a new PLC DID for a FAIR package.
  * The operation does NOT include the FAIR service - this should be
- * added in a subsequent updateDID() operation after the DID is created.
+ * added in a subsequent setFairServiceUrl() operation after the DID is created.
  */
 interface GenerateDIDOptions {
 	verificationKey: string;
@@ -66,7 +66,7 @@ interface CreateDIDOptions {
 /**
  * Creates a new FAIR package DID and submits it to the PLC directory.
  *
- * This creates the DID without a FAIR service initially. Use updateDID()
+ * This creates the DID without a FAIR service initially. Use setFairServiceUrl()
  * to add the service URL after the DID is created.
  */
 export async function createDID({

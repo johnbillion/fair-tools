@@ -101,12 +101,12 @@ export async function submitDID({ op, did, plcUrl = PLC_DIRECTORY_URL }: SubmitD
 }
 
 /**
- * Updates the FAIR service URL for an existing DID.
+ * Sets the FAIR service URL for an existing DID.
  *
  * This adds or updates the FAIR package management service endpoint
  * in the DID document.
  */
-export async function updateDID({
+export async function setFairServiceUrl({
 	did,
 	serviceUrl,
 	signer,
